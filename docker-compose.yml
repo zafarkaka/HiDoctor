@@ -1,0 +1,83 @@
+# =============================================
+# HiDoctor — Docker Compose (Production)
+# =============================================
+# Usage:
+#   docker-compose up -d          (start all services)
+#   docker-compose logs -f        (view logs)
+#   docker-compose down           (stop all services)
+# =============================================
+
+version: "3.8"
+
+services:
+  # ---------------------
+  # MongoDB Database
+  # ---------------------
+  mongo:
+    image: mongo:7
+    container_name: hidoctor-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: hidoctor_db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------
+  # FastAPI Backend
+  # ---------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hidoctor-backend
+    restart: always
+    ports:
+      - "8001:8001"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - DB_NAME=hidoctor_db
+      - JWT_SECRET=${JWT_SECRET:-hidoctor-jwt-secret-change-in-production}
+      - STRIPE_API_KEY=${STRIPE_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/health')" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------
+  # React Frontend (Web)
+  # ---------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: http://localhost:8001
+    container_name: hidoctor-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
+    driver: local
+  uploads_data:
+    driver: local

@@ -1,0 +1,16 @@
+node_modules
+__pycache__
+*.pyc
+.env
+uploads/
+.pytest_cache
+.git
+.gitignore
+*.md
+test_reports/
+tests/
+backend_test.py
+memory/
+mobile/
+design_guidelines.json
+yarn.lock
