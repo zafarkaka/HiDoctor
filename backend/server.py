@@ -2072,9 +2072,20 @@ async def admin_force_update_doctor(doctor_id: str, update: AdminDoctorUpdate, c
 @api_router.post("/admin/doctors/{doctor_id}/verify")
 async def admin_verify_doctor(doctor_id: str, current_user: dict = Depends(get_admin_user)):
     """Admin endpoint to verify a doctor"""
+    print(f"DEBUG: Verifying doctor_id: {doctor_id}")
     doctor = await db.doctors.find_one({"user_id": doctor_id})
     if not doctor:
-        raise HTTPException(status_code=404, detail="Doctor not found")
+        # Let's check by _id as a fallback
+        from bson import ObjectId
+        try:
+            doctor = await db.doctors.find_one({"_id": ObjectId(doctor_id)})
+            if doctor:
+                doctor_id = doctor.get("user_id")
+        except:
+            pass
+            
+    if not doctor:
+        raise HTTPException(status_code=404, detail=f"CRITICAL_DEBUG: Doctor with ID {doctor_id} not found in DB!")
         
     await db.users.update_one({"id": doctor_id}, {"$set": {"is_verified": True}})
     await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"is_verified": True}})
