@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import re
 import logging
 import secrets
 import httpx
@@ -531,15 +532,18 @@ async def register(user_data: UserCreate):
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     email = credentials.email.lower().strip()
-    user = await db.users.find_one({"email": email}, {"_id": 0})
+    # Case-insensitive lookup using regex to support old accounts
+    user = await db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}, {"_id": 0})
     
     if not user:
-        logger.warning(f"Login failed: User with email {email} not found")
+        logger.warning(f"Login failed: User with email {email} (normalized) not found in database.")
         raise HTTPException(status_code=401, detail="Invalid credentials")
         
     if not verify_password(credentials.password, user["password"]):
         logger.warning(f"Login failed: Password mismatch for user {email}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    logger.info(f"Successful login for user {email}")
     
     token = create_access_token({"sub": user["id"], "role": user["role"]})
     user_response = UserResponse(
