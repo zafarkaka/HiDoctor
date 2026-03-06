@@ -73,36 +73,13 @@ const stats = [
   { value: '4.9', label: 'Average Rating', icon: Star },
 ];
 
-const doctors = [
-  {
-    id: '1',
-    name: 'Dr. Sarah Johnson',
-    specialty: 'Cardiology',
-    rating: 4.9,
-    reviews: 124,
-    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'Dr. Michael Chen',
-    specialty: 'Neurology',
-    rating: 4.8,
-    reviews: 98,
-    image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop'
-  },
-  {
-    id: '3',
-    name: 'Dr. Emily Williams',
-    specialty: 'Pediatrics',
-    rating: 4.9,
-    reviews: 156,
-    image: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop'
-  }
-];
+// Removed static doctors
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
+  const [topDoctors, setTopDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
 
   useEffect(() => {
     const fetchAds = async () => {
@@ -113,7 +90,20 @@ export default function LandingPage() {
         console.error('Error fetching ads:', error);
       }
     };
+
+    const fetchTopDoctors = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/doctors/top-rated`);
+        setTopDoctors(response.data.doctors || []);
+      } catch (error) {
+        console.error('Error fetching top doctors:', error);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    };
+
     fetchAds();
+    fetchTopDoctors();
   }, []);
 
   const handleAdClick = async (ad) => {
@@ -350,42 +340,53 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {doctors.map((doctor, index) => (
-              <motion.div
-                key={doctor.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border-border/50 cursor-pointer group rounded-2xl">
-                  <div className="aspect-[4/3] relative overflow-hidden">
-                    <img
-                      src={doctor.image}
-                      alt={doctor.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
-                      <h3 className="font-semibold text-lg">{doctor.name}</h3>
-                      <p className="text-white/80 text-sm">{doctor.specialty}</p>
-                    </div>
-                  </div>
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                        <span className="font-bold text-slate-800">{doctor.rating}</span>
-                        <span className="text-muted-foreground text-sm">({doctor.reviews} reviews)</span>
+            {loadingDoctors ? (
+              [1, 2, 3].map(i => (
+                <div key={i} className="h-64 bg-slate-100 animate-pulse rounded-2xl" />
+              ))
+            ) : topDoctors.length > 0 ? (
+              topDoctors.map((doctor, index) => (
+                <motion.div
+                  key={doctor.user_id || doctor.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  <Card className="overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border-border/50 cursor-pointer group rounded-2xl" onClick={() => navigate(`/doctors/${doctor.user_id || doctor.id}`)}>
+                    <div className="aspect-[4/3] relative overflow-hidden">
+                      <img
+                        src={doctor.profile_image || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop'}
+                        alt={doctor.full_name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-4 left-4 right-4 text-white">
+                        <h3 className="font-semibold text-lg">{doctor.full_name}</h3>
+                        <p className="text-white/80 text-sm">{doctor.specialties?.join(', ') || 'Specialist'}</p>
                       </div>
-                      <Button size="sm" className="rounded-full px-5" data-testid={`book-doctor-${doctor.id}`}>
-                        Book Now
-                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                          <span className="font-bold text-slate-800">{doctor.rating || 5.0}</span>
+                          <span className="text-muted-foreground text-sm">({doctor.review_count || 0} reviews)</span>
+                        </div>
+                        <Button size="sm" className="rounded-full px-5">
+                          Book Now
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-10 text-slate-500">
+                No doctors rated yet.
+              </div>
+            )}
           </div>
 
           <div className="mt-10 text-center md:hidden">

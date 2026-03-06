@@ -850,6 +850,24 @@ async def list_doctors(
     
     return {"doctors": doctors, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 
+@api_router.get("/doctors/top-rated")
+async def get_top_rated_doctors(limit: int = 6):
+    """Get highest rated doctors with user enrichment"""
+    query = {"is_verified": True, "is_active": True}
+    # Sort by rating (desc) and reviews (desc)
+    doctors = await db.doctors.find(query, {"_id": 0}).sort([("rating", -1), ("review_count", -1)]).limit(limit).to_list(limit)
+    
+    for doc in doctors:
+        user = await db.users.find_one({"id": doc["user_id"]}, {"_id": 0, "full_name": 1, "profile_image": 1})
+        if user:
+            if not doc.get("full_name"):
+                doc["full_name"] = user.get("full_name")
+            doc["profile_image"] = normalize_image_url(user.get("profile_image") or doc.get("profile_image"))
+        else:
+            doc["profile_image"] = normalize_image_url(doc.get("profile_image"))
+            
+    return {"doctors": doctors}
+
 @api_router.get("/doctors/holidays")
 async def get_doctor_holidays(current_user: dict = Depends(get_current_user)):
     """Fetch the authenticated doctor's registered holidays (unavailable dates)"""
@@ -2441,26 +2459,6 @@ async def admin_delete_ad(ad_id: str, current_user: dict = Depends(get_admin_use
 async def admin_get_blog_posts(current_user: dict = Depends(get_admin_user)):
     posts = await db.blog_posts.find({}, {"_id": 0}).to_list(100)
     return {"posts": posts}
-
-@api_router.post("/blog")
-async def create_blog_post(post: BlogPostCreate, current_user: dict = Depends(get_admin_user)):
-    import re
-    doc = post.model_dump()
-    base_slug = re.sub(r'[^a-z0-9]+', '-', post.title.lower()).strip('-')
-    doc["slug"] = f"{base_slug}-{str(uuid.uuid4())[:8]}"
-    doc["id"] = str(uuid.uuid4())
-    doc["author_id"] = current_user["id"]
-    doc["author_name"] = current_user.get("full_name", "Author")
-    doc["created_at"] = datetime.now(timezone.utc).isoformat()
-    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
-    doc["view_count"] = 0
-    await db.blog_posts.insert_one(doc)
-    return {"message": "Post created"}
-
-@api_router.delete("/blog/{post_id}")
-async def delete_blog_post(post_id: str, current_user: dict = Depends(get_admin_user)):
-    await db.blog_posts.delete_one({"id": post_id})
-    return {"message": "Post deleted"}
 
 @api_router.post("/admin/campaigns")
 async def create_ad(ad: AdCreate, current_user: dict = Depends(get_admin_user)):
