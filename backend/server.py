@@ -536,26 +536,25 @@ async def login(credentials: UserLogin):
     email = credentials.email.lower().strip()
     logger.info(f"Login attempt for email: {email}")
     
-    # Robust case-insensitive lookup using regex
+    # Robust case-insensitive lookup
     user = await db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}, {"_id": 0})
     
     if not user:
-        logger.warning(f"AUTH_FAILURE: User not found for email: {email}")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        logger.warning(f"AUTH_FAILURE: User not found: {email}")
+        # Hint added for immediate user feedback
+        raise HTTPException(status_code=401, detail=f"User {email} not found in database")
         
     pwd_in_db = user.get("password")
     if not pwd_in_db:
-        logger.error(f"AUTH_CRITICAL: User {email} found but has NO password field!")
-        raise HTTPException(status_code=500, detail="Auth configuration error")
+        logger.error(f"AUTH_CRITICAL: User {email} has no password field!")
+        raise HTTPException(status_code=500, detail="User account is corrupted (no password)")
 
     if not verify_password(credentials.password, pwd_in_db):
-        # Log the hash prefix for debugging (safe, just checks if it's a valid bcrypt string)
-        hash_prefix = pwd_in_db[:7] if pwd_in_db else "empty"
-        logger.warning(f"AUTH_FAILURE: Password mismatch for user {email}. Hash format in DB starts with: {hash_prefix}")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        logger.warning(f"AUTH_FAILURE: Password mismatch for user {email}")
+        # Hint added for immediate user feedback
+        raise HTTPException(status_code=401, detail="Password mismatch")
     
     logger.info(f"AUTH_SUCCESS: Login verified for user {email}")
-    
     token = create_access_token({"sub": user["id"], "role": user["role"]})
     user_response = UserResponse(
         id=user["id"], email=user["email"], full_name=user["full_name"],
@@ -3136,6 +3135,30 @@ app.include_router(api_router)
 @app.on_event("startup")
 async def startup_event():
     logger.info(f"Allowed CORS origins: {origins}")
+    
+    # --- SELF-HEALING ADMIN ENSURANCE ---
+    try:
+        admin_email = "admin@admin.com"
+        admin_user = await db.users.find_one({"email": admin_email})
+        if not admin_user:
+            logger.info("Creating default admin account (admin@admin.com / admin)...")
+            user_id = str(uuid.uuid4())
+            await db.users.insert_one({
+                "id": user_id,
+                "email": admin_email,
+                "password": hash_password("admin"),
+                "full_name": "System Administrator",
+                "phone": "+10000000000",
+                "role": "admin",
+                "is_verified": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            await db.admins.insert_one({"user_id": user_id, "permissions": ["all"]})
+        else:
+            logger.info("Admin account already exists.")
+    except Exception as e:
+        logger.error(f"CRITICAL: Failed to ensure admin user on startup: {e}")
+
     # Use a file lock to ensure only one gunicorn worker starts the scheduler
     lock_file = "/tmp/scheduler.lock"
     try:
@@ -3152,9 +3175,6 @@ async def startup_event():
         # Keep the file handle open to maintain the lock
         app.state.scheduler_lock_file = f
     except (IOError, ImportError):
-        # Either another worker has the lock, or we're on a system that doesn't support flock
-        # In the latter case (e.g. Windows during local dev), we might still run redundant schedulers
-        # but in production (Linux), this will prevent duplicates.
         logger.info("Scheduler already running in another worker or lock skipped")
 
 @app.on_event("shutdown")
