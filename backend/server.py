@@ -47,7 +47,10 @@ app.add_middleware(
         "http://localhost:8081",
         "http://127.0.0.1:8081",
         "http://localhost:19006",
-        "exp://localhost:8081"
+        "exp://localhost:8081",
+        "https://www.hidoctor.online",
+        "https://hidoctor.online",
+        os.environ.get("FRONTEND_URL", "")
     ],
     allow_credentials=True,
     allow_methods=["*"],
