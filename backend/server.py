@@ -34,6 +34,20 @@ SECRET_KEY = os.environ.get('JWT_SECRET', 'healthcare-platform-secret-key-2024')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
+# Backend URL for absolute image paths
+BACKEND_URL = os.environ.get('BACKEND_URL', 'https://hidoctor-production.up.railway.app').rstrip('/')
+
+def normalize_image_url(url: Optional[str]) -> Optional[str]:
+    if not url:
+        return url
+    # If it's a relative path, prepend BACKEND_URL
+    if url.startswith('/uploads/'):
+        return f"{BACKEND_URL}{url}"
+    # If it contains localhost, swap it with the real BACKEND_URL
+    if 'localhost:8001' in url:
+        return url.replace('http://localhost:8001', BACKEND_URL)
+    return url
+
 app = FastAPI(title="HiDoctor API")
 app.state.db = db
 
@@ -131,6 +145,7 @@ class UserResponse(BaseModel):
     role: UserRole
     is_verified: bool = False
     created_at: str
+    profile_image: Optional[str] = None
     push_token: Optional[str] = None
 
 class ProfileUpdate(BaseModel):
@@ -449,6 +464,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
+        user["profile_image"] = normalize_image_url(user.get("profile_image"))
         return user
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -527,7 +543,8 @@ async def register(user_data: UserCreate):
     user_response = UserResponse(
         id=user_id, email=user_data.email, full_name=user_data.full_name,
         phone=user_data.phone, role=user_data.role, is_verified=user_doc["is_verified"],
-        created_at=user_doc["created_at"]
+        created_at=user_doc["created_at"],
+        profile_image=normalize_image_url(user_doc.get("profile_image"))
     )
     return TokenResponse(access_token=token, user=user_response)
 
@@ -559,7 +576,8 @@ async def login(credentials: UserLogin):
     user_response = UserResponse(
         id=user["id"], email=user["email"], full_name=user["full_name"],
         phone=user.get("phone"), role=user["role"], is_verified=user.get("is_verified", False),
-        created_at=user["created_at"]
+        created_at=user["created_at"],
+        profile_image=normalize_image_url(user.get("profile_image"))
     )
     return TokenResponse(access_token=token, user=user_response)
 
@@ -678,7 +696,7 @@ async def upload_profile_picture(
     with open(file_path, "wb") as f:
         f.write(content)
         
-    file_url = f"{os.environ.get('BACKEND_URL', 'http://localhost:8001')}/uploads/{filename}"
+    file_url = f"/uploads/{filename}"
     
     await db.users.update_one({"id": current_user["id"]}, {"$set": {"profile_image": file_url}})
     
@@ -828,8 +846,7 @@ async def list_doctors(
         if user:
             if not doc.get("full_name"):
                 doc["full_name"] = user.get("full_name")
-            if not doc.get("profile_image"):
-                doc["profile_image"] = user.get("profile_image")
+        doc["profile_image"] = normalize_image_url(user.get("profile_image") if user else doc.get("profile_image"))
     
     return {"doctors": doctors, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 
@@ -928,7 +945,16 @@ async def update_doctor_working_hours_single(
 async def get_doctor(doctor_id: str):
     doctor = await db.doctors.find_one({"user_id": doctor_id}, {"_id": 0})
     if not doctor:
-        raise HTTPException(status_code=404, detail="Doctor not found")
+        # Fallback to search by user_id if needed
+        doctor = await db.doctors.find_one({"user_id": doctor_id}, {"_id": 0})
+        if not doctor:
+            raise HTTPException(status_code=404, detail="Doctor not found")
+    
+    # Normalization
+    user = await db.users.find_one({"id": doctor_id}, {"profile_image": 1})
+    doc_img = doctor.get("profile_image")
+    user_img = user.get("profile_image") if user else None
+    doctor["profile_image"] = normalize_image_url(user_img or doc_img)
     return doctor
 
 @api_router.get("/doctors/{doctor_id}/reviews")
@@ -2193,7 +2219,7 @@ async def admin_upload_doctor_profile_picture(doctor_id: str, file: UploadFile =
     with open(file_path, "wb") as f:
         f.write(content)
         
-    file_url = f"{os.environ.get('BACKEND_URL', 'http://localhost:8001')}/uploads/{filename}"
+    file_url = f"/uploads/{filename}"
     
     await db.users.update_one({"id": doctor_id}, {"$set": {"profile_image": file_url}})
     await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"profile_image": file_url}})
@@ -2224,11 +2250,13 @@ async def admin_get_users(
     
     # Enrichment for doctors to allow pre-filling admin edit forms
     for user in users:
+        user["profile_image"] = normalize_image_url(user.get("profile_image"))
         if user.get("role") == UserRole.DOCTOR:
             doctor_profile = await db.doctors.find_one({"user_id": user["id"]}, {"_id": 0})
             if doctor_profile:
-                # Merge doctor profile data into user object
                 user.update(doctor_profile)
+                # Re-normalize if doctor record has its own profile_image
+                user["profile_image"] = normalize_image_url(user.get("profile_image"))
     
     return {"users": users, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 
@@ -2241,6 +2269,9 @@ async def admin_get_pending_doctors(current_user: dict = Depends(get_admin_user)
         if u:
             doc["email"] = u.get("email")
             doc["phone"] = u.get("phone")
+            doc["profile_image"] = normalize_image_url(u.get("profile_image") or doc.get("profile_image"))
+        else:
+            doc["profile_image"] = normalize_image_url(doc.get("profile_image"))
     return {"doctors": doctors}
 
 @api_router.post("/admin/doctors/{doctor_id}/verify")
@@ -2852,7 +2883,7 @@ async def upload_chat_file(file: UploadFile = File(...), current_user: dict = De
     with open(filepath, "wb") as f:
         f.write(contents)
     
-    file_url = f"/uploads/{filename}"
+    file_url = normalize_image_url(f"/uploads/{filename}")
     return {"file_url": file_url, "filename": file.filename, "size": len(contents)}
 
 # ============== AI DOCTOR RECOMMENDATION ==============
