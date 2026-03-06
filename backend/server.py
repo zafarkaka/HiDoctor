@@ -467,8 +467,10 @@ async def get_doctor_user(current_user: dict = Depends(get_current_user)):
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
     email = user_data.email.lower().strip()
-    existing = await db.users.find_one({"email": email})
+    # Case-insensitive check to prevent duplicates even with different casing
+    existing = await db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}})
     if existing:
+        logger.warning(f"Registration failed: Email {email} already exists (case-insensitive check)")
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_id = str(uuid.uuid4())
@@ -532,18 +534,27 @@ async def register(user_data: UserCreate):
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     email = credentials.email.lower().strip()
-    # Case-insensitive lookup using regex to support old accounts
+    logger.info(f"Login attempt for email: {email}")
+    
+    # Robust case-insensitive lookup using regex
     user = await db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}, {"_id": 0})
     
     if not user:
-        logger.warning(f"Login failed: User with email {email} (normalized) not found in database.")
+        logger.warning(f"AUTH_FAILURE: User not found for email: {email}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
         
-    if not verify_password(credentials.password, user["password"]):
-        logger.warning(f"Login failed: Password mismatch for user {email}")
+    pwd_in_db = user.get("password")
+    if not pwd_in_db:
+        logger.error(f"AUTH_CRITICAL: User {email} found but has NO password field!")
+        raise HTTPException(status_code=500, detail="Auth configuration error")
+
+    if not verify_password(credentials.password, pwd_in_db):
+        # Log the hash prefix for debugging (safe, just checks if it's a valid bcrypt string)
+        hash_prefix = pwd_in_db[:7] if pwd_in_db else "empty"
+        logger.warning(f"AUTH_FAILURE: Password mismatch for user {email}. Hash format in DB starts with: {hash_prefix}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    logger.info(f"Successful login for user {email}")
+    logger.info(f"AUTH_SUCCESS: Login verified for user {email}")
     
     token = create_access_token({"sub": user["id"], "role": user["role"]})
     user_response = UserResponse(
