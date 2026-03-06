@@ -34,6 +34,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 app = FastAPI(title="HiDoctor API")
+app.state.db = db
 
 # Configure CORS
 app.add_middleware(
@@ -3099,9 +3100,26 @@ app.include_router(api_router)
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Starting background reminder scheduler...")
-    scheduler.add_job(trigger_appointment_reminders, 'interval', minutes=1)
-    scheduler.start()
+    # Use a file lock to ensure only one gunicorn worker starts the scheduler
+    lock_file = "/tmp/scheduler.lock"
+    try:
+        # Open the file and attempt to get an exclusive lock
+        f = open(lock_file, "w")
+        import fcntl
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        
+        # If we got here, we are the worker that owns the lock
+        logger.info("Starting background reminder scheduler...")
+        scheduler.add_job(trigger_appointment_reminders, 'interval', minutes=1)
+        scheduler.start()
+        
+        # Keep the file handle open to maintain the lock
+        app.state.scheduler_lock_file = f
+    except (IOError, ImportError):
+        # Either another worker has the lock, or we're on a system that doesn't support flock
+        # In the latter case (e.g. Windows during local dev), we might still run redundant schedulers
+        # but in production (Linux), this will prevent duplicates.
+        logger.info("Scheduler already running in another worker or lock skipped")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -43,8 +43,8 @@ async def send_push_notifications(messages: List[Dict[str, Any]]):
 async def send_chat_notification(app, receiver_id: str, sender_name: str, message_text: str, appointment_id: str):
     """Send a notification to a user about a new chat message."""
     try:
-        from bson import ObjectId
-        user = await app.mongodb.users.find_one({"_id": ObjectId(receiver_id)})
+        # Use 'id' field which is a string UUID in this schema, not MongoDB's '_id'
+        user = await app.state.db.users.find_one({"id": receiver_id})
         
         if user and user.get("push_token"):
             push_token = user["push_token"]
@@ -69,8 +69,7 @@ async def send_chat_notification(app, receiver_id: str, sender_name: str, messag
 async def send_call_notification(app, receiver_id: str, caller_name: str, appointment_id: str, is_video: bool = True):
     """Send a notification to a user about an incoming call."""
     try:
-        from bson import ObjectId
-        user = await app.mongodb.users.find_one({"_id": ObjectId(receiver_id)})
+        user = await app.state.db.users.find_one({"id": receiver_id})
         
         if user and user.get("push_token"):
             push_token = user["push_token"]
