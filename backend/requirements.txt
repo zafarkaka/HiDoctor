@@ -96,7 +96,7 @@ PyYAML==6.0.3
 razorpay==2.0.0
 referencing==0.37.0
 regex==2026.2.19
-requests==2.32.5
+requests==2.31.0
 requests-oauthlib==2.0.0
 rich==14.3.3
 rpds-py==0.30.0
@@ -124,3 +124,5 @@ watchfiles==1.1.1
 websockets==16.0
 yarl==1.22.0
 zipp==3.23.0
+APScheduler==3.10.4
+resend==0.8.0
