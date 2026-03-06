@@ -1254,6 +1254,8 @@ async def get_appointments(
     for apt in appointments:
         if current_user["role"] == UserRole.PATIENT:
             doctor = await db.doctors.find_one({"user_id": apt["doctor_id"]}, {"_id": 0, "full_name": 1, "profile_image": 1, "specialties": 1})
+            if doctor:
+                doctor["profile_image"] = normalize_image_url(doctor.get("profile_image"))
             apt["doctor"] = doctor
         else:
             patient = await db.users.find_one({"id": apt["patient_id"]}, {"_id": 0, "full_name": 1, "email": 1})
@@ -1276,6 +1278,10 @@ async def get_appointment(appointment_id: str, current_user: dict = Depends(get_
     # Enrich data
     doctor = await db.doctors.find_one({"user_id": appointment["doctor_id"]}, {"_id": 0})
     patient = await db.users.find_one({"id": appointment["patient_id"]}, {"_id": 0, "password": 0})
+    if doctor:
+        doctor["profile_image"] = normalize_image_url(doctor.get("profile_image"))
+    if patient:
+        patient["profile_image"] = normalize_image_url(patient.get("profile_image"))
     appointment["doctor"] = doctor
     appointment["patient"] = patient
     

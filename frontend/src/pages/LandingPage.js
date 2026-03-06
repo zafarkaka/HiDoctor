@@ -254,17 +254,19 @@ export default function LandingPage() {
       {/* ==================== ADS SECTION ==================== */}
       {ads.length > 0 && (
         <section className="py-10 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 gap-6">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid md:grid-cols-2 gap-8">
               {ads.map((ad, idx) => (
-                <Card key={idx} className="overflow-hidden cursor-pointer hover:shadow-lg transition-all rounded-2xl" onClick={() => handleAdClick(ad)}>
+                <Card key={idx} className="overflow-hidden cursor-pointer hover:shadow-lg transition-all rounded-2xl border-slate-100" onClick={() => handleAdClick(ad)}>
                   <div className="flex flex-col md:flex-row h-full">
-                    <img src={ad.image_url} alt={ad.title} className="w-full md:w-1/3 h-48 md:h-auto object-cover" />
-                    <CardContent className="p-6 flex flex-col justify-center">
-                      <Badge className="w-fit mb-2">Sponsored</Badge>
-                      <h3 className="text-xl font-bold mb-2">{ad.title}</h3>
-                      <p className="text-primary font-medium text-sm flex items-center">
-                        Learn more <ArrowRight className="w-4 h-4 ml-1" />
+                    <div className="w-full md:w-2/5 h-48 md:h-auto">
+                      <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
+                    </div>
+                    <CardContent className="p-5 flex flex-col justify-center flex-1">
+                      <Badge className="w-fit mb-2 bg-primary/10 text-primary border-none text-[10px] uppercase tracking-wider">Sponsored</Badge>
+                      <h3 className="text-lg font-bold mb-1 line-clamp-2">{ad.title}</h3>
+                      <p className="text-primary font-semibold text-xs flex items-center mt-auto">
+                        Learn more <ArrowRight className="w-3 h-3 ml-1" />
                       </p>
                     </CardContent>
                   </div>
