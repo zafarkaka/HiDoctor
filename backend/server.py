@@ -465,14 +465,15 @@ async def get_doctor_user(current_user: dict = Depends(get_current_user)):
 # ============== AUTH ROUTES ==============
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
-    existing = await db.users.find_one({"email": user_data.email})
+    email = user_data.email.lower().strip()
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
-        "email": user_data.email,
+        "email": email,
         "password": hash_password(user_data.password),
         "full_name": user_data.full_name,
         "phone": user_data.phone,
@@ -529,8 +530,15 @@ async def register(user_data: UserCreate):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
-    if not user or not verify_password(credentials.password, user["password"]):
+    email = credentials.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if not user:
+        logger.warning(f"Login failed: User with email {email} not found")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    if not verify_password(credentials.password, user["password"]):
+        logger.warning(f"Login failed: Password mismatch for user {email}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     token = create_access_token({"sub": user["id"], "role": user["role"]})
