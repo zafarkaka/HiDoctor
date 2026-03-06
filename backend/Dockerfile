@@ -1,6 +1,7 @@
 # ===============================
 # HiDoctor Backend Dockerfile
 # ===============================
+# Force Rebuild: 2026-03-06 17:15
 FROM python:3.11-slim
 
 # Set environment variables

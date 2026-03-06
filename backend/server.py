@@ -3109,7 +3109,7 @@ async def startup_event():
         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
         
         # If we got here, we are the worker that owns the lock
-        logger.info("Starting background reminder scheduler...")
+        logger.info("Starting background reminder scheduler (Production Mode)...")
         scheduler.add_job(trigger_appointment_reminders, 'interval', minutes=1)
         scheduler.start()
         
