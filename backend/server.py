@@ -37,21 +37,30 @@ app = FastAPI(title="HiDoctor API")
 app.state.db = db
 
 # Configure CORS
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+    "http://localhost:19006",
+    "exp://localhost:8081",
+    "https://www.hidoctor.online",
+    "https://hidoctor.online",
+]
+
+# Add FRONTEND_URL from environment with robust cleaning
+frontend_url_env = os.environ.get("FRONTEND_URL", "")
+if frontend_url_env:
+    for u in frontend_url_env.split(","):
+        clean_url = u.strip().rstrip("/")
+        if clean_url and clean_url not in origins:
+            origins.append(clean_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-        "http://localhost:8081",
-        "http://127.0.0.1:8081",
-        "http://localhost:19006",
-        "exp://localhost:8081",
-        "https://www.hidoctor.online",
-        "https://hidoctor.online",
-        os.environ.get("FRONTEND_URL", "")
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -3103,6 +3112,7 @@ app.include_router(api_router)
 
 @app.on_event("startup")
 async def startup_event():
+    logger.info(f"Allowed CORS origins: {origins}")
     # Use a file lock to ensure only one gunicorn worker starts the scheduler
     lock_file = "/tmp/scheduler.lock"
     try:
