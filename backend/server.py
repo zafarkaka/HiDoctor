@@ -102,8 +102,8 @@ if frontend_url_env:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -3195,13 +3195,13 @@ async def get_subscriptions(current_user: dict = Depends(get_current_user)):
         ]
     }
 
-# ============== HEALTH CHECK ==============
-@api_router.get("/health")
-async def health_check():
-    return {"status": "healthy", "app": "HiDoctor", "timestamp": datetime.now(timezone.utc).isoformat()}
+@api_router.get("/test-connection")
+async def test_connection():
+    return {"message": "Mobile connection successful!", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-# Include router
-app.include_router(api_router)
+# ============== HEALTH CHECK ==============
+# Include router - moved to end
+# app.include_router(api_router)
 
 # Mount uploads directory for static file serving
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
