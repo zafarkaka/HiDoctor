@@ -46,7 +46,7 @@ const formatDate = (dateString) => {
 };
 
 export default function ProfileSettings() {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, fetchUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -93,9 +93,9 @@ export default function ProfileSettings() {
       setProfile(response.data);
       setFormData(prev => ({
         ...prev,
-        full_name: user?.full_name || '',
-        email: user?.email || '',
-        phone: user?.phone || response.data?.phone || '',
+        full_name: response.data?.full_name || user?.full_name || '',
+        email: response.data?.email || user?.email || '',
+        phone: response.data?.phone || user?.phone || '',
         address: response.data?.address || '',
         date_of_birth: response.data?.date_of_birth || '',
         gender: response.data?.gender || '',
@@ -155,7 +155,10 @@ export default function ProfileSettings() {
       }
       toast.success('Profile updated successfully');
       setUploadFile(null);
-      fetchProfile();
+      await fetchProfile(); // Refresh local state
+      if (typeof fetchUser === 'function') {
+        await fetchUser(); // Sync global auth context
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile');

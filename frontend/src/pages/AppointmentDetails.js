@@ -252,11 +252,7 @@ export default function AppointmentDetails() {
     }
   };
 
-  const handleJoinCall = () => {
-    if (appointment?.jitsi_room_id) {
-      navigate(`/video-call/${appointmentId}`);
-    }
-  };
+
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -312,17 +308,6 @@ export default function AppointmentDetails() {
             Back
           </Button>
 
-          {canJoinCall && (
-            <div className="flex flex-col items-end gap-2">
-              <Button onClick={handleJoinCall} className="gap-2 rounded-full bg-green-600 hover:bg-green-700">
-                <Video className="w-4 h-4" />
-                Join Video Call
-              </Button>
-              <p className="text-[10px] text-muted-foreground bg-blue-50 px-2 py-1 rounded border border-blue-100">
-                Notice: Video calls limited to 5 mins.
-              </p>
-            </div>
-          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -374,9 +359,7 @@ export default function AppointmentDetails() {
                   </div>
 
                   <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    {appointment.consultation_type === 'telehealth' ? (
-                      <Video className="w-5 h-5 text-green-600" />
-                    ) : appointment.consultation_type === 'home_visit' ? (
+                    {appointment.consultation_type === 'home_visit' ? (
                       <Home className="w-5 h-5 text-purple-600" />
                     ) : (
                       <MapPin className="w-5 h-5 text-blue-600" />
@@ -384,7 +367,7 @@ export default function AppointmentDetails() {
                     <div>
                       <p className="text-sm text-muted-foreground">Type</p>
                       <p className="font-medium">
-                        {appointment.consultation_type === 'telehealth' ? 'Video Consultation' : appointment.consultation_type === 'home_visit' ? 'Home Visit' : 'In-Person Visit'}
+                        {appointment.consultation_type === 'home_visit' ? 'Home Visit' : 'In-Person Visit'}
                       </p>
                     </div>
                   </div>

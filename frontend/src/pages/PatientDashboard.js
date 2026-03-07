@@ -224,9 +224,7 @@ export default function PatientDashboard() {
                             ₹{apt.payment_amount}
                           </span>
                           <span className="flex items-center gap-1">
-                            {apt.consultation_type === 'telehealth' ? (
-                              <><Video className="w-4 h-4" /> Video</>
-                            ) : apt.consultation_type === 'home_visit' ? (
+                            {apt.consultation_type === 'home_visit' ? (
                               <><Home className="w-4 h-4" /> Home Visit</>
                             ) : (
                               <><MapPin className="w-4 h-4" /> In-person</>

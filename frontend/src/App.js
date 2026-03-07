@@ -15,7 +15,7 @@ import DoctorDiscovery from "./pages/DoctorDiscovery";
 import DoctorProfile from "./pages/DoctorProfile";
 import BookingFlow from "./pages/BookingFlow";
 import AppointmentDetails from "./pages/AppointmentDetails";
-import VideoCall from "./pages/VideoCall";
+import FamilyMembers from "./pages/FamilyMembers";
 import FamilyMembers from "./pages/FamilyMembers";
 import BlogPage from "./pages/BlogPage";
 import BlogPost from "./pages/BlogPost";
@@ -57,7 +57,7 @@ function App() {
 
           {/* Shared Routes */}
           <Route path="/appointments/:appointmentId" element={<ProtectedRoute><AppointmentDetails /></ProtectedRoute>} />
-          <Route path="/video-call/:appointmentId" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
 

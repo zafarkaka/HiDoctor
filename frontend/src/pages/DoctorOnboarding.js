@@ -454,16 +454,6 @@ export default function DoctorOnboarding() {
                           />
                           <span>In-Person</span>
                         </label>
-                        <label className={`flex items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.consultation_types.includes('telehealth')
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border'
-                          }`}>
-                          <Checkbox
-                            checked={formData.consultation_types.includes('telehealth')}
-                            onCheckedChange={() => handleConsultationTypeToggle('telehealth')}
-                          />
-                          <span>Telehealth</span>
-                        </label>
                         <label className={`flex items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.consultation_types.includes('home_visit')
                           ? 'border-primary bg-primary/5'
                           : 'border-border'

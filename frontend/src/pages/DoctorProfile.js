@@ -12,7 +12,6 @@ import { Textarea } from '../components/ui/textarea';
 import {
   Star,
   MapPin,
-  Video,
   Clock,
   Phone,
   Mail,
@@ -235,8 +234,8 @@ export default function DoctorProfile() {
               <div className="flex flex-wrap gap-2">
                 {doctor.consultation_types?.map(type => (
                   <Badge key={type} variant="secondary" className="gap-1">
-                    {type === 'telehealth' ? <Video className="w-3 h-3" /> : type === 'home_visit' ? <Home className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
-                    {type === 'telehealth' ? 'Telehealth' : type === 'home_visit' ? 'Home Visit' : 'In-person'}
+                    {type === 'home_visit' ? <Home className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                    {type === 'home_visit' ? 'Home Visit' : 'In-person'}
                   </Badge>
                 ))}
               </div>

@@ -187,7 +187,6 @@ class AppointmentStatus(str, Enum):
 
 class ConsultationType(str, Enum):
     IN_PERSON = "in_person"
-    TELEHEALTH = "telehealth"
     HOME_VISIT = "home_visit"
 
 class PaymentStatus(str, Enum):
@@ -1327,9 +1326,6 @@ async def create_appointment(appointment: AppointmentCreate, current_user: dict 
     appointment_doc["payment_amount"] = doctor.get("consultation_fee", 0)
     appointment_doc["created_at"] = datetime.now(timezone.utc).isoformat()
     appointment_doc["updated_at"] = datetime.now(timezone.utc).isoformat()
-    
-    if appointment.consultation_type == ConsultationType.TELEHEALTH:
-        appointment_doc["jitsi_room_id"] = f"hidoctor-{appointment_doc['id'][:8]}"
     
     try:
         await db.appointments.insert_one(appointment_doc)
@@ -2480,7 +2476,6 @@ async def admin_get_analytics(current_user: dict = Depends(get_admin_user)):
     total_appointments = await db.appointments.count_documents({})
     completed_appointments = await db.appointments.count_documents({"status": AppointmentStatus.COMPLETED})
     cancelled_appointments = await db.appointments.count_documents({"status": AppointmentStatus.CANCELLED})
-    telehealth_appointments = await db.appointments.count_documents({"consultation_type": ConsultationType.TELEHEALTH})
     
     total_revenue_pipeline = [
         {"$match": {"payment_status": PaymentStatus.PAID}},
