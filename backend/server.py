@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File, Query, Form, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File, Query, Form, WebSocket, WebSocketDisconnect, Response
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -110,7 +111,55 @@ app.add_middleware(
 # Create uploads directory
 UPLOADS_DIR = ROOT_DIR / 'uploads'
 UPLOADS_DIR.mkdir(exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+
+@app.get("/uploads/{filename}")
+async def serve_image(filename: str):
+    """Smart image server: uses disk first, falls back to MongoDB Atlas"""
+    file_path = UPLOADS_DIR / filename
+    
+    # 1. Try serving from local disk (fastest)
+    if file_path.exists():
+        return FileResponse(file_path)
+        
+    # 2. Fallback to MongoDB (Railway ephemeral storage fix)
+    logger.info(f"IMAGE_RECOVERY: File {filename} not found on disk. Checking MongoDB...")
+    image_data = await db.images.find_one({"filename": filename})
+    
+    if image_data:
+        logger.info(f"IMAGE_RECOVERY: Restoring {filename} from MongoDB...")
+        content = image_data["content"]
+        content_type = image_data.get("content_type", "image/jpeg")
+        
+        # Optionally restore to disk for subsequent fast access
+        try:
+            with open(file_path, "wb") as f:
+                f.write(content)
+        except Exception as e:
+            logger.error(f"IMAGE_RECOVERY: Failed to write {filename} to disk: {str(e)}")
+            
+        return Response(content=content, media_type=content_type)
+        
+    # 3. Last resort: 404
+    logger.warning(f"IMAGE_RECOVERY: File {filename} not found in DB either.")
+    raise HTTPException(status_code=404, detail="Image not found")
+
+async def save_image_to_db(filename: str, content: bytes, content_type: str):
+    """Saves image binary data to MongoDB for persistence across deployments"""
+    try:
+        await db.images.update_one(
+            {"filename": filename},
+            {"$set": {
+                "filename": filename,
+                "content": content,
+                "content_type": content_type,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+        logger.info(f"IMAGE_DB_PERSIST: Saved {filename} to MongoDB ({len(content)} bytes)")
+    except Exception as e:
+        logger.error(f"IMAGE_DB_PERSIST: Failed to save {filename} to MongoDB: {str(e)}")
+
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
 
@@ -744,6 +793,9 @@ async def upload_profile_picture(
         with open(file_path, "wb") as f:
             f.write(content)
             
+        # PERSIST: Save to MongoDB fallback
+        await save_image_to_db(filename, content, file.content_type)
+            
         file_url = f"/uploads/{filename}"
         logger.info(f"File saved successfully. URL: {file_url}")
         
@@ -754,8 +806,6 @@ async def upload_profile_picture(
         if current_user["role"] == UserRole.PATIENT:
             await db.patients.update_one({"user_id": current_user["id"]}, {"$set": {"profile_image": file_url}})
         elif current_user["role"] == UserRole.DOCTOR:
-            # Note: During initial registration, doctor profile might not exist yet if this is called too early,
-            # but RegisterPage.js calls it AFTER register succeeds.
             result = await db.doctors.update_one({"user_id": current_user["id"]}, {"$set": {"profile_image": file_url}})
             logger.info(f"Doctor profile update result: matched={result.matched_count}, modified={result.modified_count}")
             
@@ -2316,6 +2366,9 @@ async def admin_upload_doctor_profile_picture(doctor_id: str, file: UploadFile =
         with open(file_path, "wb") as f:
             f.write(content)
             
+        # PERSIST: Save to MongoDB fallback
+        await save_image_to_db(filename, content, file.content_type)
+        
         file_url = f"/uploads/{filename}"
         
         await db.users.update_one({"id": doctor_id}, {"$set": {"profile_image": file_url}})
