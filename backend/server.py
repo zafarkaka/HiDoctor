@@ -36,23 +36,34 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 # Backend URL for absolute image paths
 BACKEND_URL = os.environ.get('BACKEND_URL', 'https://hidoctor-production.up.railway.app').rstrip('/')
+if not BACKEND_URL.startswith('http') and not 'localhost' in BACKEND_URL:
+    BACKEND_URL = f"https://{BACKEND_URL}"
+elif 'localhost' not in BACKEND_URL and BACKEND_URL.startswith('http://'):
+    # Force https for railway/production domains
+    BACKEND_URL = BACKEND_URL.replace('http://', 'https://')
 
 def normalize_image_url(url: Optional[str]) -> Optional[str]:
     if not url:
         return url
     
-    # Clean whitespace
+    # Clean whitespace and normalize slashes
     url = url.strip()
     
-    # If it's a relative path (with or without leading slash)
+    # If it's already a full URL with http/https, just return it
+    if url.startswith('http://') or url.startswith('https://'):
+        # If it's a localhost URL, replace it with the live backend URL
+        if 'localhost:8001' in url:
+            return url.replace('http://localhost:8001', BACKEND_URL).replace('https://localhost:8001', BACKEND_URL)
+        return url
+    
+    # If it's a relative path starting with uploads/ or /uploads/
     if url.startswith('/uploads/') or url.startswith('uploads/'):
         path = url if url.startswith('/') else f"/{url}"
         return f"{BACKEND_URL}{path}"
     
-    # If it contains localhost, swap it with the real BACKEND_URL
-    if 'localhost:8001' in url:
-        # Handle cases like http://localhost:8001/uploads/...
-        return url.replace('http://localhost:8001', BACKEND_URL).replace('https://localhost:8001', BACKEND_URL)
+    # Fallback: if it's just a filename that looks like it belongs in uploads
+    if not '/' in url and (url.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))):
+        return f"{BACKEND_URL}/uploads/{url}"
         
     return url
 
@@ -465,17 +476,32 @@ def create_access_token(data: dict) -> str:
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        # Debug logging for troubleshooting 401s
+        raw_token = credentials.credentials
+        if not raw_token or raw_token == "undefined" or raw_token == "null":
+            logger.warning(f"AUTH_FAILURE: Empty or invalid token string provided: '{raw_token}'")
+            raise HTTPException(status_code=401, detail="Invalid token format")
+            
+        payload = jwt.decode(raw_token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            logger.warning("AUTH_FAILURE: Token payload missing 'sub'")
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+            
         user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
         if user is None:
-            raise HTTPException(status_code=401, detail="User not found")
+            logger.warning(f"AUTH_FAILURE: User {user_id} not found in database")
+            raise HTTPException(status_code=401, detail="User session not found")
+            
+        # Ensure we always return absolute URLs for profile_image if relative
         user["profile_image"] = normalize_image_url(user.get("profile_image"))
         return user
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError as e:
+        logger.error(f"AUTH_FAILURE: JWT decoding error: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+    except Exception as e:
+        logger.error(f"AUTH_FAILURE: Unexpected error: {str(e)}")
+        raise HTTPException(status_code=401, detail="Authentication system error")
 
 async def get_admin_user(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != UserRole.ADMIN:

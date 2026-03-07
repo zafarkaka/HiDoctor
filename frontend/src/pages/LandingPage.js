@@ -357,10 +357,15 @@ export default function LandingPage() {
                 >
                   <Card className="overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border-border/50 cursor-pointer group rounded-2xl" onClick={() => navigate(`/doctors/${doctor.user_id || doctor.id}`)}>
                     <div className="aspect-[4/3] relative overflow-hidden">
+                      {/* Dynamic image resolution: handles already absolute URLs, relative uploads, and fallbacks */}
                       <img
-                        src={doctor.profile_image?.startsWith('uploads/')
-                          ? `${API_URL}/${doctor.profile_image}`
-                          : (doctor.profile_image || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop')}
+                        src={
+                          !doctor.profile_image
+                            ? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop'
+                            : (doctor.profile_image.startsWith('http')
+                              ? doctor.profile_image
+                              : `${API_URL}${doctor.profile_image.startsWith('/') ? '' : '/'}${doctor.profile_image}`)
+                        }
                         alt={doctor.full_name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop'; }}

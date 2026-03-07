@@ -15,7 +15,10 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() => {
+    const saved = localStorage.getItem('token');
+    return (saved === 'undefined' || saved === 'null') ? null : saved;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,14 +30,27 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const fetchUser = async () => {
+    if (!token || token === 'undefined' || token === 'null') {
+      console.warn('AuthContext: No valid token to fetch user');
+      setLoading(false);
+      return;
+    }
     try {
+      console.log('AuthContext: Fetching current user...');
       const response = await axios.get(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('AuthContext: User fetch successful');
       setUser(response.data);
     } catch (error) {
-      console.error('Error fetching user:', error);
-      logout();
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+      console.error(`AuthContext: Error fetching user (Status: ${status}):`, detail || error.message);
+
+      if (status === 401) {
+        console.warn('AuthContext: Session expired or invalid, logging out...');
+        logout();
+      }
     } finally {
       setLoading(false);
     }
