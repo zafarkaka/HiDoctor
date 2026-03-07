@@ -361,7 +361,7 @@ export default function DoctorDiscovery() {
                         <span className="font-medium">{doctor.rating?.toFixed(1) || '5.0'}</span>
                         <span className="text-muted-foreground text-sm">({doctor.review_count || 0})</span>
                       </div>
-                      <span className="font-semibold text-primary">${doctor.consultation_fee || 0}</span>
+                      <span className="font-semibold text-primary">₹{doctor.consultation_fee || 0}</span>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-3">

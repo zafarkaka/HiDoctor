@@ -106,7 +106,14 @@ if frontend_url_env:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "https://www.hidoctor.online",
+        "https://hidoctor.online",
+        "https://hidoctor-production.up.railway.app",
+        "https://api.hidoctor.online"
+    ],
+    allow_origin_regex=r"https://.*hidoctor\.online",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1295,6 +1302,7 @@ async def create_appointment(appointment: AppointmentCreate, current_user: dict 
         raise HTTPException(status_code=404, detail="Doctor not found")
         
     # Comprehensive Availability Check (Schedules, Holidays, Overlaps, Breaks)
+    logger.info(f"Checking availability for doctor {appointment.doctor_id} on {appointment.appointment_date} at {appointment.appointment_time}")
     availability = await get_available_slots(appointment.doctor_id, str(appointment.appointment_date))
     is_valid_slot = False
     for slot in availability.get("slots", []):
@@ -1303,6 +1311,7 @@ async def create_appointment(appointment: AppointmentCreate, current_user: dict 
             break
             
     if not is_valid_slot:
+        logger.warning(f"Slot {appointment.appointment_time} on {appointment.appointment_date} is UNAVAILABLE for doctor {appointment.doctor_id}")
         raise HTTPException(status_code=400, detail="The selected time slot is unavailable or outside working hours")
         
     # Home Visit Validation
@@ -1325,7 +1334,13 @@ async def create_appointment(appointment: AppointmentCreate, current_user: dict 
     if appointment.consultation_type == ConsultationType.TELEHEALTH:
         appointment_doc["jitsi_room_id"] = f"hidoctor-{appointment_doc['id'][:8]}"
     
-    await db.appointments.insert_one(appointment_doc)
+    try:
+        await db.appointments.insert_one(appointment_doc)
+        logger.info(f"Appointment {appointment_doc['id']} created successfully")
+    except Exception as e:
+        logger.error(f"Failed to insert appointment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create appointment in database")
+
     # Remove MongoDB's _id field to avoid serialization issues
     appointment_doc.pop("_id", None)
     
@@ -2265,70 +2280,7 @@ async def admin_force_update_doctor(doctor_id: str, update: AdminDoctorUpdate, c
     await db.doctors.update_one({"user_id": doctor_id}, {"$set": update_data})
     return {"message": "Doctor profile forcefully updated by admin"}
 
-@api_router.post("/admin/doctors/{doctor_id}/verify")
-async def admin_verify_doctor(doctor_id: str, current_user: dict = Depends(get_admin_user)):
-    """Admin endpoint to verify a doctor"""
-    print(f"DEBUG: Verifying doctor_id: {doctor_id}")
-    doctor = await db.doctors.find_one({"user_id": doctor_id})
-    if not doctor:
-        # Let's check by _id as a fallback
-        from bson import ObjectId
-        try:
-            doctor = await db.doctors.find_one({"_id": ObjectId(doctor_id)})
-            if doctor:
-                doctor_id = doctor.get("user_id")
-        except:
-            pass
-            
-    if not doctor:
-        raise HTTPException(status_code=404, detail=f"CRITICAL_DEBUG: Doctor with ID {doctor_id} not found in DB!")
-        
-    await db.users.update_one({"id": doctor_id}, {"$set": {"is_verified": True}})
-    await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"is_verified": True}})
-    
-    return {"message": "Doctor verified successfully"}
 
-@api_router.post("/admin/doctors/{doctor_id}/suspend")
-async def admin_suspend_doctor(doctor_id: str, current_user: dict = Depends(get_admin_user)):
-    """Admin endpoint to suspend a doctor"""
-    await db.users.update_one({"id": doctor_id}, {"$set": {"is_suspended": True}})
-    await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"is_active": False}})
-    return {"message": "Doctor suspended successfully"}
-
-@api_router.post("/admin/doctors/{doctor_id}/reject")
-async def admin_reject_doctor(doctor_id: str, current_user: dict = Depends(get_admin_user)):
-    """Admin endpoint to reject a doctor application"""
-    # Delete the doctor profile and the user account
-    await db.users.delete_one({"id": doctor_id})
-    await db.doctors.delete_one({"user_id": doctor_id})
-    return {"message": "Doctor application rejected"}
-
-@api_router.post("/admin/users/{user_id}/suspend")
-async def admin_suspend_user(user_id: str, current_user: dict = Depends(get_admin_user)):
-    """Admin endpoint to suspend any user"""
-    await db.users.update_one({"id": user_id}, {"$set": {"is_suspended": True}})
-    # If they are a doctor, deactivate them too
-    user = await db.users.find_one({"id": user_id})
-    if user and user.get("role") == UserRole.DOCTOR:
-        await db.doctors.update_one({"user_id": user_id}, {"$set": {"is_active": False}})
-    return {"message": "User suspended successfully"}
-
-@api_router.post("/admin/users/{user_id}/unsuspend")
-async def admin_unsuspend_user(user_id: str, current_user: dict = Depends(get_admin_user)):
-    """Admin endpoint to unsuspend any user"""
-    await db.users.update_one({"id": user_id}, {"$set": {"is_suspended": False}})
-    # If they are a doctor, activate them too
-    user = await db.users.find_one({"id": user_id})
-    if user and user.get("role") == UserRole.DOCTOR:
-        await db.doctors.update_one({"user_id": user_id}, {"$set": {"is_active": True}})
-    return {"message": "User unsuspended successfully"}
-
-@api_router.post("/admin/doctors/{doctor_id}/activate")
-async def admin_activate_doctor(doctor_id: str, current_user: dict = Depends(get_admin_user)):
-    """Admin endpoint to activate a suspended doctor"""
-    await db.users.update_one({"id": doctor_id}, {"$set": {"is_suspended": False}})
-    await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"is_active": True}})
-    return {"message": "Doctor activated successfully"}
 
 @api_router.delete("/admin/doctors/{doctor_id}")
 async def admin_delete_doctor(doctor_id: str, current_user: dict = Depends(get_admin_user)):
@@ -2463,6 +2415,12 @@ async def admin_suspend_user(user_id: str, current_user: dict = Depends(get_admi
 async def admin_unsuspend_user(user_id: str, current_user: dict = Depends(get_admin_user)):
     """Unsuspend a user account"""
     await db.users.update_one({"id": user_id}, {"$set": {"is_suspended": False, "is_active": True}})
+    
+    # If they are a doctor, activate them too
+    user = await db.users.find_one({"id": user_id})
+    if user and user.get("role") == UserRole.DOCTOR:
+        await db.doctors.update_one({"user_id": user_id}, {"$set": {"is_active": True}})
+        
     return {"message": "User unsuspended"}
 
 @api_router.delete("/admin/users/{user_id}")

@@ -25,7 +25,7 @@ import {
   Stethoscope,
   Award,
   Building,
-  DollarSign,
+  IndianRupee,
   Camera,
   Upload,
   User
@@ -39,7 +39,7 @@ const STEPS = [
   { id: 1, title: 'Basic Info', icon: Stethoscope },
   { id: 2, title: 'Qualifications', icon: Award },
   { id: 3, title: 'Practice', icon: Building },
-  { id: 4, title: 'Pricing', icon: DollarSign }
+  { id: 4, title: 'Pricing', icon: IndianRupee }
 ];
 
 const SPECIALTIES = [

@@ -603,7 +603,7 @@ export default function BookingFlow() {
                   <div className="border-t border-border pt-3 mt-3">
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span className="text-primary">${doctor?.consultation_fee}</span>
+                      <span className="text-primary">₹{doctor?.consultation_fee}</span>
                     </div>
                   </div>
                 </div>

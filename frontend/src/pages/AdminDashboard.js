@@ -8,7 +8,7 @@ import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
-  Users, Calendar, DollarSign, Clock,
+  Users, Calendar, IndianRupee, Clock,
   CheckCircle, XCircle, Search, Eye, MousePointer,
   FileText, Megaphone, Shield, Plus, Trash2,
   MoreHorizontal, UserCheck, UserX, CreditCard,
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-primary" />
+                  <IndianRupee className="w-6 h-6 text-primary" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">₹{analytics?.revenue || 0}</p>

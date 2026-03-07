@@ -393,7 +393,7 @@ export default function AppointmentDetails() {
                     <CreditCard className="w-5 h-5 text-primary" />
                     <div>
                       <p className="text-sm text-muted-foreground">Fee</p>
-                      <p className="font-medium">${appointment.payment_amount}</p>
+                      <p className="font-medium">₹{appointment.payment_amount}</p>
                     </div>
                   </div>
                 </div>
