@@ -18,7 +18,7 @@ from datetime import datetime, timezone, timedelta
 import bcrypt
 from jose import jwt, JWTError
 from enum import Enum
-from notification_utils import send_chat_notification, send_call_notification
+from notification_utils import send_chat_notification, send_call_notification, send_push_notification_to_user
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1330,17 +1330,13 @@ async def create_appointment(appointment: AppointmentCreate, current_user: dict 
     appointment_doc.pop("_id", None)
     
     # Create notification for doctor
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": appointment.doctor_id,
-        "title": "New Appointment Request",
-        "message": f"New appointment request from {current_user['full_name']}",
-        "type": "appointment",
-        "is_read": False,
-        "data": {"appointment_id": appointment_doc["id"]},
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.notifications.insert_one(notification)
+    await create_notification(
+        user_id=appointment.doctor_id,
+        title="New Appointment Request",
+        message=f"New appointment request from {current_user['full_name']}",
+        type="appointment",
+        data={"appointment_id": appointment_doc["id"]}
+    )
     
     return {"message": "Appointment created", "appointment": appointment_doc}
 
@@ -1422,17 +1418,13 @@ async def update_appointment(appointment_id: str, update: AppointmentUpdate, cur
     # Create notification
     if update.status:
         recipient_id = appointment["patient_id"] if current_user["role"] == UserRole.DOCTOR else appointment["doctor_id"]
-        notification = {
-            "id": str(uuid.uuid4()),
-            "user_id": recipient_id,
-            "title": f"Appointment {update.status.value.title()}",
-            "message": f"Your appointment has been {update.status.value}",
-            "type": "appointment",
-            "is_read": False,
-            "data": {"appointment_id": appointment_id},
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.notifications.insert_one(notification)
+        await create_notification(
+            user_id=recipient_id,
+            title=f"Appointment {update.status.value.title()}",
+            message=f"Your appointment has been {update.status.value}",
+            type="appointment",
+            data={"appointment_id": appointment_id}
+        )
     
     return {"message": "Appointment updated"}
 
@@ -1522,29 +1514,15 @@ async def send_message(appointment_id: str, message: ChatMessageCreate, current_
     await db.appointment_messages.insert_one(message_doc)
     message_doc.pop("_id", None)  # Remove MongoDB _id
     
-    # Create notification
+    # Create notification (DB and Push)
     recipient_id = appointment["patient_id"] if current_user["id"] == appointment["doctor_id"] else appointment["doctor_id"]
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": recipient_id,
-        "title": "New Message",
-        "message": f"{current_user['full_name']}: {message.message[:50]}...",
-        "type": "message",
-        "is_read": False,
-        "data": {"appointment_id": appointment_id},
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.notifications.insert_one(notification)
-    
-    # Send Push Notification
-    import asyncio
-    asyncio.create_task(send_chat_notification(
-        app,
-        recipient_id,
-        current_user["full_name"],
-        message.message,
-        appointment_id
-    ))
+    await create_notification(
+        user_id=recipient_id,
+        title="New Message",
+        message=f"{current_user['full_name']}: {message.message[:50]}...",
+        type="chat",
+        data={"appointment_id": appointment_id}
+    )
     
     return {"message": "Message sent", "data": message_doc}
 
@@ -1683,6 +1661,24 @@ async def track_ad_click(ad_id: str):
 
 
 # ============== NOTIFICATIONS ROUTES ==============
+async def create_notification(user_id: str, title: str, message: str, type: str = "general", data: Optional[Dict[str, Any]] = None):
+    """Helper to create a notification in DB and send push if possible."""
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "title": title,
+        "message": message,
+        "type": type,
+        "is_read": False,
+        "data": data or {},
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Trigger push notification in background
+    asyncio.create_task(send_push_notification_to_user(app, user_id, title, message, data))
+    return notification
+
 @api_router.get("/notifications")
 async def get_notifications(current_user: dict = Depends(get_current_user)):
     notifications = await db.notifications.find(
@@ -2015,17 +2011,13 @@ async def verify_razorpay_payment(
             {"_id": 0}
         )
         if appointment:
-            notification = {
-                "id": str(uuid.uuid4()),
-                "user_id": appointment["doctor_id"],
-                "title": "New Appointment",
-                "message": f"You have a new confirmed appointment",
-                "type": "appointment",
-                "is_read": False,
-                "data": {"appointment_id": appointment["id"]},
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            await db.notifications.insert_one(notification)
+            await create_notification(
+                user_id=appointment["doctor_id"],
+                title="New Appointment",
+                message=f"You have a new confirmed appointment",
+                type="appointment",
+                data={"appointment_id": appointment["id"]}
+            )
         
         return {
             "status": "success",
@@ -2088,17 +2080,13 @@ async def verify_razorpay_payment(
             {"_id": 0}
         )
         if appointment:
-            notification = {
-                "id": str(uuid.uuid4()),
-                "user_id": appointment["doctor_id"],
-                "title": "New Appointment",
-                "message": f"You have a new confirmed appointment",
-                "type": "appointment",
-                "is_read": False,
-                "data": {"appointment_id": appointment["id"]},
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            await db.notifications.insert_one(notification)
+            await create_notification(
+                user_id=appointment["doctor_id"],
+                title="New Appointment",
+                message=f"You have a new confirmed appointment",
+                type="appointment",
+                data={"appointment_id": appointment["id"]}
+            )
         
         return {
             "status": "success",
@@ -2442,15 +2430,12 @@ async def admin_verify_doctor(doctor_id: str, current_user: dict = Depends(get_a
     await db.users.update_one({"id": doctor_id}, {"$set": {"is_verified": True}})
     
     # Notify doctor
-    await db.notifications.insert_one({
-        "id": str(uuid.uuid4()),
-        "user_id": doctor_id,
-        "title": "Profile Verified",
-        "message": "Congratulations! Your profile has been verified and is now live.",
-        "type": "system",
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
+    await create_notification(
+        user_id=doctor_id,
+        title="Profile Verified",
+        message="Congratulations! Your profile has been verified and is now live.",
+        type="system"
+    )
     return {"message": "Doctor verified successfully"}
 
 @api_router.post("/admin/doctors/{doctor_id}/reject")
@@ -2919,17 +2904,12 @@ async def get_upcoming_reminders(current_user: dict = Depends(get_current_user))
 @api_router.post("/reminders/send-test")
 async def send_test_reminder(current_user: dict = Depends(get_current_user)):
     """Send a test reminder notification"""
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": current_user["id"],
-        "title": "Test Reminder",
-        "message": "This is a test appointment reminder notification.",
-        "type": "reminder",
-        "is_read": False,
-        "data": {},
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.notifications.insert_one(notification)
+    notification = await create_notification(
+        user_id=current_user["id"],
+        title="Test Reminder",
+        message="This is a test appointment reminder notification.",
+        type="reminder"
+    )
     return {"message": "Test reminder sent", "notification": notification}
 
 # Background task to create reminder notifications
@@ -2947,30 +2927,22 @@ async def create_reminder_notifications():
     
     for apt in appointments:
         # Create reminder for patient
-        patient_notification = {
-            "id": str(uuid.uuid4()),
-            "user_id": apt["patient_id"],
-            "title": "Appointment Reminder",
-            "message": f"You have an appointment tomorrow at {apt['appointment_time']}",
-            "type": "reminder",
-            "is_read": False,
-            "data": {"appointment_id": apt["id"]},
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.notifications.insert_one(patient_notification)
+        await create_notification(
+            user_id=apt["patient_id"],
+            title="Appointment Reminder",
+            message=f"You have an appointment tomorrow at {apt['appointment_time']}",
+            type="reminder",
+            data={"appointment_id": apt["id"]}
+        )
         
         # Create reminder for doctor
-        doctor_notification = {
-            "id": str(uuid.uuid4()),
-            "user_id": apt["doctor_id"],
-            "title": "Appointment Reminder",
-            "message": f"You have an appointment tomorrow at {apt['appointment_time']}",
-            "type": "reminder",
-            "is_read": False,
-            "data": {"appointment_id": apt["id"]},
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.notifications.insert_one(doctor_notification)
+        await create_notification(
+            user_id=apt["doctor_id"],
+            title="Appointment Reminder",
+            message=f"You have an appointment tomorrow at {apt['appointment_time']}",
+            type="reminder",
+            data={"appointment_id": apt["id"]}
+        )
         
         # Mark as reminded
         await db.appointments.update_one({"id": apt["id"]}, {"$set": {"reminder_sent": True}})
@@ -3257,20 +3229,17 @@ async def trigger_appointment_reminders():
                     
                     if not existing:
                         logger.info(f"Triggering {threshold_name} reminder for Appointment {apt['id']}")
-                        # Fire Push Notification (saved to DB for now, would connect to FCM)
-                        await db.notifications.insert_one({
-                            "id": str(uuid.uuid4()),
-                            "user_id": apt["patient_id"],
-                            "title": "Appointment Reminder",
-                            "message": f"Your appointment is in exactly {threshold_name}!",
-                            "type": "appointment_reminder",
-                            "is_read": False,
-                            "data": {
+                        # Fire Push Notification
+                        await create_notification(
+                            user_id=apt["patient_id"],
+                            title="Appointment Reminder",
+                            message=f"Your appointment is in exactly {threshold_name}!",
+                            type="appointment_reminder",
+                            data={
                                 "appointment_id": apt["id"],
                                 "threshold": threshold_name
-                            },
-                            "created_at": datetime.now(timezone.utc).isoformat()
-                        })
+                            }
+                        )
 
         except Exception as e:
             logger.error(f"Error evaluating appointment {apt.get('id')} for reminders: {e}")

@@ -89,3 +89,20 @@ async def send_call_notification(app, receiver_id: str, caller_name: str, appoin
             }])
     except Exception as e:
         print(f"Error preparing call notification: {e}")
+async def send_push_notification_to_user(app, user_id: str, title: str, body: str, data: Optional[Dict[str, Any]] = None):
+    """Send a generic push notification to a user."""
+    try:
+        user = await app.state.db.users.find_one({"id": user_id})
+        
+        if user and user.get("push_token"):
+            push_token = user["push_token"]
+            
+            await send_push_notifications([{
+                "to": push_token,
+                "title": title,
+                "body": body,
+                "sound": "default",
+                "data": data or {}
+            }])
+    except Exception as e:
+        print(f"Error sending push notification to user {user_id}: {e}")

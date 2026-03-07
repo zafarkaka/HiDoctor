@@ -75,7 +75,7 @@ export default function LoginPage() {
             </div>
             <div>
               <CardTitle className="text-2xl">Welcome Back</CardTitle>
-              <CardDescription>Sign in to your ClinicConnect account</CardDescription>
+              <CardDescription>Sign in to your HiDoctor account</CardDescription>
             </div>
           </CardHeader>
 
