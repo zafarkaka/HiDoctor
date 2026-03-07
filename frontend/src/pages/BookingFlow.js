@@ -155,6 +155,10 @@ export default function BookingFlow() {
 
       const appointmentId = response.data.appointment.id;
 
+      toast.success('Appointment booked successfully!');
+      navigate(`/appointments/${appointmentId}`);
+
+      /*
       // Create Razorpay checkout order
       const checkoutResponse = await axios.post(
         `${API_URL}/api/payments/razorpay/create-order`,
@@ -205,6 +209,7 @@ export default function BookingFlow() {
         setSubmitting(false);
       });
       rzp.open();
+      */
     } catch (error) {
       console.error('Error creating appointment:', error);
       toast.error(error.response?.data?.detail || 'Failed to create appointment');
@@ -629,12 +634,12 @@ export default function BookingFlow() {
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4" />
-                        Pay Now - ${doctor?.consultation_fee}
+                        Confirm Appointment (Pay at Clinic)
                       </>
                     )}
                   </Button>
 
-                  {bookingData.consultation_type !== 'telehealth' && (
+                  {/* bookingData.consultation_type !== 'telehealth' && (
                     <Button
                       variant="outline"
                       className="w-full rounded-full"
@@ -644,7 +649,7 @@ export default function BookingFlow() {
                     >
                       Pay Later at Clinic
                     </Button>
-                  )}
+                  ) */}
                 </div>
               </div>
             )}

@@ -1294,16 +1294,16 @@ async def create_appointment(appointment: AppointmentCreate, current_user: dict 
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
         
-    # Booking Guardrail: Check for existing overlapping appointments
-    existing_appointment = await db.appointments.find_one({
-        "doctor_id": appointment.doctor_id,
-        "appointment_date": appointment.appointment_date,
-        "appointment_time": appointment.appointment_time,
-        "status": {"$in": [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]}
-    })
-    
-    if existing_appointment:
-        raise HTTPException(status_code=409, detail="This time slot is already booked")
+    # Comprehensive Availability Check (Schedules, Holidays, Overlaps, Breaks)
+    availability = await get_available_slots(appointment.doctor_id, str(appointment.appointment_date))
+    is_valid_slot = False
+    for slot in availability.get("slots", []):
+        if slot["time"] == appointment.appointment_time and slot["is_available"]:
+            is_valid_slot = True
+            break
+            
+    if not is_valid_slot:
+        raise HTTPException(status_code=400, detail="The selected time slot is unavailable or outside working hours")
         
     # Home Visit Validation
     if appointment.consultation_type == ConsultationType.HOME_VISIT:
@@ -2684,6 +2684,16 @@ async def set_doctor_schedule(schedule: DoctorScheduleCreate, current_user: dict
 @api_router.get("/doctors/{doctor_id}/schedule")
 async def get_doctor_schedule(doctor_id: str):
     schedule = await db.doctor_schedules.find_one({"doctor_id": doctor_id}, {"_id": 0})
+    if not schedule:
+        schedule = {}
+        
+    doctor = await db.doctors.find_one({"user_id": doctor_id}, {"_id": 0, "holidays": 1})
+    holidays = doctor.get("holidays", []) if doctor else []
+    
+    overrides = await db.availability.find({"doctor_id": doctor_id, "is_blocked": True}, {"_id": 0, "date": 1}).to_list(None)
+    blocked_dates = list(set(holidays + [o.get("date") for o in overrides if o.get("date")]))
+    
+    schedule["blocked_dates"] = blocked_dates
     return {"schedule": schedule}
 
 @api_router.get("/doctors/{doctor_id}/available-slots")
@@ -2721,9 +2731,9 @@ async def get_available_slots(doctor_id: str, date: str):
     if mobile_schedule_doc and mobile_schedule_doc.get("weekly_schedule"):
         # Mobile app style schedule prevails if present
         weekly_schedule = mobile_schedule_doc["weekly_schedule"]
-        day_config = next((s for s in weekly_schedule if s["day_of_week"] == day_of_week_int and s.get("is_active", True)), None)
+        day_config = next((s for s in weekly_schedule if s["day_of_week"] == day_of_week_int), None)
         
-        if day_config:
+        if day_config and day_config.get("is_active", True):
             try:
                 start_h, start_m = map(int, day_config["start_time"].split(":"))
                 end_h, end_m = map(int, day_config["end_time"].split(":"))
@@ -2778,6 +2788,19 @@ async def get_available_slots(doctor_id: str, date: str):
             
         slots_list = day_config.get("slots", [])
         
+        break_ranges = []
+        if mobile_schedule_doc:
+            for b in mobile_schedule_doc.get("break_times", []):
+                try:
+                    b_start_h, b_start_m = map(int, b["start"].split(":"))
+                    b_end_h, b_end_m = map(int, b["end"].split(":"))
+                    break_ranges.append({
+                        "start": b_start_h * 60 + b_start_m,
+                        "end": b_end_h * 60 + b_end_m
+                    })
+                except:
+                    pass
+        
         for slot_block in slots_list:
             try:
                 start_h, start_m = map(int, slot_block["start"].split(":"))
@@ -2786,9 +2809,16 @@ async def get_available_slots(doctor_id: str, date: str):
                 end_time = end_h * 60 + end_m
                 
                 while current_time < end_time:
-                    hour = current_time // 60
-                    minute = current_time % 60
-                    slots.append({"time": f"{hour:02d}:{minute:02d}", "is_available": True})
+                    slot_end = current_time + 30
+                    in_break = False
+                    for b in break_ranges:
+                        if current_time < b["end"] and slot_end > b["start"]:
+                            in_break = True
+                            break
+                    if not in_break:
+                        hour = current_time // 60
+                        minute = current_time % 60
+                        slots.append({"time": f"{hour:02d}:{minute:02d}", "is_available": True})
                     current_time += 30 # default 30 min duration
             except:
                 continue
