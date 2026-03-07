@@ -359,16 +359,30 @@ export default function LandingPage() {
                     <div className="aspect-[4/3] relative overflow-hidden">
                       {/* Dynamic image resolution: handles already absolute URLs, relative uploads, and fallbacks */}
                       <img
-                        src={
-                          !doctor.profile_image
-                            ? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop'
-                            : (doctor.profile_image.startsWith('http')
-                              ? doctor.profile_image
-                              : `${API_URL}${doctor.profile_image.startsWith('/') ? '' : '/'}${doctor.profile_image}`)
-                        }
+                        src={(() => {
+                          const raw = doctor.profile_image;
+                          let finalUrl = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop';
+
+                          if (raw && raw.trim() !== '') {
+                            if (raw.startsWith('http')) {
+                              finalUrl = raw;
+                            } else {
+                              // If it's a relative path, ensure it doesn't double-slash
+                              const cleanPath = raw.startsWith('/') ? raw : `/${raw}`;
+                              finalUrl = `${API_URL}${cleanPath}`;
+                            }
+                          }
+
+                          // LOUD DEBUG LOG to help identify broken links in browser console
+                          if (index === 0) console.log(`IMAGE_DEBUG [${doctor.full_name}]: raw="${raw}" -> final="${finalUrl}"`);
+                          return finalUrl;
+                        })()}
                         alt={doctor.full_name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop'; }}
+                        onError={(e) => {
+                          console.error(`IMAGE_LOAD_FAILED for ${doctor.full_name}: ${e.currentTarget.src}`);
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop';
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <div className="absolute bottom-4 left-4 right-4 text-white">

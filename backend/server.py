@@ -36,6 +36,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 # Backend URL for absolute image paths
 BACKEND_URL = os.environ.get('BACKEND_URL', 'https://hidoctor-production.up.railway.app').rstrip('/')
+
+# Robust production detection: ignore 'localhost' if running on cloud platforms
+IS_RAILWAY = os.environ.get('RAILWAY_ENVIRONMENT') is not None or os.environ.get('RAILWAY_STATIC_URL') is not None
+if IS_RAILWAY and 'localhost' in BACKEND_URL:
+    logger.info(f"Production detected (Railway). Overriding localhost BACKEND_URL '{BACKEND_URL}' with production default.")
+    BACKEND_URL = 'https://hidoctor-production.up.railway.app'
+
 if not BACKEND_URL.startswith('http') and not 'localhost' in BACKEND_URL:
     BACKEND_URL = f"https://{BACKEND_URL}"
 elif 'localhost' not in BACKEND_URL and BACKEND_URL.startswith('http://'):
@@ -2573,6 +2580,17 @@ async def get_languages():
             "English", "Hindi", "Arabic", "Spanish", "French",
             "Mandarin", "Tamil", "Telugu", "Malayalam", "Urdu"
         ]
+    }
+
+@api_router.get("/debug/config")
+async def get_debug_config():
+    """Diagnostic endpoint to check environment settings"""
+    return {
+        "BACKEND_URL": BACKEND_URL,
+        "IS_RAILWAY": os.environ.get('RAILWAY_ENVIRONMENT') is not None,
+        "UPLOADS_DIR_EXISTS": UPLOADS_DIR.exists(),
+        "DATABASE_HEALTH": "OK" if db is not None else "FAILED",
+        "ROOT_DIR": str(ROOT_DIR)
     }
 
 @api_router.get("/insurances")

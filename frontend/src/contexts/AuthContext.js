@@ -36,19 +36,24 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     try {
-      console.log('AuthContext: Fetching current user...');
+      console.log('AuthContext DEBUG: Fetching current user with token length:', token?.length);
+      console.log('AuthContext DEBUG: Token prefix:', token?.substring(0, 10));
+
       const response = await axios.get(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('AuthContext: User fetch successful');
+      console.log('AuthContext DEBUG: User fetch SUCCESSFUL');
       setUser(response.data);
     } catch (error) {
       const status = error.response?.status;
       const detail = error.response?.data?.detail;
-      console.error(`AuthContext: Error fetching user (Status: ${status}):`, detail || error.message);
+      const errorMessage = error.response?.data?.message || error.message;
+
+      console.error(`AuthContext DEBUG ERROR: Status ${status} | Detail: ${detail} | Msg: ${errorMessage}`);
+      console.error('Full Error Object for analysis:', error);
 
       if (status === 401) {
-        console.warn('AuthContext: Session expired or invalid, logging out...');
+        console.warn('AuthContext DEBUG: Unauthorized (401). Clearing stale token...');
         logout();
       }
     } finally {
