@@ -20,6 +20,13 @@ async def send_push_notifications(messages: List[Dict[str, Any]]):
         
     try:
         async with httpx.AsyncClient() as client:
+            # Add delivery settings for background/closed app reliability
+            for msg in valid_messages:
+                if "priority" not in msg:
+                    msg["priority"] = "high"
+                if "channelId" not in msg:
+                    msg["channelId"] = "default"
+
             response = await client.post(
                 EXPO_PUSH_URL,
                 json=valid_messages,

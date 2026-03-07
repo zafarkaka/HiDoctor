@@ -7,13 +7,16 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import re
-import logging
-import secrets
 import httpx
 from pathlib import Path
+
+# Configure logging early to avoid NameErrors in initialization
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
+import secrets
 from datetime import datetime, timezone, timedelta
 import bcrypt
 from jose import jwt, JWTError
@@ -162,10 +165,6 @@ async def save_image_to_db(filename: str, content: bytes, content_type: str):
 
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # ============== ENUMS ==============
 class UserRole(str, Enum):
@@ -1378,31 +1377,37 @@ async def get_appointments(
 
 @api_router.get("/appointments/{appointment_id}")
 async def get_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
-    appointment = await db.appointments.find_one({"id": appointment_id}, {"_id": 0})
-    if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found")
-    
-    # Check access
-    if current_user["role"] == UserRole.PATIENT and appointment["patient_id"] != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-    if current_user["role"] == UserRole.DOCTOR and appointment["doctor_id"] != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    # Enrich data
-    doctor = await db.doctors.find_one({"user_id": appointment["doctor_id"]}, {"_id": 0})
-    patient = await db.users.find_one({"id": appointment["patient_id"]}, {"_id": 0, "password": 0})
-    if doctor:
-        doctor["profile_image"] = normalize_image_url(doctor.get("profile_image"))
-    if patient:
-        patient["profile_image"] = normalize_image_url(patient.get("profile_image"))
-    appointment["doctor"] = doctor
-    appointment["patient"] = patient
-    
-    if appointment.get("family_member_id"):
-        family_member = await db.family_members.find_one({"id": appointment["family_member_id"]}, {"_id": 0})
-        appointment["family_member"] = family_member
-    
-    return appointment
+    try:
+        appointment = await db.appointments.find_one({"id": appointment_id}, {"_id": 0})
+        if not appointment:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        
+        # Check access
+        if current_user["role"] == UserRole.PATIENT and appointment.get("patient_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Access denied")
+        if current_user["role"] == UserRole.DOCTOR and appointment.get("doctor_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Enrich data
+        doctor = await db.doctors.find_one({"user_id": appointment.get("doctor_id")}, {"_id": 0})
+        patient = await db.users.find_one({"id": appointment.get("patient_id")}, {"_id": 0, "password": 0})
+        if doctor:
+            doctor["profile_image"] = normalize_image_url(doctor.get("profile_image"))
+        if patient:
+            patient["profile_image"] = normalize_image_url(patient.get("profile_image"))
+        appointment["doctor"] = doctor
+        appointment["patient"] = patient
+        
+        if appointment.get("family_member_id"):
+            family_member = await db.family_members.find_one({"id": appointment["family_member_id"]}, {"_id": 0})
+            appointment["family_member"] = family_member
+        
+        return appointment
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ERROR: Fetching appointment {appointment_id}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @api_router.put("/appointments/{appointment_id}")
 async def update_appointment(appointment_id: str, update: AppointmentUpdate, current_user: dict = Depends(get_current_user)):
