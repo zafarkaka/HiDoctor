@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-const API_URL = process.env.REACT_APP_BACKEND_URL;
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/button';
@@ -24,6 +23,11 @@ import {
   Smartphone,
   CheckCircle2
 } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://hidoctor-production.up.railway.app';
+if (!process.env.REACT_APP_BACKEND_URL) {
+  console.warn('LandingPage: REACT_APP_BACKEND_URL is missing! Falling back to production default.');
+}
 
 const specialties = [
   { name: 'Cardiology', icon: Heart, color: 'bg-red-100 text-red-600' },

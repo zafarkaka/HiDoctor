@@ -2584,11 +2584,17 @@ async def get_languages():
 
 @api_router.get("/debug/config")
 async def get_debug_config():
-    """Diagnostic endpoint to check environment settings"""
+    """Diagnostic endpoint to check environment settings and file persistence"""
+    files = []
+    if UPLOADS_DIR.exists():
+        files = [f.name for f in UPLOADS_DIR.iterdir() if f.is_file()][:50]
+        
     return {
         "BACKEND_URL": BACKEND_URL,
         "IS_RAILWAY": os.environ.get('RAILWAY_ENVIRONMENT') is not None,
         "UPLOADS_DIR_EXISTS": UPLOADS_DIR.exists(),
+        "FILES_IN_UPLOADS_COUNT": len(files),
+        "FILES_IN_UPLOADS_SAMPLE": files[:10],
         "DATABASE_HEALTH": "OK" if db is not None else "FAILED",
         "ROOT_DIR": str(ROOT_DIR)
     }
