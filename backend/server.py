@@ -40,12 +40,20 @@ BACKEND_URL = os.environ.get('BACKEND_URL', 'https://hidoctor-production.up.rail
 def normalize_image_url(url: Optional[str]) -> Optional[str]:
     if not url:
         return url
-    # If it's a relative path, prepend BACKEND_URL
-    if url.startswith('/uploads/'):
-        return f"{BACKEND_URL}{url}"
+    
+    # Clean whitespace
+    url = url.strip()
+    
+    # If it's a relative path (with or without leading slash)
+    if url.startswith('/uploads/') or url.startswith('uploads/'):
+        path = url if url.startswith('/') else f"/{url}"
+        return f"{BACKEND_URL}{path}"
+    
     # If it contains localhost, swap it with the real BACKEND_URL
     if 'localhost:8001' in url:
-        return url.replace('http://localhost:8001', BACKEND_URL)
+        # Handle cases like http://localhost:8001/uploads/...
+        return url.replace('http://localhost:8001', BACKEND_URL).replace('https://localhost:8001', BACKEND_URL)
+        
     return url
 
 app = FastAPI(title="HiDoctor API")
@@ -858,11 +866,17 @@ async def list_doctors(
     
     # Enrichment from Users collection (for profile_image and full_name if missing in doctor record)
     for doc in doctors:
-        user = await db.users.find_one({"id": doc["user_id"]}, {"_id": 0, "full_name": 1, "profile_image": 1})
-        if user:
+        user_info = await db.users.find_one({"id": doc["user_id"]}, {"_id": 0, "full_name": 1, "profile_image": 1})
+        if user_info:
             if not doc.get("full_name"):
-                doc["full_name"] = user.get("full_name")
-        doc["profile_image"] = normalize_image_url(user.get("profile_image") if user else doc.get("profile_image"))
+                doc["full_name"] = user_info.get("full_name")
+            
+            raw_img = user_info.get("profile_image") or doc.get("profile_image")
+            normalized = normalize_image_url(raw_img)
+            doc["profile_image"] = normalized
+            # logger.info(f"Doctor {doc.get('user_id')} image: raw={raw_img} -> normalized={normalized}")
+        else:
+            doc["profile_image"] = normalize_image_url(doc.get("profile_image"))
     
     return {"doctors": doctors, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 
@@ -874,11 +888,15 @@ async def get_top_rated_doctors(limit: int = 6):
     doctors = await db.doctors.find(query, {"_id": 0}).sort([("rating", -1), ("review_count", -1)]).limit(limit).to_list(limit)
     
     for doc in doctors:
-        user = await db.users.find_one({"id": doc["user_id"]}, {"_id": 0, "full_name": 1, "profile_image": 1})
-        if user:
+        user_info = await db.users.find_one({"id": doc["user_id"]}, {"_id": 0, "full_name": 1, "profile_image": 1})
+        if user_info:
             if not doc.get("full_name"):
-                doc["full_name"] = user.get("full_name")
-            doc["profile_image"] = normalize_image_url(user.get("profile_image") or doc.get("profile_image"))
+                doc["full_name"] = user_info.get("full_name")
+            
+            raw_img = user_info.get("profile_image") or doc.get("profile_image")
+            normalized = normalize_image_url(raw_img)
+            doc["profile_image"] = normalized
+            logger.info(f"Top Doctor {doc.get('user_id')} image: raw={raw_img} -> normalized={normalized}")
         else:
             doc["profile_image"] = normalize_image_url(doc.get("profile_image"))
             

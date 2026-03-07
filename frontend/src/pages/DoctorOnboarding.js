@@ -84,8 +84,7 @@ export default function DoctorOnboarding() {
     consultation_types: ['in_person'],
     consultation_fee: '',
     accepted_insurances: [],
-    bio: '',
-    bio: '',
+    bio: user?.bio || '',
     profile_image: user?.profile_image || ''
   });
   const [profilePicUploading, setProfilePicUploading] = useState(false);
@@ -155,19 +154,30 @@ export default function DoctorOnboarding() {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
 
+      console.log('Attempting profile picture upload...');
       const response = await axios.post(`${API_URL}/api/auth/profile/picture`, uploadFormData, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
 
+      console.log('Upload response:', response.data);
       const imageUrl = response.data.url;
       setFormData(prev => ({ ...prev, profile_image: imageUrl }));
+      toast.success('Profile picture updated');
       await fetchUser(); // Update user context
-      toast.success('Profile picture updated!');
     } catch (error) {
-      console.error('Error uploading picture:', error);
-      toast.error('Failed to upload picture');
+      console.error('Error uploading picture full details:', error);
+      if (error.response) {
+        console.error('Server responded with:', error.response.status, error.response.data);
+        toast.error(`Upload error: ${error.response.data?.detail || 'Server error'}`);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+        toast.error('No response from server. Check your connection.');
+      } else {
+        console.error('Error setting up request:', error.message);
+        toast.error('Failed to upload picture');
+      }
     } finally {
       setProfilePicUploading(false);
     }
