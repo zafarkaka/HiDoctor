@@ -157,8 +157,7 @@ export default function DoctorOnboarding() {
 
       const response = await axios.post(`${API_URL}/api/auth/profile/picture`, uploadFormData, {
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          Authorization: `Bearer ${token}`
         }
       });
 

@@ -120,8 +120,14 @@ export default function ProfileSettings() {
         const fileData = new FormData();
         fileData.append('file', uploadFile);
 
-        await axios.post(`${API_URL}/api/auth/profile/picture`, fileData, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+        const getAuthHeader = () => ({
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const response = await axios.post(`${API_URL}/api/auth/profile/picture`, fileData, {
+          headers: {
+            ...getAuthHeader().headers
+          }
         });
       }
 

@@ -685,27 +685,43 @@ async def upload_profile_picture(
     file: UploadFile = File(...), 
     current_user: dict = Depends(get_current_user)
 ):
+    logger.info(f"Upload profile picture attempt for user: {current_user['id']}, role: {current_user.get('role')}")
+    logger.info(f"Filename: {file.filename}, Content-Type: {file.content_type}")
+    
     if not file.content_type.startswith('image/'):
+        logger.error(f"Upload failed: File is not an image ({file.content_type})")
         raise HTTPException(status_code=400, detail="File must be an image")
         
-    ext = file.filename.split('.')[-1]
-    filename = f"{current_user['id']}_{uuid.uuid4().hex[:8]}.{ext}"
-    file_path = UPLOADS_DIR / filename
-    
-    content = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(content)
+    try:
+        ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+        filename = f"{current_user['id']}_{uuid.uuid4().hex[:8]}.{ext}"
+        file_path = UPLOADS_DIR / filename
         
-    file_url = f"/uploads/{filename}"
-    
-    await db.users.update_one({"id": current_user["id"]}, {"$set": {"profile_image": file_url}})
-    
-    if current_user["role"] == UserRole.PATIENT:
-        await db.patients.update_one({"user_id": current_user["id"]}, {"$set": {"profile_image": file_url}})
-    elif current_user["role"] == UserRole.DOCTOR:
-        await db.doctors.update_one({"user_id": current_user["id"]}, {"$set": {"profile_image": file_url}})
+        logger.info(f"Saving file to: {file_path}")
         
-    return {"message": "Profile picture updated", "url": file_url}
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
+        file_url = f"/uploads/{filename}"
+        logger.info(f"File saved successfully. URL: {file_url}")
+        
+        # Update user record
+        await db.users.update_one({"id": current_user["id"]}, {"$set": {"profile_image": file_url}})
+        
+        # Update role-specific records
+        if current_user["role"] == UserRole.PATIENT:
+            await db.patients.update_one({"user_id": current_user["id"]}, {"$set": {"profile_image": file_url}})
+        elif current_user["role"] == UserRole.DOCTOR:
+            # Note: During initial registration, doctor profile might not exist yet if this is called too early,
+            # but RegisterPage.js calls it AFTER register succeeds.
+            result = await db.doctors.update_one({"user_id": current_user["id"]}, {"$set": {"profile_image": file_url}})
+            logger.info(f"Doctor profile update result: matched={result.matched_count}, modified={result.modified_count}")
+            
+        return {"message": "Profile picture updated", "url": file_url}
+    except Exception as e:
+        logger.error(f"Error in upload_profile_picture: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error during upload: {str(e)}")
 
 @api_router.post("/users/push-token")
 async def register_push_token(data: RegisterPushTokenRequest, current_user: dict = Depends(get_current_user)):
@@ -2232,23 +2248,34 @@ async def admin_delete_doctor(doctor_id: str, current_user: dict = Depends(get_a
 @api_router.post("/admin/doctors/{doctor_id}/profile-picture")
 async def admin_upload_doctor_profile_picture(doctor_id: str, file: UploadFile = File(...), current_user: dict = Depends(get_admin_user)):
     """Admin endpoint to upload/replace a doctor's profile picture"""
+    logger.info(f"Admin {current_user['id']} uploading profile picture for doctor: {doctor_id}")
+    
     if not file.content_type.startswith('image/'):
+        logger.error(f"Admin upload failed: File is not an image ({file.content_type})")
         raise HTTPException(status_code=400, detail="File must be an image")
         
-    ext = file.filename.split('.')[-1]
-    filename = f"admin_upload_{doctor_id}_{uuid.uuid4().hex[:6]}.{ext}"
-    file_path = UPLOADS_DIR / filename
-    
-    content = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(content)
+    try:
+        ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+        filename = f"admin_upload_{doctor_id}_{uuid.uuid4().hex[:6]}.{ext}"
+        file_path = UPLOADS_DIR / filename
         
-    file_url = f"/uploads/{filename}"
-    
-    await db.users.update_one({"id": doctor_id}, {"$set": {"profile_image": file_url}})
-    await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"profile_image": file_url}})
-    
-    return {"message": "Doctor profile picture updated by admin", "url": file_url}
+        logger.info(f"Admin saving file to: {file_path}")
+        
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
+        file_url = f"/uploads/{filename}"
+        
+        await db.users.update_one({"id": doctor_id}, {"$set": {"profile_image": file_url}})
+        result = await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"profile_image": file_url}})
+        
+        logger.info(f"Admin upload successful. URL: {file_url}. Doctor update: matched={result.matched_count}")
+        
+        return {"message": "Doctor profile picture updated by admin", "url": file_url}
+    except Exception as e:
+        logger.error(f"Error in admin_upload_doctor_profile_picture: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @api_router.get("/admin/users")
 async def admin_get_users(
