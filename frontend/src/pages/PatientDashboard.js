@@ -31,6 +31,7 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [familyCount, setFamilyCount] = useState(0);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [ads, setAds] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -38,16 +39,18 @@ export default function PatientDashboard() {
 
   const fetchData = async () => {
     try {
-      const [appointmentsRes, familyRes] = await Promise.all([
+      const [appointmentsRes, familyRes, adsRes] = await Promise.all([
         axios.get(`${API_URL}/api/appointments`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
         axios.get(`${API_URL}/api/family-members`, {
           headers: { Authorization: `Bearer ${token}` }
-        })
+        }),
+        axios.get(`${API_URL}/api/campaigns?placement=patient_dashboard`)
       ]);
       setAppointments(appointmentsRes.data.appointments);
       setFamilyCount(familyRes.data.count);
+      setAds(adsRes.data.ads || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -93,60 +96,52 @@ export default function PatientDashboard() {
           <p className="text-muted-foreground">Here's an overview of your health journey</p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card
-            className="cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all border-border/50"
-            onClick={() => navigate('/doctors')}
-            data-testid="quick-action-find-doctor"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
-                <Search className="w-6 h-6 text-primary" />
-              </div>
-              <span className="font-medium">Find Doctor</span>
-            </CardContent>
-          </Card>
+        {/* Ads Section (Replacing Quick Actions) */}
+        {ads.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              Featured Offers
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {ads.slice(0, 3).map((ad, idx) => (
+                <Card
+                  key={idx}
+                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-all border-border/50 group"
+                  onClick={() => ad.redirect_url && window.open(ad.redirect_url, '_blank')}
+                >
+                  <div className="flex flex-col h-full">
+                    <div className="w-full h-40 overflow-hidden relative">
+                      <img
+                        src={ad.image_url.startsWith('http') ? ad.image_url : `${API_URL}${ad.image_url}`}
+                        alt={ad.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-black/50 text-white backdrop-blur-md border-none text-[10px]">AD</Badge>
+                      </div>
+                    </div>
+                    <CardContent className="p-4 flex flex-col flex-1">
+                      <h3 className="font-bold text-sm mb-1 line-clamp-1">{ad.title}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{ad.description}</p>
+                      <div className="mt-auto flex items-center text-primary text-xs font-semibold">
+                        View Details <ArrowRight className="w-3 h-3 ml-1" />
+                      </div>
+                    </CardContent>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
-          <Card
-            className="cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all border-border/50"
-            onClick={() => navigate('/family-members')}
-            data-testid="quick-action-family"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center mb-3">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
-              <span className="font-medium">Family ({familyCount}/4)</span>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all border-border/50"
-            onClick={() => navigate('/notifications')}
-            data-testid="quick-action-notifications"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-3">
-                <Bell className="w-6 h-6 text-blue-600" />
-              </div>
-              <span className="font-medium">Notifications</span>
-            </CardContent>
-          </Card>
-
-          <Card
-            className="cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all border-border/50"
-            onClick={() => navigate('/blog')}
-            data-testid="quick-action-blog"
-          >
-            <CardContent className="p-4 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-3">
-                <Calendar className="w-6 h-6 text-purple-600" />
-              </div>
-              <span className="font-medium">Health Blog</span>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Action Bar (Simplified Quick Navigation) */}
+        {!ads.length && (
+          <div className="flex gap-4 mb-8">
+            <Button onClick={() => navigate('/doctors')} className="rounded-full">Find Doctor</Button>
+            <Button onClick={() => navigate('/family-members')} variant="outline" className="rounded-full">Family Members</Button>
+          </div>
+        )}
 
         {/* Calendar and Appointments View */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
