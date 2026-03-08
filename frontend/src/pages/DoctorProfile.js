@@ -21,7 +21,8 @@ import {
   MessageSquare,
   ChevronLeft,
   CheckCircle,
-  Home
+  Home,
+  Video
 } from 'lucide-react';
 import axios from 'axios';
 import { format, parseISO, isSameDay } from 'date-fns';
