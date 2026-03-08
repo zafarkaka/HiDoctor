@@ -339,6 +339,24 @@ export default function BookingFlow() {
                         </div>
                       </Label>
                     )}
+                    {doctor?.consultation_types?.includes('telehealth') && (
+                      <Label
+                        htmlFor="telehealth"
+                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${bookingData.consultation_type === 'telehealth'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                          }`}
+                      >
+                        <RadioGroupItem value="telehealth" id="telehealth" className="sr-only" />
+                        <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+                          <Video className="w-6 h-6 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Video Consultation</p>
+                          <p className="text-sm text-muted-foreground">Virtual call via Jitsi</p>
+                        </div>
+                      </Label>
+                    )}
                     {doctor?.consultation_types?.includes('home_visit') && (
                       <Label
                         htmlFor="home_visit"

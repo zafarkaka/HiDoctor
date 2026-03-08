@@ -94,25 +94,16 @@ origins = [
     "exp://localhost:8081",
     "https://www.hidoctor.online",
     "https://hidoctor.online",
+    "https://hidoctor-production.up.railway.app",
+    "https://api.hidoctor.online",
 ]
 
-# Add FRONTEND_URL from environment with robust cleaning
-frontend_url_env = os.environ.get("FRONTEND_URL", "")
-if frontend_url_env:
-    for u in frontend_url_env.split(","):
-        clean_url = u.strip().rstrip("/")
-        if clean_url and clean_url not in origins:
-            origins.append(clean_url)
+# Clean origins and ensure no trailing slashes
+origins = list(set([o.rstrip('/') for o in origins if o]))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://www.hidoctor.online",
-        "https://hidoctor.online",
-        "https://hidoctor-production.up.railway.app",
-        "https://api.hidoctor.online"
-    ],
+    allow_origins=origins,
     allow_origin_regex=r"https://.*hidoctor\.online",
     allow_credentials=True,
     allow_methods=["*"],
@@ -191,6 +182,7 @@ class AppointmentStatus(str, Enum):
 class ConsultationType(str, Enum):
     IN_PERSON = "in_person"
     HOME_VISIT = "home_visit"
+    TELEHEALTH = "telehealth"
 
 class PaymentStatus(str, Enum):
     PENDING = "pending"
@@ -2479,6 +2471,7 @@ async def admin_get_analytics(current_user: dict = Depends(get_admin_user)):
     total_appointments = await db.appointments.count_documents({})
     completed_appointments = await db.appointments.count_documents({"status": AppointmentStatus.COMPLETED})
     cancelled_appointments = await db.appointments.count_documents({"status": AppointmentStatus.CANCELLED})
+    telehealth_appointments = await db.appointments.count_documents({"consultation_type": ConsultationType.TELEHEALTH})
     
     total_revenue_pipeline = [
         {"$match": {"payment_status": PaymentStatus.PAID}},
