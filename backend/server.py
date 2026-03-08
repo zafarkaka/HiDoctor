@@ -7,7 +7,6 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import re
-import asyncio
 import logging
 import httpx
 from pathlib import Path
@@ -95,8 +94,6 @@ origins = [
     "exp://localhost:8081",
     "https://www.hidoctor.online",
     "https://hidoctor.online",
-    "https://hidoctor-production.up.railway.app",
-    "https://api.hidoctor.online"
 ]
 
 # Add FRONTEND_URL from environment with robust cleaning
@@ -109,7 +106,13 @@ if frontend_url_env:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "https://www.hidoctor.online",
+        "https://hidoctor.online",
+        "https://hidoctor-production.up.railway.app",
+        "https://api.hidoctor.online"
+    ],
     allow_origin_regex=r"https://.*hidoctor\.online",
     allow_credentials=True,
     allow_methods=["*"],
@@ -2681,23 +2684,9 @@ async def get_available_slots(doctor_id: str, date: str):
     if mobile_schedule_doc and mobile_schedule_doc.get("weekly_schedule"):
         # Mobile app style schedule prevails if present
         weekly_schedule = mobile_schedule_doc["weekly_schedule"]
-        # Filter all active configs for the target day (allows dual shifts)
-        day_configs = [s for s in weekly_schedule if s["day_of_week"] == day_of_week_int and s.get("is_active", True)]
+        day_config = next((s for s in weekly_schedule if s["day_of_week"] == day_of_week_int), None)
         
-        # Parse break times once to exclude from all shifts
-        break_ranges = []
-        for b in mobile_schedule_doc.get("break_times", []):
-            try:
-                b_start_h, b_start_m = map(int, b["start"].split(":"))
-                b_end_h, b_end_m = map(int, b["end"].split(":"))
-                break_ranges.append({
-                    "start": b_start_h * 60 + b_start_m,
-                    "end": b_end_h * 60 + b_end_m
-                })
-            except:
-                pass
-
-        for day_config in day_configs:
+        if day_config and day_config.get("is_active", True):
             try:
                 start_h, start_m = map(int, day_config["start_time"].split(":"))
                 end_h, end_m = map(int, day_config["end_time"].split(":"))
@@ -2705,6 +2694,16 @@ async def get_available_slots(doctor_id: str, date: str):
                 
                 current_time = start_h * 60 + start_m
                 end_time = end_h * 60 + end_m
+                
+                # Parse break times to exclude
+                break_ranges = []
+                for b in mobile_schedule_doc.get("break_times", []):
+                    b_start_h, b_start_m = map(int, b["start"].split(":"))
+                    b_end_h, b_end_m = map(int, b["end"].split(":"))
+                    break_ranges.append({
+                        "start": b_start_h * 60 + b_start_m,
+                        "end": b_end_h * 60 + b_end_m
+                    })
                 
                 while current_time + slot_duration_mins <= end_time:
                     slot_end = current_time + slot_duration_mins
@@ -2719,15 +2718,11 @@ async def get_available_slots(doctor_id: str, date: str):
                     if not in_break:
                         hour = current_time // 60
                         minute = current_time % 60
-                        time_str = f"{hour:02d}:{minute:02d}"
-                        # Avoid duplicates if shifts overlap slightly (unlikely but safe)
-                        if not any(s["time"] == time_str for s in slots):
-                            slots.append({"time": time_str, "is_available": True})
+                        slots.append({"time": f"{hour:02d}:{minute:02d}", "is_available": True})
                         
                     current_time += slot_duration_mins
             except Exception as e:
-                logger.error(f"Error processing shift for doctor {doctor_id}: {str(e)}")
-                continue
+                pass
 
     elif not working_hours:
         # Fallback to default 9-17 Mon-Fri slots:
