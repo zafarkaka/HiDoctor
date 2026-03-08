@@ -1025,6 +1025,34 @@ async def update_doctor_holidays_single(
         
     return {"message": "Holidays updated successfully", "holidays": data.holidays}
 
+class BlockDatesRequest(BaseModel):
+    dates: List[str]
+
+@api_router.post("/doctors/availability/block")
+async def block_doctor_dates(
+    data: BlockDatesRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Block specific dates for the authenticated doctor (used by mobile)"""
+    if current_user["role"] != UserRole.DOCTOR:
+        raise HTTPException(status_code=403, detail="Only doctors can block dates")
+    
+    # Update holidays list in doctor profile
+    await db.doctors.update_one(
+        {"user_id": current_user["id"]},
+        {"$addToSet": {"holidays": {"$each": data.dates}}}
+    )
+    
+    # Block these dates in availability collection
+    for date in data.dates:
+        await db.availability.update_one(
+            {"doctor_id": current_user["id"], "date": date},
+            {"$set": {"doctor_id": current_user["id"], "date": date, "slots": [], "is_blocked": True}},
+            upsert=True
+        )
+        
+    return {"message": f"Successfully blocked {len(data.dates)} dates"}
+
 @api_router.get("/doctors/working-hours")
 async def get_doctor_working_hours(current_user: dict = Depends(get_current_user)):
     """Fetch the authenticated doctor's weekly working hours"""

@@ -347,9 +347,14 @@ export const Footer = () => {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            © 2025 HiDoctor. All rights reserved.
-          </p>
+          <div className="flex flex-col items-center md:items-start">
+            <p className="text-sm text-muted-foreground">
+              © 2025 HiDoctor. All rights reserved.
+            </p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-widest font-medium">
+              Made By Mohammed Izyaan - LimraTech
+            </p>
+          </div>
           <p className="text-xs text-muted-foreground text-center md:text-right">
             Medical Disclaimer: This platform is not a substitute for emergency medical care.
           </p>
