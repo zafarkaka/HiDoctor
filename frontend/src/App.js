@@ -16,7 +16,6 @@ import DoctorProfile from "./pages/DoctorProfile";
 import BookingFlow from "./pages/BookingFlow";
 import AppointmentDetails from "./pages/AppointmentDetails";
 import FamilyMembers from "./pages/FamilyMembers";
-import FamilyMembers from "./pages/FamilyMembers";
 import BlogPage from "./pages/BlogPage";
 import BlogPost from "./pages/BlogPost";
 import ProfileSettings from "./pages/ProfileSettings";
