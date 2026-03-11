@@ -24,6 +24,8 @@ import bcrypt
 from jose import jwt, JWTError
 from enum import Enum
 from notification_utils import send_chat_notification, send_call_notification, send_push_notification_to_user
+import firebase_admin
+from firebase_admin import auth, credentials
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -34,6 +36,25 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Firebase Admin Initialization
+firebase_service_account = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON')
+if firebase_service_account:
+    try:
+        import json
+        cert_dict = json.loads(firebase_service_account)
+        cred = credentials.Certificate(cert_dict)
+        firebase_admin.initialize_app(cred)
+        logger.info("Firebase Admin initialized successfully.")
+    except Exception as e:
+        logger.error(f"Failed to initialize Firebase Admin with JSON: {e}")
+else:
+    # Fallback to default credentials if running in a Google Cloud environment
+    try:
+        firebase_admin.initialize_app()
+        logger.info("Firebase Admin initialized with default credentials.")
+    except Exception as e:
+        logger.warning(f"Firebase Admin not initialized: {e}. 'FIREBASE_SERVICE_ACCOUNT_JSON' is required for non-GCP environments.")
 
 # JWT Settings
 SECRET_KEY = os.environ.get('JWT_SECRET', 'healthcare-platform-secret-key-2024')
@@ -193,26 +214,27 @@ class PaymentStatus(str, Enum):
 # ============== MODELS ==============
 class UserBase(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    email: EmailStr
+    username: str
     full_name: str
     phone: str
     role: UserRole
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    username: str
     password: str
     full_name: str
     phone: str
     role: UserRole
+    firebase_token: str # Required for verification during registration
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    identifier: str  # Can be username or phone
     password: str
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
-    email: str
+    username: str
     full_name: str
     phone: str
     role: UserRole
@@ -570,22 +592,45 @@ async def get_doctor_user(current_user: dict = Depends(get_current_user)):
 # ============== AUTH ROUTES ==============
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
-    email = user_data.email.lower().strip()
-    # Case-insensitive check to prevent duplicates even with different casing
-    existing = await db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}})
-    if existing:
-        logger.warning(f"Registration failed: Email {email} already exists (case-insensitive check)")
-        raise HTTPException(status_code=400, detail="Email already registered")
+    username = user_data.username.lower().strip()
+    phone = user_data.phone.strip()
     
+    # 1. Verify Firebase Token
+    try:
+        decoded_token = auth.verify_id_token(user_data.firebase_token)
+        # Ensure the phone number in the token matches the one provided
+        firebase_phone = decoded_token.get('phone_number')
+        
+        # Phone numbers from Firebase are typically E.164. 
+        # We should be careful about formatting, but simple equality check for now.
+        if firebase_phone and firebase_phone.replace('+', '') != phone.replace('+', ''):
+             logger.warning(f"Phone mismatch: token={firebase_phone}, provided={phone}")
+             # We might want to allow it if it's just a formatting difference, 
+             # but for security we should ideally use the phone FROM the token.
+             phone = firebase_phone
+    except Exception as e:
+        logger.error(f"Firebase token verification failed: {e}")
+        raise HTTPException(status_code=400, detail="Invalid or expired verification session")
+
+    # 2. Check if username or phone already exists
+    existing_username = await db.users.find_one({"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}})
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
+        
+    existing_phone = await db.users.find_one({"phone": phone})
+    if existing_phone:
+        raise HTTPException(status_code=400, detail="Phone number already registered")
+    
+    # 3. Create User
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
-        "email": email,
+        "username": username,
         "password": hash_password(user_data.password),
         "full_name": user_data.full_name,
-        "phone": user_data.phone,
+        "phone": phone,
         "role": user_data.role,
-        "is_verified": user_data.role == UserRole.PATIENT,  # Auto-verify patients
+        "is_verified": True, # Verified via Firebase
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user_doc)
@@ -618,19 +663,11 @@ async def register(user_data: UserCreate):
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.doctors.insert_one(doctor_profile)
-    elif user_data.role == UserRole.ADMIN:
-        admin_profile = {
-            "user_id": user_id, 
-            "full_name": user_data.full_name,
-            "permissions": ["all"],
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.admins.insert_one(admin_profile)
     
     token = create_access_token({"sub": user_id, "role": user_data.role})
     user_response = UserResponse(
-        id=user_id, email=user_data.email, full_name=user_data.full_name,
-        phone=user_data.phone, role=user_data.role, is_verified=user_doc["is_verified"],
+        id=user_id, username=username, full_name=user_data.full_name,
+        phone=phone, role=user_data.role, is_verified=True,
         created_at=user_doc["created_at"],
         profile_image=normalize_image_url(user_doc.get("profile_image"))
     )
@@ -638,31 +675,33 @@ async def register(user_data: UserCreate):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    email = credentials.email.lower().strip()
-    logger.info(f"Login attempt for email: {email}")
+    identifier = credentials.identifier.lower().strip()
+    logger.info(f"Login attempt for: {identifier}")
     
-    # Robust case-insensitive lookup
-    user = await db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}, {"_id": 0})
+    # Check by username or phone
+    user = await db.users.find_one({
+        "$or": [
+            {"username": {"$regex": f"^{re.escape(identifier)}$", "$options": "i"}},
+            {"phone": identifier}
+        ]
+    }, {"_id": 0})
     
     if not user:
-        logger.warning(f"AUTH_FAILURE: User not found: {email}")
-        # Hint added for immediate user feedback
-        raise HTTPException(status_code=401, detail=f"User {email} not found in database")
+        logger.warning(f"AUTH_FAILURE: User not found: {identifier}")
+        raise HTTPException(status_code=401, detail="User not found")
         
     pwd_in_db = user.get("password")
-    if not pwd_in_db:
-        logger.error(f"AUTH_CRITICAL: User {email} has no password field!")
-        raise HTTPException(status_code=500, detail="User account is corrupted (no password)")
-
     if not verify_password(credentials.password, pwd_in_db):
-        logger.warning(f"AUTH_FAILURE: Password mismatch for user {email}")
-        # Hint added for immediate user feedback
-        raise HTTPException(status_code=401, detail="Password mismatch")
+        logger.warning(f"AUTH_FAILURE: Password mismatch for user {identifier}")
+        raise HTTPException(status_code=401, detail="Invalid password")
     
-    logger.info(f"AUTH_SUCCESS: Login verified for user {email}")
+    if not user.get("is_verified", False):
+        raise HTTPException(status_code=403, detail="Account not verified. Please register again to receive OTP.")
+
+    logger.info(f"AUTH_SUCCESS: Login verified for user {identifier}")
     token = create_access_token({"sub": user["id"], "role": user["role"]})
     user_response = UserResponse(
-        id=user["id"], email=user["email"], full_name=user["full_name"],
+        id=user["id"], username=user["username"], full_name=user["full_name"],
         phone=user.get("phone"), role=user["role"], is_verified=user.get("is_verified", False),
         created_at=user["created_at"],
         profile_image=normalize_image_url(user.get("profile_image"))
@@ -671,86 +710,54 @@ async def login(credentials: UserLogin):
 
 # --- Forgot / Reset Password ---
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    phone: str
 
 class ResetPasswordRequest(BaseModel):
-    email: EmailStr
-    code: str
+    phone: str
+    firebase_token: str
     new_password: str
 
 @api_router.post("/auth/forgot-password")
 async def forgot_password(data: ForgotPasswordRequest):
-    """Generate a 6-digit reset code for the given email."""
-    import random
-    user = await db.users.find_one({"email": data.email}, {"_id": 0, "id": 1})
-    # Always return success to prevent email enumeration
+    """Check if a phone number is registered."""
+    phone = data.phone.strip()
+    user = await db.users.find_one({"phone": phone}, {"id": 1})
     if not user:
-        return {"message": "If that email is registered, a reset code has been generated."}
-
-    code = f"{random.randint(100000, 999999)}"
-    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
-
-    await db.password_resets.delete_many({"email": data.email})  # remove old codes
-    await db.password_resets.insert_one({
-        "email": data.email,
-        "code": code,
-        "expires_at": expires_at,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-
-    # Send the code via email using Resend
-    email_sent = False
-    resend_key = os.environ.get("RESEND_API_KEY")
-    if resend_key:
-        try:
-            import resend
-            resend.api_key = resend_key
-            resend.Emails.send({
-                "from": "HiDoctor <onboarding@resend.dev>",
-                "to": [data.email],
-                "subject": "Your HiDoctor Password Reset Code",
-                "html": f"""
-                <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
-                    <h2 style="color:#0d9488;">🏥 HiDoctor Password Reset</h2>
-                    <p>You requested a password reset. Use the code below to set a new password:</p>
-                    <div style="background:#f0fdfa;border:2px solid #0d9488;border-radius:12px;padding:24px;text-align:center;margin:24px 0;">
-                        <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#0d9488;">{code}</span>
-                    </div>
-                    <p style="color:#666;font-size:14px;">This code expires in <strong>15 minutes</strong>. If you didn't request this, ignore this email.</p>
-                </div>
-                """,
-            })
-            email_sent = True
-            logger.info(f"[PASSWORD RESET] Email sent to {data.email}")
-        except Exception as e:
-            logger.warning(f"[PASSWORD RESET] Failed to send email: {e}")
-
-    if not email_sent:
-        logger.info(f"[PASSWORD RESET] Code for {data.email}: {code}")
-        # Return code in response as fallback (no email sent)
-        return {"message": "Reset code generated (email delivery unavailable — code shown below).", "code": code}
-
-    return {"message": "A password reset code has been sent to your email."}
+        raise HTTPException(status_code=404, detail="User with this phone number not found")
+    
+    return {"message": "User found. Please verify phone to reset password."}
 
 @api_router.post("/auth/reset-password")
 async def reset_password(data: ResetPasswordRequest):
-    """Validate the 6-digit code and set a new password."""
-    reset_doc = await db.password_resets.find_one({"email": data.email, "code": data.code})
-    if not reset_doc:
-        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+    """Verify Firebase token and update user password."""
+    phone = data.phone.strip()
+    
+    # 1. Verify Firebase Token
+    try:
+        decoded_token = auth.verify_id_token(data.firebase_token)
+        firebase_phone = decoded_token.get('phone_number')
+        
+        if firebase_phone and firebase_phone.replace('+', '') != phone.replace('+', ''):
+             logger.warning(f"Reset phone mismatch: token={firebase_phone}, provided={phone}")
+             phone = firebase_phone
+    except Exception as e:
+        logger.error(f"Firebase token verification failed for reset: {e}")
+        raise HTTPException(status_code=400, detail="Invalid verification session")
 
-    if datetime.now(timezone.utc).isoformat() > reset_doc["expires_at"]:
-        await db.password_resets.delete_many({"email": data.email})
-        raise HTTPException(status_code=400, detail="Reset code has expired")
-
+    # 2. Update Password
     if len(data.new_password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-    hashed = hash_password(data.new_password)
-    await db.users.update_one({"email": data.email}, {"$set": {"password": hashed}})
-    await db.password_resets.delete_many({"email": data.email})
-
-    return {"message": "Password reset successfully. You can now sign in."}
+    user = await db.users.find_one({"phone": phone})
+    if not user:
+        raise HTTPException(status_code=404, detail="User with this phone number not found")
+        
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password": hash_password(data.new_password)}}
+    )
+    
+    return {"message": "Password updated successfully"}
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):

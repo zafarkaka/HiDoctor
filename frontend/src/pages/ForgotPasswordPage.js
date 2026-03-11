@@ -7,33 +7,49 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Stethoscope, Loader2, ArrowLeft, Mail, KeyRound, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { auth } from '../lib/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function ForgotPasswordPage() {
     const navigate = useNavigate();
-    const [step, setStep] = useState(1); // 1=email, 2=code+newPassword, 3=success
+    const [step, setStep] = useState(1); // 1=phone, 2=otp+newPassword, 3=success
     const [loading, setLoading] = useState(false);
-    const [email, setEmail] = useState('');
-    const [code, setCode] = useState('');
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+    const [verificationId, setVerificationId] = useState(null);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
+
+    const setupRecaptcha = () => {
+        if (!window.recaptchaVerifier) {
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible',
+            });
+        }
+    };
 
     const handleRequestCode = async (e) => {
         e.preventDefault();
-        if (!email) { toast.error('Please enter your email'); return; }
+        if (!phone) { toast.error('Please enter your phone number (+ E.164)'); return; }
 
         setLoading(true);
         try {
-            const res = await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
-            toast.success('Reset code generated! Check the console or your email.');
-            // For development: show the code if returned
-            if (res.data.code) {
-                toast.info(`Your reset code: ${res.data.code}`, { duration: 30000 });
-            }
+            // First check if phone exists in our DB
+            await axios.post(`${API_URL}/api/auth/forgot-password`, { phone });
+            
+            // If exists, send Firebase OTP
+            setupRecaptcha();
+            const appVerifier = window.recaptchaVerifier;
+            const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+            setVerificationId(confirmationResult);
+            
+            toast.success('OTP sent to your phone!');
             setStep(2);
         } catch (error) {
-            toast.error(error.response?.data?.detail || 'Something went wrong');
+            toast.error(error.response?.data?.detail || 'Failed to send OTP. Ensure phone number is registered.');
         } finally {
             setLoading(false);
         }
@@ -41,23 +57,29 @@ export default function ForgotPasswordPage() {
 
     const handleResetPassword = async (e) => {
         e.preventDefault();
-        if (!code || !newPassword) { toast.error('Please fill in all fields'); return; }
+        if (!otp || !newPassword) { toast.error('Please fill in all fields'); return; }
         if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
         if (newPassword !== confirmPassword) { toast.error('Passwords do not match'); return; }
 
-        setLoading(true);
+        setVerifyingOtp(true);
         try {
+            // Verify OTP
+            const result = await verificationId.confirm(otp);
+            const firebaseToken = await result.user.getIdToken();
+
+            // Update password on backend
             await axios.post(`${API_URL}/api/auth/reset-password`, {
-                email,
-                code,
+                phone,
+                firebase_token: firebaseToken,
                 new_password: newPassword,
             });
             setStep(3);
             toast.success('Password reset successfully!');
         } catch (error) {
-            toast.error(error.response?.data?.detail || 'Invalid or expired code');
+            console.error('Reset Error:', error);
+            toast.error(error.response?.data?.detail || 'Invalid or expired OTP');
         } finally {
-            setLoading(false);
+            setVerifyingOtp(false);
         }
     };
 
@@ -84,14 +106,14 @@ export default function ForgotPasswordPage() {
                         </div>
                         <div>
                             <CardTitle className="text-2xl">
-                                {step === 3 ? 'Password Reset!' : step === 2 ? 'Enter Reset Code' : 'Forgot Password'}
+                                {step === 3 ? 'Password Reset!' : step === 2 ? 'Verify & Reset' : 'Forgot Password'}
                             </CardTitle>
                             <CardDescription>
                                 {step === 3
                                     ? 'Your password has been changed successfully.'
                                     : step === 2
-                                        ? 'Enter the 6-digit code and your new password.'
-                                        : 'Enter your email to receive a password reset code.'}
+                                        ? 'Enter the 6-digit OTP sent to your phone.'
+                                        : 'Enter your phone number to reset password.'}
                             </CardDescription>
                         </div>
                     </CardHeader>
@@ -100,36 +122,37 @@ export default function ForgotPasswordPage() {
                         {step === 1 && (
                             <form onSubmit={handleRequestCode} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
+                                    <Label htmlFor="phone">Phone Number</Label>
                                     <Input
-                                        id="email"
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        id="phone"
+                                        type="tel"
+                                        placeholder="+1..."
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
                                         required
                                     />
                                 </div>
                                 <Button type="submit" className="w-full rounded-full" disabled={loading}>
                                     {loading ? (
-                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending OTP...</>
                                     ) : (
-                                        'Send Reset Code'
+                                        'Send Verification Code'
                                     )}
                                 </Button>
+                                <div id="recaptcha-container"></div>
                             </form>
                         )}
 
                         {step === 2 && (
                             <form onSubmit={handleResetPassword} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="code">6-Digit Code</Label>
+                                    <Label htmlFor="otp">6-Digit OTP</Label>
                                     <Input
-                                        id="code"
+                                        id="otp"
                                         type="text"
                                         placeholder="123456"
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                         maxLength={6}
                                         className="text-center text-2xl tracking-[0.5em] font-mono"
                                         required
@@ -157,8 +180,8 @@ export default function ForgotPasswordPage() {
                                         required
                                     />
                                 </div>
-                                <Button type="submit" className="w-full rounded-full" disabled={loading}>
-                                    {loading ? (
+                                <Button type="submit" className="w-full rounded-full" disabled={verifyingOtp}>
+                                    {verifyingOtp ? (
                                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resetting...</>
                                     ) : (
                                         'Reset Password'

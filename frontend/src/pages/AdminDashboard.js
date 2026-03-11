@@ -48,7 +48,7 @@ export default function AdminDashboard() {
   const [blogForm, setBlogForm] = useState({ title: '', content: '', excerpt: '', category: 'Health Tips', tags: '', is_published: true });
   const [adForm, setAdForm] = useState({ title: '', image_url: '', redirect_url: '', placement: 'home', start_date: '', end_date: '' });
   const [doctorForm, setDoctorForm] = useState({ bio: '', specialties: '', clinic_name: '', consultation_fee: 0, profile_picture: '', is_verified: false, is_active: false });
-  const [singleDocForm, setSingleDocForm] = useState({ full_name: '', email: '', password: 'password123', specialties: '', years_experience: 0, clinic_name: 'HiDoctor Default', clinic_address: 'Main St, City', consultation_fee: 0, bio: '', title: 'Dr.' });
+  const [singleDocForm, setSingleDocForm] = useState({ full_name: '', phone: '', password: 'password123', specialties: '', years_experience: 0, clinic_name: 'HiDoctor Default', clinic_address: 'Main St, City', consultation_fee: 0, bio: '', title: 'Dr.' });
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
       await axios.post(`${API_URL}/api/admin/doctors`, payload, { headers });
       toast.success('Doctor created successfully');
       setShowSingleDocModal(false);
-      setSingleDocForm({ full_name: '', email: '', password: 'password123', specialties: '', years_experience: 0, clinic_name: 'HiDoctor Default', clinic_address: 'Main St, City', consultation_fee: 0, bio: '', title: 'Dr.' });
+      setSingleDocForm({ full_name: '', phone: '', password: 'password123', specialties: '', years_experience: 0, clinic_name: 'HiDoctor Default', clinic_address: 'Main St, City', consultation_fee: 0, bio: '', title: 'Dr.' });
       fetchAllData();
     } catch (error) { toast.error(error.response?.data?.detail || 'Failed to create doctor'); }
   };
@@ -434,7 +434,7 @@ export default function AdminDashboard() {
                 <div className="space-y-2">
                   {users
                     .filter(u => u.role === 'doctor')
-                    .filter(u => u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(u => u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.phone?.includes(searchQuery))
                     .map((user) => (
                       <div key={user.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
                         <div className="flex items-center gap-3">
@@ -443,7 +443,7 @@ export default function AdminDashboard() {
                           </div>
                           <div>
                             <p className="font-medium">{user.full_name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            <p className="text-sm text-muted-foreground">{user.phone}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -502,7 +502,7 @@ export default function AdminDashboard() {
                 <div className="space-y-2">
                   {users
                     .filter(u => u.role === 'patient')
-                    .filter(u => u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(u => u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.phone?.includes(searchQuery))
                     .map((user) => (
                       <div key={user.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
                         <div className="flex items-center gap-3">
@@ -511,7 +511,7 @@ export default function AdminDashboard() {
                           </div>
                           <div>
                             <p className="font-medium">{user.full_name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            <p className="text-sm text-muted-foreground">{user.phone}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -812,7 +812,7 @@ export default function AdminDashboard() {
               <Button variant="ghost" size="icon" onClick={() => setShowBulkModal(false)}><X className="w-5 h-5" /></Button>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Paste your comma-separated list below. Format (10 fields): <strong>Email, Password, Full Name, Title, Specialties (pipe | separated), Experience Years, Fee, Clinic Name, Clinic Address, Bio</strong>
+              Paste your comma-separated list below. Format (10 fields): <strong>Phone, Password, Full Name, Title, Specialties (pipe | separated), Experience Years, Fee, Clinic Name, Clinic Address, Bio</strong>
             </p>
             <form onSubmit={handleBulkUpload} className="space-y-4">
               <textarea
@@ -851,8 +851,8 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Email</label>
-                  <Input type="email" required value={singleDocForm.email} onChange={(e) => setSingleDocForm({ ...singleDocForm, email: e.target.value })} placeholder="doctor@clinic.com" />
+                  <label className="text-sm font-medium mb-1 block">Phone</label>
+                  <Input type="tel" required value={singleDocForm.phone} onChange={(e) => setSingleDocForm({ ...singleDocForm, phone: e.target.value })} placeholder="+1234567890" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Password</label>

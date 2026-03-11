@@ -9,6 +9,8 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Stethoscope, Loader2, ArrowLeft, User, UserCog, Camera, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { auth } from '../lib/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -18,42 +20,92 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
-    email: '',
+    username: '',
     phone: '',
     password: '',
     confirmPassword: '',
     role: 'patient'
   });
+  const [otp, setOtp] = useState('');
+  const [verificationId, setVerificationId] = useState(null);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [profilePic, setProfilePic] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+      });
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!formData.phone) {
+      toast.error('Please enter a phone number');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      setupRecaptcha();
+      const appVerifier = window.recaptchaVerifier;
+      const confirmationResult = await signInWithPhoneNumber(auth, formData.phone, appVerifier);
+      setVerificationId(confirmationResult);
+      setShowOtpInput(true);
+      toast.success('OTP sent to your phone!');
+    } catch (err) {
+      console.error('OTP Error:', err);
+      toast.error('Failed to send OTP. Please check your phone number format (e.g. +1234567890)');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyAndSubmit = async (e) => {
     e.preventDefault();
+
+    if (!verificationId) {
+      toast.error('Please send OTP first');
+      return;
+    }
+
+    if (otp.length !== 6) {
+      toast.error('Please enter a 6-digit OTP');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
+    setVerifyingOtp(true);
+    try {
+      const result = await verificationId.confirm(otp);
+      const firebaseToken = await result.user.getIdToken();
+      
+      await handleFinalSubmit(firebaseToken);
+    } catch (err) {
+      console.error('Verification Error:', err);
+      toast.error('Invalid OTP. Please try again.');
+    } finally {
+      setVerifyingOtp(false);
     }
+  };
 
-    if (formData.role === 'doctor' && !profilePic) {
-      toast.error('Please upload a profile picture. It is mandatory for doctors.');
-      return;
-    }
-
+  const handleFinalSubmit = async (firebaseToken) => {
     setLoading(true);
 
     try {
       const user = await register({
         full_name: formData.full_name,
-        email: formData.email,
+        username: formData.username,
         phone: formData.phone,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        firebase_token: firebaseToken
       });
 
       // If doctor, upload profile picture
@@ -214,15 +266,13 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  id="username"
+                  placeholder="johndoe"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
-                  data-testid="register-email"
                 />
               </div>
 
@@ -265,21 +315,61 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full rounded-full"
-                disabled={loading}
-                data-testid="register-submit"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
+              {!showOtpInput ? (
+                <Button
+                  type="button"
+                  className="w-full rounded-full"
+                  onClick={handleSendOtp}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending OTP...
+                    </>
+                  ) : (
+                    'Verify Phone & Continue'
+                  )}
+                </Button>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">Enter 6-digit OTP</Label>
+                    <Input
+                      id="otp"
+                      placeholder="123456"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    className="w-full rounded-full"
+                    onClick={handleVerifyAndSubmit}
+                    disabled={verifyingOtp || loading}
+                  >
+                    {verifyingOtp ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      'Verify & Create Account'
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full text-xs"
+                    onClick={() => setShowOtpInput(false)}
+                  >
+                    Change Phone Number
+                  </Button>
+                </div>
+              )}
+              <div id="recaptcha-container"></div>
             </form>
 
             <div className="mt-6 text-center">

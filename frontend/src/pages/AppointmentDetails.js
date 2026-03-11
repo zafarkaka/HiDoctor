@@ -582,7 +582,7 @@ export default function AppointmentDetails() {
                     </div>
                     <div>
                       <p className="font-semibold">{appointment.patient.full_name}</p>
-                      <p className="text-sm text-muted-foreground">{appointment.patient.email}</p>
+                      <p className="text-sm text-muted-foreground">{appointment.patient.phone}</p>
                     </div>
                   </div>
                 )}

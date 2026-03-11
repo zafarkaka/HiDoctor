@@ -547,12 +547,7 @@ export default function DoctorProfile() {
                     <span>{doctor.phone}</span>
                   </div>
                 )}
-                {doctor.email && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="w-4 h-4" />
-                    <span>{doctor.email}</span>
-                  </div>
-                )}
+
               </CardContent>
             </Card>
 

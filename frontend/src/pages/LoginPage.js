@@ -14,7 +14,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
+    identifier: '',
     password: ''
   });
 
@@ -25,7 +25,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await login(formData.email, formData.password);
+      const user = await login(formData.identifier, formData.password);
       toast.success('Welcome back!');
 
       // Redirect based on role
@@ -82,15 +82,14 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="identifier">Username or Phone</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  id="identifier"
+                  type="text"
+                  placeholder="johndoe or +1..."
+                  value={formData.identifier}
+                  onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
                   required
-                  data-testid="login-email"
                 />
               </div>
 
@@ -108,7 +107,6 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  data-testid="login-password"
                 />
               </div>
 
@@ -116,7 +114,6 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full rounded-full"
                 disabled={loading}
-                data-testid="login-submit"
               >
                 {loading ? (
                   <>

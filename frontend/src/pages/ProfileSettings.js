@@ -53,7 +53,6 @@ export default function ProfileSettings() {
   const [uploadFile, setUploadFile] = useState(null);
   const [formData, setFormData] = useState({
     full_name: '',
-    email: '',
     phone: '',
     address: '',
     date_of_birth: '',
@@ -94,7 +93,6 @@ export default function ProfileSettings() {
       setFormData(prev => ({
         ...prev,
         full_name: response.data?.full_name || user?.full_name || '',
-        email: response.data?.email || user?.email || '',
         phone: response.data?.phone || user?.phone || '',
         address: response.data?.address || '',
         date_of_birth: response.data?.date_of_birth || '',
@@ -180,7 +178,7 @@ export default function ProfileSettings() {
   };
 
   const handleExportData = async () => {
-    toast.success('Your data export has been requested. You will receive an email shortly.');
+    toast.success('Your data export has been requested. You will receive an SMS shortly.');
   };
 
   return (
@@ -231,18 +229,6 @@ export default function ProfileSettings() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    disabled
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
                   <Label htmlFor="phone">Phone</Label>
                   <Input
                     id="phone"
@@ -250,6 +236,9 @@ export default function ProfileSettings() {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="date_of_birth">Date of Birth</Label>
                   <div

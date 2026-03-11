@@ -190,7 +190,7 @@ export default function BookingFlow() {
         },
         prefill: {
           name: user?.full_name || '',
-          email: user?.email || ''
+          contact: user?.phone || ''
         },
         theme: { color: "#0d9488" },
         modal: {

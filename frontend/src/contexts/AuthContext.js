@@ -61,8 +61,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
-    const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+  const login = async (identifier, password) => {
+    const response = await axios.post(`${API_URL}/api/auth/login`, { identifier, password });
     const { access_token, user: userData } = response.data;
     localStorage.setItem('token', access_token);
     setToken(access_token);
@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (data) => {
+    // data should now include username, phone, full_name, role, password, and firebase_token
     const response = await axios.post(`${API_URL}/api/auth/register`, data);
     const { access_token, user: userData } = response.data;
     localStorage.setItem('token', access_token);

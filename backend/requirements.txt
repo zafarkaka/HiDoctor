@@ -126,4 +126,5 @@ yarl==1.22.0
 zipp==3.23.0
 APScheduler==3.10.4
 resend==0.8.0
+firebase-admin==6.5.0
 # Force redeploy 1
