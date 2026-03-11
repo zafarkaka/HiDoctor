@@ -174,7 +174,7 @@ export default function RegisterPage() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
               {/* Role Selection */}
               <div className="space-y-3">
                 <Label>I am a</Label>

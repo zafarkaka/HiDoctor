@@ -235,9 +235,9 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
-    username: str
+    username: Optional[str] = None
     full_name: str
-    phone: str
+    phone: Optional[str] = None
     role: UserRole
     is_verified: bool = False
     created_at: str
