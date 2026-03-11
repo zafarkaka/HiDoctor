@@ -14,7 +14,8 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    identifier: '',
+    username: '',
+    phone: '',
     password: ''
   });
 
@@ -25,7 +26,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await login(formData.identifier, formData.password);
+      const user = await login(formData.username, formData.phone, formData.password);
       toast.success('Welcome back!');
 
       // Redirect based on role
@@ -82,13 +83,25 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="identifier">Username or Phone</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="identifier"
+                  id="username"
                   type="text"
-                  placeholder="johndoe or +1..."
-                  value={formData.identifier}
-                  onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+                  placeholder="johndoe"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+1..."
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   required
                 />
               </div>

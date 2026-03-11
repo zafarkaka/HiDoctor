@@ -228,7 +228,8 @@ class UserCreate(BaseModel):
     firebase_token: str # Required for verification during registration
 
 class UserLogin(BaseModel):
-    identifier: str  # Can be username or phone
+    username: str
+    phone: str
     password: str
 
 class UserResponse(BaseModel):
@@ -675,30 +676,29 @@ async def register(user_data: UserCreate):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    identifier = credentials.identifier.lower().strip()
-    logger.info(f"Login attempt for: {identifier}")
+    username = credentials.username.lower().strip()
+    phone = credentials.phone.strip()
+    logger.info(f"Login attempt for: username={username}, phone={phone}")
     
-    # Check by username or phone
+    # Check by both username and phone strictly
     user = await db.users.find_one({
-        "$or": [
-            {"username": {"$regex": f"^{re.escape(identifier)}$", "$options": "i"}},
-            {"phone": identifier}
-        ]
+        "username": {"$regex": f"^{re.escape(username)}$", "$options": "i"},
+        "phone": phone
     }, {"_id": 0})
     
     if not user:
-        logger.warning(f"AUTH_FAILURE: User not found: {identifier}")
-        raise HTTPException(status_code=401, detail="User not found")
+        logger.warning(f"AUTH_FAILURE: User not found with username={username} and phone={phone}")
+        raise HTTPException(status_code=401, detail="User not found or credentials mismatch")
         
     pwd_in_db = user.get("password")
     if not verify_password(credentials.password, pwd_in_db):
-        logger.warning(f"AUTH_FAILURE: Password mismatch for user {identifier}")
+        logger.warning(f"AUTH_FAILURE: Password mismatch for user {username}")
         raise HTTPException(status_code=401, detail="Invalid password")
     
     if not user.get("is_verified", False):
         raise HTTPException(status_code=403, detail="Account not verified. Please register again to receive OTP.")
 
-    logger.info(f"AUTH_SUCCESS: Login verified for user {identifier}")
+    logger.info(f"AUTH_SUCCESS: Login verified for user {username}")
     token = create_access_token({"sub": user["id"], "role": user["role"]})
     user_response = UserResponse(
         id=user["id"], username=user["username"], full_name=user["full_name"],
