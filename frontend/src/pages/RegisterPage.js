@@ -36,26 +36,50 @@ export default function RegisterPage() {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
-    // Initialize verifier if not exists
-    const container = document.getElementById('recaptcha-container');
-    if (container && !window.recaptchaVerifier) {
-      console.log('Initializing RecaptchaVerifier...');
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response) => {
-          console.log('ReCAPTCHA verified successfully');
-        },
-        'expired-callback': () => {
-          console.warn('ReCAPTCHA expired, resetting...');
-          window.recaptchaVerifier.render().then(widgetId => {
-            grecaptcha.reset(widgetId);
-          });
-        }
-      });
+    // We clean up any existing verifier on mount to ensure a fresh start
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {
+        console.warn('Error clearing verifier:', e);
+      }
+      window.recaptchaVerifier = null;
     }
+
+    const initVerifier = () => {
+      const container = document.getElementById('recaptcha-container');
+      if (container && !window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+            'callback': (response) => {
+              console.log('ReCAPTCHA verified');
+            },
+            'expired-callback': () => {
+              console.log('ReCAPTCHA expired, clearing...');
+              if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = null;
+              }
+            }
+          });
+        } catch (e) {
+          console.error('Error initializing ReCAPTCHA:', e);
+        }
+      }
+    };
+
+    initVerifier();
+
     return () => {
-      // We don't necessarily want to clear it on every re-render if it's external,
-      // but we should ensure it doesn't leak.
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          console.warn('Error clearing verifier on unmount:', e);
+        }
+        window.recaptchaVerifier = null;
+      }
     };
   }, []);
 
@@ -70,7 +94,7 @@ export default function RegisterPage() {
     try {
       const fullPhone = countryCode + formData.phone.replace(/\D/g, '');
       
-      // Safety check: ensure verifier is initialized
+      // Ensure verifier is ready
       if (!window.recaptchaVerifier) {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
       }

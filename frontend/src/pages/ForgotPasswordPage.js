@@ -26,14 +26,41 @@ export default function ForgotPasswordPage() {
     const [verifyingOtp, setVerifyingOtp] = useState(false);
 
     useEffect(() => {
-        const container = document.getElementById('recaptcha-container');
-        if (container && !window.recaptchaVerifier) {
-            console.log('Initializing RecaptchaVerifier for ForgotPassword...');
-            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'invisible',
-            });
+        // We clean up any existing verifier on mount to ensure a fresh start
+        if (window.recaptchaVerifier) {
+            try {
+                window.recaptchaVerifier.clear();
+            } catch (e) {
+                console.warn('Error clearing verifier:', e);
+            }
+            window.recaptchaVerifier = null;
         }
+
+        const initVerifier = () => {
+            const container = document.getElementById('recaptcha-container');
+            if (container && !window.recaptchaVerifier) {
+                try {
+                    console.log('Initializing RecaptchaVerifier for ForgotPassword...');
+                    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                        'size': 'invisible',
+                    });
+                } catch (e) {
+                    console.error('Error initializing ReCAPTCHA:', e);
+                }
+            }
+        };
+
+        initVerifier();
+
         return () => {
+            if (window.recaptchaVerifier) {
+                try {
+                    window.recaptchaVerifier.clear();
+                } catch (e) {
+                    console.warn('Error clearing verifier on unmount:', e);
+                }
+                window.recaptchaVerifier = null;
+            }
         };
     }, []);
 
