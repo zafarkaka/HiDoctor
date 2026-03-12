@@ -672,7 +672,7 @@ async def register(user_data: UserCreate):
         patient_profile = {"user_id": user_id, "preferred_language": "English"}
         await db.patients.insert_one(patient_profile)
     elif user_data.role == UserRole.DOCTOR:
-        # DOCTOR: Standard verification and active status immediately after OTP registration
+        # DOCTOR: Start as NOT verified/active so they appear in Admin's pending list
         doctor_profile = {
             "user_id": user_id,
             "full_name": user_data.full_name,
@@ -680,8 +680,8 @@ async def register(user_data: UserCreate):
             "specialties": [],
             "years_experience": 0,
             "consultation_fee": 500.0,
-            "is_verified": True,
-            "is_active": True,
+            "is_verified": False, # Requires Admin Approval
+            "is_active": False,   # Requires Admin Approval
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.doctors.insert_one(doctor_profile)
@@ -720,6 +720,7 @@ async def login(credentials: UserLogin):
                      "password": hash_password("admin"), "created_at": datetime.now(timezone.utc).isoformat()
                  }
                  await db.users.insert_one(user)
+                 await db.admins.insert_one({"user_id": user_id, "permissions": ["all"]})
              else:
                  # Create test doctor
                  user_id = str(uuid.uuid4())
@@ -729,9 +730,16 @@ async def login(credentials: UserLogin):
                      "password": hash_password("admin"), "created_at": datetime.now(timezone.utc).isoformat()
                  }
                  await db.users.insert_one(user)
-                 await db.doctors.insert_one({
-                     "user_id": user_id, "full_name": "Test Doctor", "is_verified": True, "is_active": True, "created_at": user["created_at"]
-                 })
+                 # Ensure doctor profile exists
+                 await db.doctors.update_one(
+                     {"user_id": user_id},
+                     {"$set": {
+                         "user_id": user_id, "full_name": "Test Doctor", 
+                         "is_verified": True, "is_active": True, 
+                         "created_at": user["created_at"]
+                     }},
+                     upsert=True
+                 )
     else:
         # NORMAL LOGIN
         clean_phone = phone.lstrip('+')
@@ -2454,6 +2462,7 @@ async def admin_get_users(
 @api_router.get("/admin/doctors/pending")
 async def admin_get_pending_doctors(current_user: dict = Depends(get_admin_user)):
     """Fetch all doctors awaiting verification"""
+    # Fetch doctors where is_verified is False in the doctors collection
     doctors = await db.doctors.find({"is_verified": False}, {"_id": 0}).to_list(100)
     for doc in doctors:
         u = await db.users.find_one({"id": doc["user_id"]})
