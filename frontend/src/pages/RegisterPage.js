@@ -35,13 +35,20 @@ export default function RegisterPage() {
   const [profilePic, setProfilePic] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
+  useEffect(() => {
+    const container = document.getElementById('recaptcha-container');
+    if (container && !window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
       });
     }
-  };
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    };
+  }, []);
 
   const handleSendOtp = async () => {
     if (!formData.phone) {
@@ -52,9 +59,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const fullPhone = countryCode + formData.phone.replace(/\D/g, '');
-      setupRecaptcha();
-      const appVerifier = window.recaptchaVerifier;
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, appVerifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
       setVerificationId(confirmationResult);
       setShowOtpInput(true);
       toast.success('OTP sent to your phone!');

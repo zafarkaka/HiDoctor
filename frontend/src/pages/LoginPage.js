@@ -15,7 +15,6 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
     phone: '',
     password: ''
   });
@@ -29,7 +28,7 @@ export default function LoginPage() {
 
     try {
       const fullPhone = countryCode + formData.phone.replace(/\D/g, '');
-      const user = await login(formData.username, fullPhone, formData.password);
+      const user = await login(fullPhone, formData.password);
       toast.success('Welcome back!');
 
       // Redirect based on role
@@ -85,18 +84,6 @@ export default function LoginPage() {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="johndoe"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  required
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <div className="flex gap-2">
