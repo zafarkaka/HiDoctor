@@ -639,10 +639,19 @@ async def register(user_data: UserCreate):
         logger.warning(f"Registration failed: Username {username} already taken")
         raise HTTPException(status_code=400, detail=f"Username '{username}' is already taken. Please choose another.")
         
-    existing_phone = await db.users.find_one({"phone": phone})
+    # Robust phone check for registration using 10-digit matching
+    phone_digits = "".join(filter(str.isdigit, phone))
+    last_10 = phone_digits[-10:] if len(phone_digits) >= 10 else phone_digits
+    
+    existing_phone = await db.users.find_one({
+        "$or": [
+            {"phone": phone},
+            {"phone": {"$regex": f"{last_10}$"}}
+        ]
+    })
     if existing_phone:
-        logger.warning(f"Registration failed: Phone {phone} already registered")
-        raise HTTPException(status_code=400, detail=f"Phone number {phone} is already registered. Please login instead.")
+        logger.warning(f"Registration failed: Phone {phone} (match={last_10}) already registered")
+        raise HTTPException(status_code=400, detail=f"Phone number ending in {last_10} is already registered. Please login instead.")
     
     # 3. Create User
     user_id = str(uuid.uuid4())
@@ -728,7 +737,12 @@ async def login(credentials: UserLogin):
         clean_phone = phone.lstrip('+')
         # Try both with and without country code if possible, or match by trailing
         user = await db.users.find_one({
-            "phone": {"$in": [phone, f"+{clean_phone}", clean_phone, {"$regex": f"{last_10}$"}]}
+            "$or": [
+                {"phone": phone},
+                {"phone": f"+{clean_phone}"},
+                {"phone": clean_phone},
+                {"phone": {"$regex": f"{last_10}$"}}
+            ]
         })
         
         if not user:
