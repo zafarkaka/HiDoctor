@@ -12,6 +12,9 @@ import logging
 import httpx
 from pathlib import Path
 
+# SET PROJECT ID AS EARLY AS POSSIBLE (FOR FIREBASE)
+os.environ['GOOGLE_CLOUD_PROJECT'] = 'grocery-df582'
+
 # Configure logging early to avoid NameErrors in initialization
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -43,25 +46,30 @@ if firebase_service_account:
     try:
         import json
         cert_dict = json.loads(firebase_service_account)
-        project_id = cert_dict.get('project_id')
+        project_id = cert_dict.get('project_id', 'grocery-df582')
         
-        # Set this BEFORE any firebase calls
-        if project_id:
-            os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
+        # Ensure it's in env
+        os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
             
         cred = credentials.Certificate(cert_dict)
-        # Initialize Firebase Admin with explicit project ID in options
-        firebase_admin.initialize_app(cred, options={'projectId': project_id})
-        logger.info(f"Firebase Admin initialized successfully for project: {project_id}")
+        # Initialize Firebase Admin with EVERYTHING possible to fix "Project ID required"
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred, {
+                'projectId': project_id,
+            })
+        logger.info(f"Firebase Admin initialized successfully (Project: {project_id})")
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin with JSON: {e}")
 else:
-    # Fallback to default credentials if running in a Google Cloud environment
+    # Fallback/Test Mode
     try:
-        firebase_admin.initialize_app()
-        logger.info("Firebase Admin initialized with default credentials.")
+        project_id = 'grocery-df582'
+        os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(options={'projectId': project_id})
+        logger.info(f"Firebase Admin initialized with default/fallback for: {project_id}")
     except Exception as e:
-        logger.warning(f"Firebase Admin not initialized: {e}. 'FIREBASE_SERVICE_ACCOUNT_JSON' is required for non-GCP environments.")
+        logger.warning(f"Firebase Admin fallback initialization failed: {e}")
 
 # JWT Settings
 SECRET_KEY = os.environ.get('JWT_SECRET', 'healthcare-platform-secret-key-2024')
