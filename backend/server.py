@@ -45,13 +45,13 @@ if firebase_service_account:
         cert_dict = json.loads(firebase_service_account)
         project_id = cert_dict.get('project_id')
         
-        # CRITICAL: Explicitly set the environment variable that Firebase SDK looks for
+        # Set this BEFORE any firebase calls
         if project_id:
             os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
             
         cred = credentials.Certificate(cert_dict)
-        # Initialize Firebase Admin
-        firebase_admin.initialize_app(cred)
+        # Initialize Firebase Admin with explicit project ID in options
+        firebase_admin.initialize_app(cred, options={'projectId': project_id})
         logger.info(f"Firebase Admin initialized successfully for project: {project_id}")
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin with JSON: {e}")
@@ -111,24 +111,7 @@ def normalize_image_url(url: Optional[str]) -> Optional[str]:
 app = FastAPI(title="HiDoctor API")
 app.state.db = db
 
-# Max Permissive CORS: Allow all origins by echoing them back
-# This allows credentails=True while still being functionally "allow all"
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    origin = request.headers.get("origin")
-    # If we are in an error state, we still want to return these headers
-    response = await call_next(request)
-    if origin:
-        response.headers["Access-Control-Allow-Origin"] = origin
-    else:
-        response.headers["Access-Control-Allow-Origin"] = "*"
-    
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
-
-# Standard middleware as fallback
+# Max Permissive CORS for production stability
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -3342,23 +3325,13 @@ async def startup_event():
     except Exception as e:
         logger.error(f"CRITICAL: Failed to ensure admin user on startup: {e}")
 
-    # Use a file lock to ensure only one gunicorn worker starts the scheduler
-    lock_file = "/tmp/scheduler.lock"
+    # Start background reminder scheduler (Production Mode)
     try:
-        # Open the file and attempt to get an exclusive lock
-        f = open(lock_file, "w")
-        import fcntl
-        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        
-        # If we got here, we are the worker that owns the lock
-        logger.info("Starting background reminder scheduler (Production Mode)...")
+        logger.info("Starting background reminder scheduler...")
         scheduler.add_job(trigger_appointment_reminders, 'interval', minutes=1)
         scheduler.start()
-        
-        # Keep the file handle open to maintain the lock
-        app.state.scheduler_lock_file = f
-    except (IOError, ImportError):
-        logger.info("Scheduler already running in another worker or lock skipped")
+    except Exception as e:
+        logger.error(f"Failed to start scheduler: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
