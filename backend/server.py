@@ -44,11 +44,14 @@ if firebase_service_account:
         import json
         cert_dict = json.loads(firebase_service_account)
         project_id = cert_dict.get('project_id')
+        
+        # CRITICAL: Explicitly set the environment variable that Firebase SDK looks for
+        if project_id:
+            os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
+            
         cred = credentials.Certificate(cert_dict)
-        # Explicitly set project_id to avoid "Project ID required" errors on production
-        firebase_admin.initialize_app(cred, {
-            'projectId': project_id,
-        })
+        # Initialize Firebase Admin
+        firebase_admin.initialize_app(cred)
         logger.info(f"Firebase Admin initialized successfully for project: {project_id}")
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin with JSON: {e}")
@@ -686,9 +689,16 @@ async def login(credentials: UserLogin):
     
     # Check by phone strictly, but be flexible with the "+" prefix
     clean_phone = phone.lstrip('+')
-    user = await db.users.find_one({
-        "phone": {"$in": [phone, f"+{clean_phone}", clean_phone]}
-    }, {"_id": 0})
+    
+    # SPECIAL: For the admin number 9894977003, make it very flexible
+    if "9894977003" in phone:
+        user = await db.users.find_one({
+            "phone": {"$regex": "9894977003$"}
+        }, {"_id": 0})
+    else:
+        user = await db.users.find_one({
+            "phone": {"$in": [phone, f"+{clean_phone}", clean_phone]}
+        }, {"_id": 0})
     
     if not user:
         logger.warning(f"AUTH_FAILURE: User not found with phone variations of {phone}")
