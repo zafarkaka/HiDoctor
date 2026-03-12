@@ -662,26 +662,16 @@ async def register(user_data: UserCreate):
         patient_profile = {"user_id": user_id, "preferred_language": "English"}
         await db.patients.insert_one(patient_profile)
     elif user_data.role == UserRole.DOCTOR:
-        default_working_hours = {
-            "monday": {"active": True, "slots": [{"start": "09:00", "end": "17:00"}]},
-            "tuesday": {"active": True, "slots": [{"start": "09:00", "end": "17:00"}]},
-            "wednesday": {"active": True, "slots": [{"start": "09:00", "end": "17:00"}]},
-            "thursday": {"active": True, "slots": [{"start": "09:00", "end": "17:00"}]},
-            "friday": {"active": True, "slots": [{"start": "09:00", "end": "17:00"}]},
-            "saturday": {"active": False, "slots": [{"start": "10:00", "end": "14:00"}]},
-            "sunday": {"active": False, "slots": [{"start": "10:00", "end": "14:00"}]},
-        }
+        # DOCTOR: Standard verification and active status immediately after OTP registration
         doctor_profile = {
             "user_id": user_id,
             "full_name": user_data.full_name,
-            "profile_image": None,
             "title": "Dr.",
             "specialties": [],
             "years_experience": 0,
             "consultation_fee": 500.0,
-            "is_verified": False,
-            "is_active": False,
-            "working_hours": default_working_hours,
+            "is_verified": True,
+            "is_active": True,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.doctors.insert_one(doctor_profile)
@@ -700,45 +690,44 @@ async def login(credentials: UserLogin):
     phone = credentials.phone.strip()
     logger.info(f"Login attempt for phone={phone}")
     
-    # SPECIAL: God-mode bypass for the admin and test doctor
-    is_admin = "9894977003" in phone
-    is_test_doctor = "9999999999" in phone # Generic test number for doctor bypass
+    # 10-Digit matching to ignore country codes for bypass
+    phone_digits = "".join(filter(str.isdigit, phone))
+    last_10 = phone_digits[-10:] if len(phone_digits) >= 10 else phone_digits
+
+    is_admin = last_10 == "9894977003"
+    is_test_doctor = last_10 == "9999999999"
     
     if (is_admin or is_test_doctor) and credentials.password == "admin":
-        logger.info(f"GOD_MODE: Login bypass activated for {phone} (Role: {'admin' if is_admin else 'doctor'})")
-        # We still look for the user to get its ID, but we don't care about the DB password
-        user = await db.users.find_one({"phone": {"$regex": f"{'9894977003' if is_admin else '9999999999'}$"}})
+        logger.info(f"GOD_MODE: Bypass activated for {phone} (match={last_10})")
+        user = await db.users.find_one({"phone": {"$regex": f"{last_10}$"}})
         if not user:
-            # If for some reason startup haven't created it yet
-            if is_admin:
-                raise HTTPException(status_code=401, detail="Admin account syncing. Please try again in 30 seconds.")
-            else:
-                # Create a test doctor on the fly if it doesn't exist
-                user_id = str(uuid.uuid4())
-                user = {
-                    "id": user_id,
-                    "username": "test_doctor",
-                    "password": hash_password("admin"),
-                    "full_name": "Test Doctor",
-                    "phone": "9999999999",
-                    "role": "doctor",
-                    "is_verified": True,
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-                await db.users.insert_one(user)
-                await db.doctors.insert_one({
-                    "user_id": user_id,
-                    "full_name": "Test Doctor",
-                    "specialties": ["General"],
-                    "is_verified": True,
-                    "is_active": True,
-                    "created_at": user["created_at"]
-                })
+             # Basic creation for admin if missing
+             if is_admin:
+                 user_id = str(uuid.uuid4())
+                 user = {
+                     "id": user_id, "username": "admin", "full_name": "Admin",
+                     "phone": "9894977003", "role": "admin", "is_verified": True,
+                     "password": hash_password("admin"), "created_at": datetime.now(timezone.utc).isoformat()
+                 }
+                 await db.users.insert_one(user)
+             else:
+                 # Create test doctor
+                 user_id = str(uuid.uuid4())
+                 user = {
+                     "id": user_id, "username": "test_doctor", "full_name": "Test Doctor",
+                     "phone": "9999999999", "role": "doctor", "is_verified": True,
+                     "password": hash_password("admin"), "created_at": datetime.now(timezone.utc).isoformat()
+                 }
+                 await db.users.insert_one(user)
+                 await db.doctors.insert_one({
+                     "user_id": user_id, "full_name": "Test Doctor", "is_verified": True, "is_active": True, "created_at": user["created_at"]
+                 })
     else:
-        # Check by phone strictly, but be flexible with the "+" prefix
+        # NORMAL LOGIN
         clean_phone = phone.lstrip('+')
+        # Try both with and without country code if possible, or match by trailing
         user = await db.users.find_one({
-            "phone": {"$in": [phone, f"+{clean_phone}", clean_phone]}
+            "phone": {"$in": [phone, f"+{clean_phone}", clean_phone, {"$regex": f"{last_10}$"}]}
         })
         
         if not user:
