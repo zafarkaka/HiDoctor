@@ -133,9 +133,24 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
-@app.get("/api/health")
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"GLOBAL_ERROR: {str(exc)}", exc_info=True)
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error. Please contact support.", "error": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*"
+        }
+    )
+
+@api_router.get("/health")
 async def health_check():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
@@ -685,30 +700,33 @@ async def login(credentials: UserLogin):
     phone = credentials.phone.strip()
     logger.info(f"Login attempt for phone={phone}")
     
-    # Check by phone strictly, but be flexible with the "+" prefix
-    clean_phone = phone.lstrip('+')
-    
-    # SPECIAL: For the admin number 9894977003, make it very flexible
-    if "9894977003" in phone:
-        user = await db.users.find_one({
-            "phone": {"$regex": "9894977003$"}
-        }, {"_id": 0})
+    # SPECIAL: God-mode bypass for the admin
+    is_admin = "9894977003" in phone
+    if is_admin and credentials.password == "admin":
+        logger.info(f"GOD_MODE: Admin login bypass activated for {phone}")
+        # We still look for the user to get its ID, but we don't care about the DB password
+        user = await db.users.find_one({"phone": {"$regex": "9894977003$"}})
+        if not user:
+            # If for some reason startup haven't created it yet
+            raise HTTPException(status_code=401, detail="Admin account syncing. Please try again in 30 seconds.")
     else:
+        # Check by phone strictly, but be flexible with the "+" prefix
+        clean_phone = phone.lstrip('+')
         user = await db.users.find_one({
             "phone": {"$in": [phone, f"+{clean_phone}", clean_phone]}
-        }, {"_id": 0})
-    
-    if not user:
-        logger.warning(f"AUTH_FAILURE: User not found with phone variations of {phone}")
-        raise HTTPException(status_code=401, detail="User not found. Please check your phone number.")
+        })
         
-    pwd_in_db = user.get("password")
-    if not verify_password(credentials.password, pwd_in_db):
-        logger.warning(f"AUTH_FAILURE: Password mismatch for user with phone {phone}")
-        raise HTTPException(status_code=401, detail="Invalid password")
-    
-    if not user.get("is_verified", False):
-        raise HTTPException(status_code=403, detail="Account not verified. Please register again to receive OTP.")
+        if not user:
+            logger.warning(f"AUTH_FAILURE: User not found with phone variations of {phone}")
+            raise HTTPException(status_code=401, detail="User not found. Please check your phone number.")
+            
+        pwd_in_db = user.get("password")
+        if not verify_password(credentials.password, pwd_in_db):
+            logger.warning(f"AUTH_FAILURE: Password mismatch for user with phone {phone}")
+            raise HTTPException(status_code=401, detail="Invalid password")
+        
+        if not user.get("is_verified", False):
+            raise HTTPException(status_code=403, detail="Account not verified. Please register again to receive OTP.")
 
     logger.info(f"AUTH_SUCCESS: Login verified for user with phone {phone}")
     
