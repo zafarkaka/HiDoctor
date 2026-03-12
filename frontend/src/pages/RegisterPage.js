@@ -36,17 +36,26 @@ export default function RegisterPage() {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
+    // Initialize verifier if not exists
     const container = document.getElementById('recaptcha-container');
     if (container && !window.recaptchaVerifier) {
+      console.log('Initializing RecaptchaVerifier...');
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
+        'callback': (response) => {
+          console.log('ReCAPTCHA verified successfully');
+        },
+        'expired-callback': () => {
+          console.warn('ReCAPTCHA expired, resetting...');
+          window.recaptchaVerifier.render().then(widgetId => {
+            grecaptcha.reset(widgetId);
+          });
+        }
       });
     }
     return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
+      // We don't necessarily want to clear it on every re-render if it's external,
+      // but we should ensure it doesn't leak.
     };
   }, []);
 
@@ -57,15 +66,28 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+    console.log('Sending OTP to:', countryCode + formData.phone);
     try {
       const fullPhone = countryCode + formData.phone.replace(/\D/g, '');
+      
+      // Safety check: ensure verifier is initialized
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
+      }
+
       const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
       setVerificationId(confirmationResult);
       setShowOtpInput(true);
       toast.success('OTP sent to your phone!');
     } catch (err) {
-      console.error('OTP Error:', err);
-      toast.error('Failed to send OTP. Please check your phone number format (e.g. +1234567890)');
+      console.error('OTP Error Detail:', err);
+      let errorMessage = 'Failed to send OTP. Please check your phone number format (e.g. +1234567890)';
+      
+      if (err.code === 'auth/invalid-phone-number') errorMessage = 'Invalid phone number format.';
+      if (err.code === 'auth/too-many-requests') errorMessage = 'Too many requests. Please try again later.';
+      if (err.code === 'auth/captcha-check-failed') errorMessage = 'reCAPTCHA verification failed. Please refresh and try again.';
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

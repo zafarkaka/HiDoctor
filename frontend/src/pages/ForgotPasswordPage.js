@@ -28,15 +28,12 @@ export default function ForgotPasswordPage() {
     useEffect(() => {
         const container = document.getElementById('recaptcha-container');
         if (container && !window.recaptchaVerifier) {
+            console.log('Initializing RecaptchaVerifier for ForgotPassword...');
             window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                 'size': 'invisible',
             });
         }
         return () => {
-            if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.clear();
-                window.recaptchaVerifier = null;
-            }
         };
     }, []);
 
@@ -51,6 +48,10 @@ export default function ForgotPasswordPage() {
             await axios.post(`${API_URL}/api/auth/forgot-password`, { phone: fullPhone });
             
             // If exists, send Firebase OTP
+            if (!window.recaptchaVerifier) {
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
+            }
+
             const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
             setVerificationId(confirmationResult);
             

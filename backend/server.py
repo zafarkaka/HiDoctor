@@ -123,9 +123,18 @@ origins = [
 # Clean origins and ensure no trailing slashes
 origins = list(set([o.rstrip('/') for o in origins if o]))
 
+@app.middleware("http")
+async def log_headers(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if origin:
+        logger.info(f"REQUEST_ORIGIN: {origin}")
+    response = await call_next(request)
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex="https?://([a-z0-9-]+\.)*hidoctor\.online",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -678,14 +687,15 @@ async def login(credentials: UserLogin):
     phone = credentials.phone.strip()
     logger.info(f"Login attempt for phone={phone}")
     
-    # Check by phone strictly
+    # Check by phone strictly, but be flexible with the "+" prefix
+    clean_phone = phone.lstrip('+')
     user = await db.users.find_one({
-        "phone": phone
+        "phone": {"$in": [phone, f"+{clean_phone}", clean_phone]}
     }, {"_id": 0})
     
     if not user:
-        logger.warning(f"AUTH_FAILURE: User not found with phone={phone}")
-        raise HTTPException(status_code=401, detail="User not found or credentials mismatch")
+        logger.warning(f"AUTH_FAILURE: User not found with phone variations of {phone}")
+        raise HTTPException(status_code=401, detail="User not found. Please check your phone number.")
         
     pwd_in_db = user.get("password")
     if not verify_password(credentials.password, pwd_in_db):
