@@ -43,9 +43,13 @@ if firebase_service_account:
     try:
         import json
         cert_dict = json.loads(firebase_service_account)
+        project_id = cert_dict.get('project_id')
         cred = credentials.Certificate(cert_dict)
-        firebase_admin.initialize_app(cred)
-        logger.info("Firebase Admin initialized successfully.")
+        # Explicitly set project_id to avoid "Project ID required" errors on production
+        firebase_admin.initialize_app(cred, {
+            'projectId': project_id,
+        })
+        logger.info(f"Firebase Admin initialized successfully for project: {project_id}")
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin with JSON: {e}")
 else:
@@ -104,11 +108,28 @@ def normalize_image_url(url: Optional[str]) -> Optional[str]:
 app = FastAPI(title="HiDoctor API")
 app.state.db = db
 
-# Ultra-permissive CORS for production stability
+# Max Permissive CORS: Allow all origins by echoing them back
+# This allows credentails=True while still being functionally "allow all"
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    origin = request.headers.get("origin")
+    # If we are in an error state, we still want to return these headers
+    response = await call_next(request)
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+# Standard middleware as fallback
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False, # Must be False for allow_origins=["*"]
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
