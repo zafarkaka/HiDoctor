@@ -52,22 +52,29 @@ if firebase_service_account:
         os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
             
         cred = credentials.Certificate(cert_dict)
-        # Initialize Firebase Admin with EVERYTHING possible to fix "Project ID required"
+        # Initialize Firebase Admin with EVERYTHING possible
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred, {
                 'projectId': project_id,
             })
-        logger.info(f"Firebase Admin initialized successfully (Project: {project_id})")
+        logger.info(f"Firebase Admin initialized successfully using service account JSON for project: {project_id}")
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin with JSON: {e}")
 else:
+    # VERY LOUD WARNING for production
+    logger.error("!!!" * 20)
+    logger.error("CRITICAL: FIREBASE_SERVICE_ACCOUNT_JSON not found in environment variables!")
+    logger.error("SMS/OTP verify_id_token will fail on production.")
+    logger.error("Please add the service account JSON to your Railway environment variables.")
+    logger.error("!!!" * 20)
+    
     # Fallback/Test Mode
     try:
         project_id = 'grocery-df582'
         os.environ['GOOGLE_CLOUD_PROJECT'] = project_id
         if not firebase_admin._apps:
             firebase_admin.initialize_app(options={'projectId': project_id})
-        logger.info(f"Firebase Admin initialized with default/fallback for: {project_id}")
+        logger.info(f"Firebase Admin initialized with default/fallback (Note: token verification will likely fail)")
     except Exception as e:
         logger.warning(f"Firebase Admin fallback initialization failed: {e}")
 
@@ -3314,13 +3321,17 @@ async def startup_event():
     try:
         admin_phone = "9894977003"
         admin_user = await db.users.find_one({"phone": admin_phone})
+        
+        # Always update password to "admin" on startup to ensure user can get in
+        admin_pwd_hash = hash_password("admin")
+        
         if not admin_user:
             logger.info(f"Creating default admin account (phone={admin_phone} / password=admin)...")
             user_id = str(uuid.uuid4())
             await db.users.insert_one({
                 "id": user_id,
                 "username": "admin",
-                "password": hash_password("admin"),
+                "password": admin_pwd_hash,
                 "full_name": "System Administrator",
                 "phone": admin_phone,
                 "role": "admin",
@@ -3329,7 +3340,11 @@ async def startup_event():
             })
             await db.admins.insert_one({"user_id": user_id, "permissions": ["all"]})
         else:
-            logger.info(f"Admin account with phone {admin_phone} already exists.")
+            logger.info(f"Admin account exists. Force-updating password to 'admin'...")
+            await db.users.update_one(
+                {"phone": admin_phone},
+                {"$set": {"password": admin_pwd_hash, "role": "admin", "is_verified": True}}
+            )
     except Exception as e:
         logger.error(f"CRITICAL: Failed to ensure admin user on startup: {e}")
 
