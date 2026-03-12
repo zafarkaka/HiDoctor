@@ -126,6 +126,10 @@ def normalize_image_url(url: Optional[str]) -> Optional[str]:
 app = FastAPI(title="HiDoctor API")
 app.state.db = db
 
+# DEFINE ROUTER EARLY TO AVOID NameErrors
+api_router = APIRouter(prefix="/api")
+security = HTTPBearer()
+
 # Max Permissive CORS for production stability
 app.add_middleware(
     CORSMiddleware,
@@ -205,9 +209,6 @@ async def save_image_to_db(filename: str, content: bytes, content_type: str):
         logger.info(f"IMAGE_DB_PERSIST: Saved {filename} to MongoDB ({len(content)} bytes)")
     except Exception as e:
         logger.error(f"IMAGE_DB_PERSIST: Failed to save {filename} to MongoDB: {str(e)}")
-
-api_router = APIRouter(prefix="/api")
-security = HTTPBearer()
 
 # ============== ENUMS ==============
 class UserRole(str, Enum):
