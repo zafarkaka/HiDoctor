@@ -711,11 +711,19 @@ async def login(credentials: UserLogin):
         raise HTTPException(status_code=403, detail="Account not verified. Please register again to receive OTP.")
 
     logger.info(f"AUTH_SUCCESS: Login verified for user with phone {phone}")
-    token = create_access_token({"sub": user["id"], "role": user["role"]})
+    
+    # Robustly get the ID
+    user_id = user.get("id") or str(user.get("_id", "unknown"))
+    
+    token = create_access_token({"sub": user_id, "role": user["role"]})
     user_response = UserResponse(
-        id=user["id"], username=user["username"], full_name=user["full_name"],
-        phone=user.get("phone"), role=user["role"], is_verified=user.get("is_verified", False),
-        created_at=user["created_at"],
+        id=user_id, 
+        username=user.get("username", "user"), 
+        full_name=user.get("full_name", "User"),
+        phone=user.get("phone"), 
+        role=user.get("role", "patient"), 
+        is_verified=user.get("is_verified", False),
+        created_at=user.get("created_at", datetime.now(timezone.utc).isoformat()),
         profile_image=normalize_image_url(user.get("profile_image"))
     )
     return TokenResponse(access_token=token, user=user_response)
@@ -3340,10 +3348,19 @@ async def startup_event():
             })
             await db.admins.insert_one({"user_id": user_id, "permissions": ["all"]})
         else:
-            logger.info(f"Admin account exists. Force-updating password to 'admin'...")
+            logger.info(f"Admin account exists. Force-updating password to 'admin' and ensuring 'id' exists...")
+            # If the existing user doesn't have a string 'id' field, give it one
+            updates = {
+                "password": admin_pwd_hash, 
+                "role": "admin", 
+                "is_verified": True
+            }
+            if not admin_user.get("id"):
+                updates["id"] = str(uuid.uuid4())
+                
             await db.users.update_one(
                 {"phone": admin_phone},
-                {"$set": {"password": admin_pwd_hash, "role": "admin", "is_verified": True}}
+                {"$set": updates}
             )
     except Exception as e:
         logger.error(f"CRITICAL: Failed to ensure admin user on startup: {e}")
