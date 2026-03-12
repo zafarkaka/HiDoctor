@@ -3314,24 +3314,24 @@ async def startup_event():
     
     # --- SELF-HEALING ADMIN ENSURANCE ---
     try:
-        admin_email = "admin@admin.com"
-        admin_user = await db.users.find_one({"email": admin_email})
+        admin_phone = "9894977003"
+        admin_user = await db.users.find_one({"phone": admin_phone})
         if not admin_user:
-            logger.info("Creating default admin account (admin@admin.com / admin)...")
+            logger.info(f"Creating default admin account (phone={admin_phone} / password=admin)...")
             user_id = str(uuid.uuid4())
             await db.users.insert_one({
                 "id": user_id,
-                "email": admin_email,
+                "username": "admin",
                 "password": hash_password("admin"),
                 "full_name": "System Administrator",
-                "phone": "+10000000000",
+                "phone": admin_phone,
                 "role": "admin",
                 "is_verified": True,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
             await db.admins.insert_one({"user_id": user_id, "permissions": ["all"]})
         else:
-            logger.info("Admin account already exists.")
+            logger.info(f"Admin account with phone {admin_phone} already exists.")
     except Exception as e:
         logger.error(f"CRITICAL: Failed to ensure admin user on startup: {e}")
 
