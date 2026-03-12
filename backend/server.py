@@ -104,41 +104,18 @@ def normalize_image_url(url: Optional[str]) -> Optional[str]:
 app = FastAPI(title="HiDoctor API")
 app.state.db = db
 
-# Configure CORS
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:8081",
-    "http://127.0.0.1:8081",
-    "http://localhost:19006",
-    "exp://localhost:8081",
-    "https://www.hidoctor.online",
-    "https://hidoctor.online",
-    "https://hidoctor-production.up.railway.app",
-    "https://api.hidoctor.online",
-]
-
-# Clean origins and ensure no trailing slashes
-origins = list(set([o.rstrip('/') for o in origins if o]))
-
-@app.middleware("http")
-async def log_headers(request: Request, call_next):
-    origin = request.headers.get("origin")
-    if origin:
-        logger.info(f"REQUEST_ORIGIN: {origin}")
-    response = await call_next(request)
-    return response
-
+# Ultra-permissive CORS for production stability
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex="https?://([a-z0-9-]+\.)*hidoctor\.online",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False, # Must be False for allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 # Create uploads directory
 UPLOADS_DIR = ROOT_DIR / 'uploads'
@@ -3309,7 +3286,7 @@ app.include_router(api_router)
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info(f"Allowed CORS origins: {origins}")
+    logger.info("Server starting up with ultra-permissive CORS.")
     
     # --- SELF-HEALING ADMIN ENSURANCE ---
     try:
