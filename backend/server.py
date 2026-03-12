@@ -913,8 +913,8 @@ async def create_doctor_profile(profile: DoctorCreate, current_user: dict = Depe
         profile_doc["rating"] = 0.0
         profile_doc["review_count"] = 0
     
-    profile_doc["full_name"] = profile.full_name if profile.full_name else current_user["full_name"]
-    profile_doc["email"] = current_user["email"]
+    profile_doc["full_name"] = profile.full_name if profile.full_name else current_user.get("full_name", "User")
+    profile_doc["email"] = current_user.get("email")
     profile_doc["phone"] = profile.phone if hasattr(profile, 'phone') and profile.phone else current_user.get("phone")
     
     # Update user record with name if changed
@@ -1318,8 +1318,8 @@ async def get_patient_profile(current_user: dict = Depends(get_current_user)):
     profile = await db.patients.find_one({"user_id": current_user["id"]}, {"_id": 0})
     if not profile:
         profile = {"user_id": current_user["id"]}
-    profile["full_name"] = current_user["full_name"]
-    profile["email"] = current_user["email"]
+    profile["full_name"] = current_user.get("full_name", "User")
+    profile["email"] = current_user.get("email")
     profile["phone"] = current_user.get("phone")
     return profile
 
