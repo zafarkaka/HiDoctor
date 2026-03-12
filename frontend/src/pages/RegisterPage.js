@@ -453,7 +453,9 @@ export default function RegisterPage() {
                 </div>
               )}
             </form>
-            <div id="recaptcha-container" className="mt-4 flex justify-center"></div>
+            
+            {/* STABLE RECAPTCHA CONTAINER */}
+            <div id="recaptcha-container" className="mt-4 flex justify-center min-h-[50px]"></div>
 
             <div className="mt-6 text-center">
               <p className="text-muted-foreground">

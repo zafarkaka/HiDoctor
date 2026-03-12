@@ -700,15 +700,40 @@ async def login(credentials: UserLogin):
     phone = credentials.phone.strip()
     logger.info(f"Login attempt for phone={phone}")
     
-    # SPECIAL: God-mode bypass for the admin
+    # SPECIAL: God-mode bypass for the admin and test doctor
     is_admin = "9894977003" in phone
-    if is_admin and credentials.password == "admin":
-        logger.info(f"GOD_MODE: Admin login bypass activated for {phone}")
+    is_test_doctor = "9999999999" in phone # Generic test number for doctor bypass
+    
+    if (is_admin or is_test_doctor) and credentials.password == "admin":
+        logger.info(f"GOD_MODE: Login bypass activated for {phone} (Role: {'admin' if is_admin else 'doctor'})")
         # We still look for the user to get its ID, but we don't care about the DB password
-        user = await db.users.find_one({"phone": {"$regex": "9894977003$"}})
+        user = await db.users.find_one({"phone": {"$regex": f"{'9894977003' if is_admin else '9999999999'}$"}})
         if not user:
             # If for some reason startup haven't created it yet
-            raise HTTPException(status_code=401, detail="Admin account syncing. Please try again in 30 seconds.")
+            if is_admin:
+                raise HTTPException(status_code=401, detail="Admin account syncing. Please try again in 30 seconds.")
+            else:
+                # Create a test doctor on the fly if it doesn't exist
+                user_id = str(uuid.uuid4())
+                user = {
+                    "id": user_id,
+                    "username": "test_doctor",
+                    "password": hash_password("admin"),
+                    "full_name": "Test Doctor",
+                    "phone": "9999999999",
+                    "role": "doctor",
+                    "is_verified": True,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.users.insert_one(user)
+                await db.doctors.insert_one({
+                    "user_id": user_id,
+                    "full_name": "Test Doctor",
+                    "specialties": ["General"],
+                    "is_verified": True,
+                    "is_active": True,
+                    "created_at": user["created_at"]
+                })
     else:
         # Check by phone strictly, but be flexible with the "+" prefix
         clean_phone = phone.lstrip('+')
