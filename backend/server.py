@@ -607,28 +607,27 @@ async def register(user_data: UserCreate):
     # 1. Verify Firebase Token
     try:
         decoded_token = auth.verify_id_token(user_data.firebase_token)
-        # Ensure the phone number in the token matches the one provided
         firebase_phone = decoded_token.get('phone_number')
+        logger.info(f"Firebase token verified for phone: {firebase_phone}")
         
         # Phone numbers from Firebase are typically E.164. 
-        # We should be careful about formatting, but simple equality check for now.
         if firebase_phone and firebase_phone.replace('+', '') != phone.replace('+', ''):
-             logger.warning(f"Phone mismatch: token={firebase_phone}, provided={phone}")
-             # We might want to allow it if it's just a formatting difference, 
-             # but for security we should ideally use the phone FROM the token.
+             logger.warning(f"Phone mismatch: token={firebase_phone}, provided={phone}. Overriding with token phone.")
              phone = firebase_phone
     except Exception as e:
-        logger.error(f"Firebase token verification failed: {e}")
-        raise HTTPException(status_code=400, detail="Invalid or expired verification session")
+        logger.error(f"Firebase token verification failed for user {username}: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid or expired verification session: {str(e)}")
 
     # 2. Check if username or phone already exists
     existing_username = await db.users.find_one({"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}})
     if existing_username:
-        raise HTTPException(status_code=400, detail="Username already taken")
+        logger.warning(f"Registration failed: Username {username} already taken")
+        raise HTTPException(status_code=400, detail=f"Username '{username}' is already taken. Please choose another.")
         
     existing_phone = await db.users.find_one({"phone": phone})
     if existing_phone:
-        raise HTTPException(status_code=400, detail="Phone number already registered")
+        logger.warning(f"Registration failed: Phone {phone} already registered")
+        raise HTTPException(status_code=400, detail=f"Phone number {phone} is already registered. Please login instead.")
     
     # 3. Create User
     user_id = str(uuid.uuid4())

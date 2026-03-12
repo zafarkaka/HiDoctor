@@ -191,7 +191,6 @@ export default function ForgotPasswordPage() {
                                         'Send Verification Code'
                                     )}
                                 </Button>
-                                <div id="recaptcha-container"></div>
                             </form>
                         )}
 
@@ -267,7 +266,7 @@ export default function ForgotPasswordPage() {
                                 </Link>
                             </p>
                         </div>
-                        <div id="recaptcha-container"></div>
+                        <div id="recaptcha-container" className="mt-4 flex justify-center"></div>
                     </CardContent>
                 </Card>
             </div>

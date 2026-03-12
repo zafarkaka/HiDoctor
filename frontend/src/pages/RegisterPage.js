@@ -162,6 +162,7 @@ export default function RegisterPage() {
         role: formData.role,
         firebase_token: firebaseToken
       });
+      console.log('Registration successful:', user);
 
       // If doctor, upload profile picture
       if (formData.role === 'doctor' && profilePic) {
@@ -185,7 +186,7 @@ export default function RegisterPage() {
         navigate('/patient');
       }
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('Registration full error:', err);
       const detail = err.response?.data?.detail;
       let errorMessage = 'Registration failed. Please try again.';
 
@@ -193,11 +194,23 @@ export default function RegisterPage() {
         errorMessage = detail;
       } else if (Array.isArray(detail)) {
         errorMessage = detail.map(e => e.msg).join(', ');
+      } else if (detail && typeof detail === 'object') {
+        errorMessage = JSON.stringify(detail);
       }
 
       toast.error(errorMessage);
     } finally {
       setLoading(false);
+      // Reset ReCAPTCHA after any error to allow retry
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.render().then(widgetId => {
+            if (window.grecaptcha) window.grecaptcha.reset(widgetId);
+          });
+        } catch (e) {
+          console.warn('Silent ReCAPTCHA reset failed:', e);
+        }
+      }
     }
   };
 
@@ -439,8 +452,8 @@ export default function RegisterPage() {
                   </Button>
                 </div>
               )}
-              <div id="recaptcha-container"></div>
             </form>
+            <div id="recaptcha-container" className="mt-4 flex justify-center"></div>
 
             <div className="mt-6 text-center">
               <p className="text-muted-foreground">
