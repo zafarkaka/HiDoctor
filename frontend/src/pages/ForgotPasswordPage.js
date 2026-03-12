@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Stethoscope, Loader2, ArrowLeft, Mail, KeyRound, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -17,6 +18,7 @@ export default function ForgotPasswordPage() {
     const [step, setStep] = useState(1); // 1=phone, 2=otp+newPassword, 3=success
     const [loading, setLoading] = useState(false);
     const [phone, setPhone] = useState('');
+    const [countryCode, setCountryCode] = useState('+91');
     const [otp, setOtp] = useState('');
     const [verificationId, setVerificationId] = useState(null);
     const [newPassword, setNewPassword] = useState('');
@@ -33,17 +35,18 @@ export default function ForgotPasswordPage() {
 
     const handleRequestCode = async (e) => {
         e.preventDefault();
-        if (!phone) { toast.error('Please enter your phone number (+ E.164)'); return; }
+        if (!phone) { toast.error('Please enter your phone number'); return; }
 
         setLoading(true);
         try {
+            const fullPhone = countryCode + phone.replace(/\D/g, '');
             // First check if phone exists in our DB
-            await axios.post(`${API_URL}/api/auth/forgot-password`, { phone });
+            await axios.post(`${API_URL}/api/auth/forgot-password`, { phone: fullPhone });
             
             // If exists, send Firebase OTP
             setupRecaptcha();
             const appVerifier = window.recaptchaVerifier;
-            const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+            const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, appVerifier);
             setVerificationId(confirmationResult);
             
             toast.success('OTP sent to your phone!');
@@ -67,9 +70,10 @@ export default function ForgotPasswordPage() {
             const result = await verificationId.confirm(otp);
             const firebaseToken = await result.user.getIdToken();
 
+            const fullPhone = countryCode + phone.replace(/\D/g, '');
             // Update password on backend
             await axios.post(`${API_URL}/api/auth/reset-password`, {
-                phone,
+                phone: fullPhone,
                 firebase_token: firebaseToken,
                 new_password: newPassword,
             });
@@ -123,14 +127,29 @@ export default function ForgotPasswordPage() {
                             <form onSubmit={handleRequestCode} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Phone Number</Label>
-                                    <Input
-                                        id="phone"
-                                        type="tel"
-                                        placeholder="+1..."
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        required
-                                    />
+                                    <div className="flex gap-2">
+                                        <Select value={countryCode} onValueChange={setCountryCode}>
+                                            <SelectTrigger className="w-[100px]">
+                                                <SelectValue placeholder="Code" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                                                <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                                                <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                                                <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                                                <SelectItem value="+971">🇦🇪 +971</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Input
+                                            id="phone"
+                                            type="tel"
+                                            placeholder="98949..."
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                                            required
+                                            className="flex-1"
+                                        />
+                                    </div>
                                 </div>
                                 <Button type="submit" className="w-full rounded-full" disabled={loading}>
                                     {loading ? (

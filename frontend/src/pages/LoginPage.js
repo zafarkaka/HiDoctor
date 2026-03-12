@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Stethoscope, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -18,6 +19,7 @@ export default function LoginPage() {
     phone: '',
     password: ''
   });
+  const [countryCode, setCountryCode] = useState('+91');
 
   const from = location.state?.from?.pathname || '/';
 
@@ -26,7 +28,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await login(formData.username, formData.phone, formData.password);
+      const fullPhone = countryCode + formData.phone.replace(/\D/g, '');
+      const user = await login(formData.username, fullPhone, formData.password);
       toast.success('Welcome back!');
 
       // Redirect based on role
@@ -96,14 +99,29 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1..."
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  required
-                />
+                <div className="flex gap-2">
+                  <Select value={countryCode} onValueChange={setCountryCode}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue placeholder="Code" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                      <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                      <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                      <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                      <SelectItem value="+971">🇦🇪 +971</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="98949..."
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                    required
+                    className="flex-1"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

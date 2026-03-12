@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Stethoscope, Loader2, ArrowLeft, User, UserCog, Camera, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,6 +27,7 @@ export default function RegisterPage() {
     confirmPassword: '',
     role: 'patient'
   });
+  const [countryCode, setCountryCode] = useState('+91');
   const [otp, setOtp] = useState('');
   const [verificationId, setVerificationId] = useState(null);
   const [showOtpInput, setShowOtpInput] = useState(false);
@@ -49,9 +51,10 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      const fullPhone = countryCode + formData.phone.replace(/\D/g, '');
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
-      const confirmationResult = await signInWithPhoneNumber(auth, formData.phone, appVerifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, appVerifier);
       setVerificationId(confirmationResult);
       setShowOtpInput(true);
       toast.success('OTP sent to your phone!');
@@ -99,10 +102,11 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      const fullPhone = countryCode + formData.phone.replace(/\D/g, '');
       const user = await register({
         full_name: formData.full_name,
         username: formData.username,
-        phone: formData.phone,
+        phone: fullPhone,
         password: formData.password,
         role: formData.role,
         firebase_token: firebaseToken
@@ -277,16 +281,31 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1 234 567 8900"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  required
-                  data-testid="register-phone"
-                />
+                <Label htmlFor="phone">Phone Number</Label>
+                <div className="flex gap-2">
+                  <Select value={countryCode} onValueChange={setCountryCode}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue placeholder="Code" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                      <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                      <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                      <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                      <SelectItem value="+971">🇦🇪 +971</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="98949..."
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                    required
+                    data-testid="register-phone"
+                    className="flex-1"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
