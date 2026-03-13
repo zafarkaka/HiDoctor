@@ -62,7 +62,7 @@ async def send_chat_notification(app, receiver_id: str, sender_name: str, messag
                 
             await send_push_notifications([{
                 "to": push_token,
-                "title": f"New message from {sender_name}",
+                "title": f"HiDoctor: New message from {sender_name}",
                 "body": message_body,
                 "sound": "default",
                 "data": {
@@ -85,7 +85,7 @@ async def send_call_notification(app, receiver_id: str, caller_name: str, appoin
             
             await send_push_notifications([{
                 "to": push_token,
-                "title": f"Incoming {call_type}",
+                "title": f"HiDoctor: Incoming {call_type}",
                 "body": f"{caller_name} is calling you",
                 "sound": "default",
                 "data": {
@@ -106,7 +106,7 @@ async def send_push_notification_to_user(app, user_id: str, title: str, body: st
             
             await send_push_notifications([{
                 "to": push_token,
-                "title": title,
+                "title": f"HiDoctor: {title}",
                 "body": body,
                 "sound": "default",
                 "data": data or {}
