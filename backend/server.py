@@ -1536,14 +1536,24 @@ async def update_appointment(appointment_id: str, update: AppointmentUpdate, cur
     
     # Create notification
     if update.status:
-        recipient_id = appointment["patient_id"] if current_user["role"] == UserRole.DOCTOR else appointment["doctor_id"]
+        # Notify patient
         await create_notification(
-            user_id=recipient_id,
+            user_id=appointment["patient_id"],
             title=f"Appointment {update.status.value.title()}",
-            message=f"Your appointment has been {update.status.value}",
+            message=f"Your appointment with Dr. {appointment.get('doctor', {}).get('full_name', 'Doctor')} is now {update.status.value}",
             type="appointment",
             data={"appointment_id": appointment_id}
         )
+        
+        # Also notify doctor if the update didn't come from them (e.g. from payment or admin)
+        if current_user["role"] != UserRole.DOCTOR:
+            await create_notification(
+                user_id=appointment["doctor_id"],
+                title="Appointment Status Updated",
+                message=f"Appointment with {appointment.get('patient', {}).get('full_name', 'Patient')} is now {update.status.value}",
+                type="appointment",
+                data={"appointment_id": appointment_id}
+            )
     
     return {"message": "Appointment updated"}
 
@@ -3322,11 +3332,24 @@ async def trigger_appointment_reminders():
                     
                     if not existing:
                         logger.info(f"Triggering {threshold_name} reminder for Appointment {apt['id']}")
-                        # Fire Push Notification
+                        
+                        # Notify Patient
                         await create_notification(
                             user_id=apt["patient_id"],
                             title="Appointment Reminder",
-                            message=f"Your appointment is in exactly {threshold_name}!",
+                            message=f"Your appointment is in {threshold_name}!",
+                            type="appointment_reminder",
+                            data={
+                                "appointment_id": apt["id"],
+                                "threshold": threshold_name
+                            }
+                        )
+                        
+                        # Notify Doctor
+                        await create_notification(
+                            user_id=apt["doctor_id"],
+                            title="Appointment Reminder",
+                            message=f"You have an appointment in {threshold_name}!",
                             type="appointment_reminder",
                             data={
                                 "appointment_id": apt["id"],
