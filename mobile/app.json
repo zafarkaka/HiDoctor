@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ClinicConnect",
-    "slug": "clinic-connect",
+    "name": "HiDoctor",
+    "slug": "hi-doctor",
     "owner": "limratech",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,21 +10,22 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ea580c"
+      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.clinicconnect.app"
+      "bundleIdentifier": "com.limratech.hidoctor"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ea580c"
+        "backgroundColor": "#ffffff"
       },
-      "package": "com.clinicconnect.app",
+      "package": "com.limratech.hidoctor",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO"
@@ -34,9 +35,13 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
+    ],
     "extra": {
       "eas": {
-        "projectId": "8ec148b9-3075-4a93-b436-a3a2c74beecb"
+        "projectId": "7076cc78-c15e-4ddc-8511-7ca231e932fd"
       }
     }
   }
