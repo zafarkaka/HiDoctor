@@ -104,7 +104,7 @@ export default function DoctorHomeScreen({ navigation }) {
           <View style={styles.headerLeft}>
             <View style={styles.headerLogoContainer}>
               <Image 
-                source={require('../../assets/icon.png')} 
+                source={require('../../../assets/icon.png')} 
                 style={styles.headerLogo}
                 resizeMode="contain"
               />
