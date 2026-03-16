@@ -82,7 +82,7 @@ export default function RegisterScreen({ navigation }) {
               />
             </View>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join ClinicConnect today</Text>
+            <Text style={styles.subtitle}>Join HiDoctor today</Text>
           </View>
 
           {/* Role Selection */}

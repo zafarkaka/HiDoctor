@@ -1,4 +1,4 @@
-# ClinicConnect Mobile App - Build & Deployment Guide
+# HiDoctor Mobile App - Build & Deployment Guide
 
 ## Quick Start - Building APK
 
@@ -44,7 +44,7 @@
 ## Production Configuration
 
 ### 1. Update API URL
-Edit `/app/mobile/src/utils/constants.js`:
+Edit `mobile/src/utils/constants.js`:
 ```javascript
 export const API_URL = 'https://your-production-domain.com';
 ```
