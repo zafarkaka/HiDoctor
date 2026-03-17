@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   View,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, RADIUS, SHADOWS } from '../utils/constants';
