@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "HiDoctor",
-    "slug": "hi-doctor",
+    "slug": "hidoctor",
     "owner": "limratech",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FF9800"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -22,13 +22,14 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FF9800"
       },
       "package": "com.limratech.hidoctor",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "CAMERA",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -37,11 +38,25 @@
     },
     "plugins": [
       "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/auth",
+      "@react-native-firebase/messaging",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "useLegacyPackaging": true,
+            "kotlinVersion": "1.8.10",
+            "buildToolsVersion": "34.0.0",
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 23
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
-        "projectId": "7076cc78-c15e-4ddc-8511-7ca231e932fd"
+        "projectId": "27b9f542-e33a-4902-a1af-e20b523fd920"
       }
     }
   }
