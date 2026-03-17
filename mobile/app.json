@@ -2,7 +2,6 @@
   "expo": {
     "name": "HiDoctor",
     "slug": "hidoctor",
-    "owner": "limratech",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -56,8 +55,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "27b9f542-e33a-4902-a1af-e20b523fd920"
+        "projectId": "11e3670c-6485-49d8-b02d-bf2eb4a94c98"
       }
-    }
+    },
+    "owner": "limratech"
   }
 }

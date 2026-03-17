@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Card } from '../../components/UI';
-import { COLORS, SPACING, RADIUS } from '../../utils/constants';
+import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
