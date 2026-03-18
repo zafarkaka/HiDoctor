@@ -1,0 +1,9 @@
+# gitignore
+node_modules/
+android/
+ios/
+.expo/
+*.apk
+*.aab
+.gradle/
+ama
