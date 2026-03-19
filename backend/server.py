@@ -3522,6 +3522,8 @@ class CampaignCreate(BaseModel):
     redirect_url: Optional[str] = None
     placement: str = "home"  # "home" | "blog" | "all"
     is_active: bool = True
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 @app.get("/api/campaigns")
 async def get_campaigns(placement: Optional[str] = None):
@@ -3529,8 +3531,18 @@ async def get_campaigns(placement: Optional[str] = None):
     query: dict = {"is_active": True}
     if placement and placement != "all":
         query["$or"] = [{"placement": placement}, {"placement": "all"}]
+    
     cursor = db.campaigns.find(query, {"_id": 0})
     ads = await cursor.to_list(length=50)
+    
+    # Track impressions
+    ad_ids = [ad["id"] for ad in ads if "id" in ad]
+    if ad_ids:
+        await db.campaigns.update_many(
+            {"id": {"$in": ad_ids}},
+            {"$inc": {"impressions": 1}}
+        )
+        
     return {"ads": ads}
 
 @app.post("/api/campaigns/{campaign_id}/click")
@@ -3538,7 +3550,7 @@ async def track_campaign_click(campaign_id: str):
     """Increment click count for a campaign."""
     await db.campaigns.update_one(
         {"id": campaign_id},
-        {"$inc": {"click_count": 1}}
+        {"$inc": {"clicks": 1}} # Use 'clicks' to match AdminDashboard UI
     )
     return {"success": True}
 
@@ -3554,7 +3566,10 @@ async def create_campaign(data: CampaignCreate, current_user: dict = Depends(get
         "redirect_url": data.redirect_url,
         "placement": data.placement,
         "is_active": data.is_active,
-        "click_count": 0,
+        "start_date": data.start_date or datetime.now(timezone.utc).isoformat(),
+        "end_date": data.end_date or (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+        "clicks": 0,
+        "impressions": 0,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.campaigns.insert_one(campaign)
@@ -3568,7 +3583,7 @@ async def admin_list_campaigns(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     cursor = db.campaigns.find({}, {"_id": 0})
     campaigns = await cursor.to_list(length=200)
-    return {"campaigns": campaigns}
+    return {"ads": campaigns} # Website expects {"ads": [...]}
 
 # Admin: Toggle campaign active state
 @app.put("/api/admin/campaigns/{campaign_id}")
@@ -3599,6 +3614,7 @@ class BlogPostCreate(BaseModel):
     cover_image: Optional[str] = None
     category: Optional[str] = None
     is_published: bool = True
+    tags: Optional[List[str]] = []
 
 @app.get("/api/blog")
 async def get_blog_posts():
@@ -3634,6 +3650,7 @@ async def create_blog_post(data: BlogPostCreate, current_user: dict = Depends(ge
         "content": data.content,
         "cover_image": data.cover_image,
         "category": data.category,
+        "tags": data.tags,
         "is_published": data.is_published,
         "view_count": 0,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -3668,6 +3685,7 @@ async def delete_blog_post(post_id: str, current_user: dict = Depends(get_curren
         raise HTTPException(status_code=403, detail="Admin access required")
     await db.blog_posts.delete_one({"id": post_id})
     return {"success": True}
+
 
 
 # ============================================================
