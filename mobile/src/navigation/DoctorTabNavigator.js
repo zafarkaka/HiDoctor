@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, RADIUS } from '../utils/constants';
+import { Home, Calendar, Clock, User } from 'lucide-react-native';
 
 // Doctor Screens
 import DoctorHomeScreen from '../screens/doctor/DoctorHomeScreen';
@@ -14,17 +15,17 @@ const Tab = createBottomTabNavigator();
 // Tab Icon Component
 const TabIcon = ({ focused, iconName, label }) => {
   const icons = {
-    home: '🏠',
-    calendar: '📅',
-    schedule: '⏰',
-    profile: '👤',
+    home: <Home size={20} color={focused ? COLORS.primary : COLORS.textMuted} strokeWidth={focused ? 2.5 : 2} />,
+    calendar: <Calendar size={20} color={focused ? COLORS.primary : COLORS.textMuted} strokeWidth={focused ? 2.5 : 2} />,
+    schedule: <Clock size={20} color={focused ? COLORS.primary : COLORS.textMuted} strokeWidth={focused ? 2.5 : 2} />,
+    profile: <User size={20} color={focused ? COLORS.primary : COLORS.textMuted} strokeWidth={focused ? 2.5 : 2} />,
   };
 
   return (
     <View style={[styles.tabItem, focused && styles.tabItemActive]}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>
+      <View style={[styles.tabIcon, focused && styles.tabIconActive]}>
         {icons[iconName]}
-      </Text>
+      </View>
       <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
         {label}
       </Text>
@@ -101,8 +102,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '15',
   },
   tabIcon: {
-    fontSize: 20,
     marginBottom: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabIconActive: {
     transform: [{ scale: 1.1 }],

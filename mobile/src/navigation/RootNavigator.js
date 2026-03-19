@@ -7,6 +7,7 @@ import { COLORS } from '../utils/constants';
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
 // Patient Navigator
 import PatientTabNavigator from './PatientTabNavigator';
@@ -19,11 +20,10 @@ import DoctorProfileScreen from '../screens/shared/DoctorProfileScreen';
 import BookingScreen from '../screens/patient/BookingScreen';
 import AppointmentDetailScreen from '../screens/shared/AppointmentDetailScreen';
 import ChatScreen from '../screens/shared/ChatScreen';
-import VideoCallScreen from '../screens/shared/VideoCallScreen';
+
 import ReviewScreen from '../screens/patient/ReviewScreen';
 
-// Notifications Screen (placeholder)
-const NotificationsScreen = () => null;
+import NotificationsScreen from '../screens/shared/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -51,6 +51,7 @@ export default function RootNavigator() {
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </>
       ) : isPatient ? (
         // Patient Stack
@@ -60,7 +61,7 @@ export default function RootNavigator() {
           <Stack.Screen name="Booking" component={BookingScreen} />
           <Stack.Screen name="AppointmentDetail" component={AppointmentDetailScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
-          <Stack.Screen name="VideoCall" component={VideoCallScreen} />
+
           <Stack.Screen name="Review" component={ReviewScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
@@ -70,7 +71,7 @@ export default function RootNavigator() {
           <Stack.Screen name="DoctorTabs" component={DoctorTabNavigator} />
           <Stack.Screen name="AppointmentDetail" component={AppointmentDetailScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
-          <Stack.Screen name="VideoCall" component={VideoCallScreen} />
+
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       ) : null}

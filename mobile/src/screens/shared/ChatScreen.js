@@ -9,8 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { appointmentService } from '../../services/api';
 import { Card } from '../../components/UI';
@@ -63,7 +67,6 @@ export default function ChatScreen({ route, navigation }) {
     setNewMessage('');
     setSending(true);
 
-    // Optimistic update
     const tempMessage = {
       id: `temp-${Date.now()}`,
       message: messageText,
@@ -81,14 +84,51 @@ export default function ChatScreen({ route, navigation }) {
         message: messageText,
         message_type: 'text',
       });
-      // Refresh messages to get the actual message from server
       fetchMessages();
     } catch (error) {
-      // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
       console.error('Error sending message:', error);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setSending(true);
+      try {
+        const asset = result.assets[0];
+        const formData = new FormData();
+        const filename = asset.uri.split('/').pop() || 'image.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        
+        formData.append('file', {
+          uri: asset.uri,
+          name: filename,
+          type,
+        });
+
+        const uploadRes = await appointmentService.uploadChatFile(formData);
+        
+        await appointmentService.sendMessage(appointmentId, {
+          message: '📷 Image Attachment',
+          message_type: 'image',
+          file_url: uploadRes.data.file_url,
+        });
+        fetchMessages();
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        Alert.alert('Error', 'Failed to send image');
+      } finally {
+        setSending(false);
+      }
     }
   };
 
@@ -158,9 +198,17 @@ export default function ChatScreen({ route, navigation }) {
           {!isOwnMessage && (
             <Text style={styles.senderName}>{item.sender_name}</Text>
           )}
-          <Text style={[styles.messageText, isOwnMessage && styles.messageTextOwn]}>
-            {item.message}
-          </Text>
+          {item.message_type === 'image' && item.file_url ? (
+            <Image 
+              source={{ uri: item.file_url }} 
+              style={{ width: 220, height: 220, borderRadius: RADIUS.sm, marginBottom: SPACING.xs }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={[styles.messageText, isOwnMessage && styles.messageTextOwn]}>
+              {item.message}
+            </Text>
+          )}
           <View style={styles.messageFooter}>
             <Text style={[styles.messageTime, isOwnMessage && styles.messageTimeOwn]}>
               {formatMessageDate(item.created_at)}
@@ -194,7 +242,7 @@ export default function ChatScreen({ route, navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>‹</Text>
+          <ChevronLeft size={32} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <View style={styles.headerAvatar}>
@@ -211,12 +259,7 @@ export default function ChatScreen({ route, navigation }) {
             </Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.videoButton}
-          onPress={() => navigation.navigate('VideoCall', { appointmentId })}
-        >
-          <Text style={styles.videoIcon}>📹</Text>
-        </TouchableOpacity>
+
       </View>
 
       <KeyboardAvoidingView
@@ -237,7 +280,7 @@ export default function ChatScreen({ route, navigation }) {
           }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>💬</Text>
+              <MessageCircle size={48} color={COLORS.primary + '80'} style={{ marginBottom: SPACING.sm }} />
               <Text style={styles.emptyTitle}>No messages yet</Text>
               <Text style={styles.emptyText}>Start the conversation!</Text>
             </View>
@@ -246,6 +289,9 @@ export default function ChatScreen({ route, navigation }) {
 
         {/* Input */}
         <View style={styles.inputContainer}>
+          <TouchableOpacity style={styles.attachButton} onPress={handlePickImage} disabled={sending}>
+            <Text style={styles.attachIcon}>📎</Text>
+          </TouchableOpacity>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
@@ -491,5 +537,15 @@ const styles = StyleSheet.create({
   sendIcon: {
     fontSize: 18,
     color: COLORS.surface,
+  },
+  attachButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachIcon: {
+    fontSize: 22,
+    color: COLORS.textSecondary,
   },
 });

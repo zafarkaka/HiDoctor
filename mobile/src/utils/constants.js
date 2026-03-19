@@ -1,6 +1,5 @@
-// API Configuration - Update this URL for production
-// For EAS builds, this can be set via app.config.js with environment variables
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://docpatient-staging.preview.emergentagent.com';
+// API Configuration
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://hidoctor-production.up.railway.app';
 
 // Colors - Healthcare Professional Theme
 export const COLORS = {

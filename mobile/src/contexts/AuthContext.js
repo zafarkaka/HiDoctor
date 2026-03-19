@@ -47,8 +47,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
-    const response = await api.post('/api/auth/login', { email, password });
+  const login = async (phone, password) => {
+    const response = await api.post('/api/auth/login', { phone: phone, password: password });
     const { access_token, user: userData } = response.data;
     
     await AsyncStorage.setItem('token', access_token);
@@ -63,7 +63,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const response = await api.post('/api/auth/register', data);
-    const { access_token, user: userData } = response.data;
+    const { access_token, user: userDataRaw } = response.data;
+    
+    // Graceful fallback to prevent Fatal Null-Stack Navigation Crashes
+    const userData = {
+      ...userDataRaw,
+      role: userDataRaw.role || data.role || 'patient'
+    };
     
     await AsyncStorage.setItem('token', access_token);
     await AsyncStorage.setItem('user', JSON.stringify(userData));

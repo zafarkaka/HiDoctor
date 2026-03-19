@@ -13,6 +13,7 @@ import { appointmentService } from '../../services/api';
 import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
+import { Calendar, ClipboardList, Clock, Video, Building2 } from 'lucide-react-native';
 
 export default function DoctorAppointmentsScreen({ navigation }) {
   const [appointments, setAppointments] = useState([]);
@@ -92,12 +93,12 @@ export default function DoctorAppointmentsScreen({ navigation }) {
 
   const getStatusConfig = (status) => {
     const configs = {
-      pending: { variant: 'warning', icon: '⏳', label: 'Pending' },
-      confirmed: { variant: 'success', icon: '✓', label: 'Confirmed' },
-      completed: { variant: 'info', icon: '✓', label: 'Completed' },
-      cancelled: { variant: 'error', icon: '✕', label: 'Cancelled' },
+      pending: { variant: 'warning', label: 'Pending' },
+      confirmed: { variant: 'success', label: 'Confirmed' },
+      completed: { variant: 'info', label: 'Completed' },
+      cancelled: { variant: 'error', label: 'Cancelled' },
     };
-    return configs[status] || { variant: 'default', icon: '?', label: status };
+    return configs[status] || { variant: 'default', label: status };
   };
 
   const renderAppointment = ({ item }) => {
@@ -119,10 +120,13 @@ export default function DoctorAppointmentsScreen({ navigation }) {
             </View>
             <View style={styles.timeInfo}>
               <Text style={styles.dayText}>{format(aptDate, 'EEEE')}</Text>
-              <Text style={styles.timeText}>🕐 {item.appointment_time}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Clock size={12} color={COLORS.textMuted} />
+                <Text style={styles.timeText}>{item.appointment_time}</Text>
+              </View>
             </View>
           </View>
-          <Badge text={`${statusConfig.icon} ${statusConfig.label}`} variant={statusConfig.variant} />
+          <Badge text={statusConfig.label} variant={statusConfig.variant} />
         </View>
 
         <View style={styles.patientInfo}>
@@ -133,9 +137,16 @@ export default function DoctorAppointmentsScreen({ navigation }) {
           </View>
           <View style={styles.patientDetails}>
             <Text style={styles.patientName}>{item.patient?.full_name || 'Patient'}</Text>
-            <Text style={styles.consultationType}>
-              {item.consultation_type === 'telehealth' ? '📹 Video Call' : '🏥 In-person'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {item.consultation_type === 'telehealth' ? (
+                <Video size={12} color={COLORS.textMuted} />
+              ) : (
+                <Building2 size={12} color={COLORS.textMuted} />
+              )}
+              <Text style={styles.consultationType}>
+                {item.consultation_type === 'telehealth' ? 'Video Call' : 'In-person'}
+              </Text>
+            </View>
           </View>
           <Text style={styles.paymentAmount}>${item.payment_amount}</Text>
         </View>
@@ -151,7 +162,7 @@ export default function DoctorAppointmentsScreen({ navigation }) {
         <View style={styles.actions}>
           {item.status === 'pending' && (
             <Button
-              title="✓ Confirm"
+              title="Confirm"
               size="sm"
               onPress={(e) => {
                 e?.stopPropagation?.();
@@ -161,14 +172,7 @@ export default function DoctorAppointmentsScreen({ navigation }) {
             />
           )}
 
-          {item.status === 'confirmed' && isAppointmentToday && item.consultation_type === 'telehealth' && (
-            <Button
-              title="📹 Start Call"
-              size="sm"
-              onPress={() => navigation.navigate('VideoCall', { appointmentId: item.id })}
-              style={styles.callBtn}
-            />
-          )}
+
 
           {item.status === 'confirmed' && (
             <Button
@@ -184,7 +188,7 @@ export default function DoctorAppointmentsScreen({ navigation }) {
           )}
 
           <Button
-            title="💬 Chat"
+            title="Chat"
             size="sm"
             variant="ghost"
             onPress={() => navigation.navigate('Chat', { appointmentId: item.id })}
@@ -240,7 +244,11 @@ export default function DoctorAppointmentsScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            {activeTab === 'today' || activeTab === 'upcoming' ? (
+              <Calendar size={48} color={COLORS.primary + '80'} style={{ marginBottom: SPACING.md }} />
+            ) : (
+              <ClipboardList size={48} color={COLORS.primary + '80'} style={{ marginBottom: SPACING.md }} />
+            )}
             <Text style={styles.emptyTitle}>No appointments</Text>
             <Text style={styles.emptyText}>
               {activeTab === 'pending' 

@@ -16,6 +16,7 @@ import { appointmentService, reviewService } from '../../services/api';
 import { Card, Badge, Button, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
 import { format, parseISO, isPast, isToday } from 'date-fns';
+import { ChevronLeft, Clock, Video, Building2 } from 'lucide-react-native';
 
 export default function AppointmentDetailScreen({ route, navigation }) {
   const { appointmentId } = route.params;
@@ -159,7 +160,7 @@ export default function AppointmentDetailScreen({ route, navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>‹</Text>
+          <ChevronLeft size={32} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Appointment Details</Text>
         <View style={{ width: 40 }} />
@@ -194,11 +195,21 @@ export default function AppointmentDetailScreen({ route, navigation }) {
             </View>
             <View style={styles.dateInfo}>
               <Text style={styles.dateText}>{format(appointmentDate, 'EEEE')}</Text>
-              <Text style={styles.timeText}>🕐 {appointment.appointment_time}</Text>
-              <Badge 
-                text={appointment.consultation_type === 'telehealth' ? '📹 Video Call' : '🏥 In-person'} 
-                variant={appointment.consultation_type === 'telehealth' ? 'info' : 'default'} 
-              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 4 }}>
+                <Clock size={14} color={COLORS.textMuted} />
+                <Text style={styles.timeText}>{appointment.appointment_time}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                {appointment.consultation_type === 'telehealth' ? (
+                  <Video size={14} color={COLORS.textMuted} />
+                ) : (
+                  <Building2 size={14} color={COLORS.textMuted} />
+                )}
+                <Badge 
+                  text={appointment.consultation_type === 'telehealth' ? 'Video Call' : 'In-person'} 
+                  variant={appointment.consultation_type === 'telehealth' ? 'info' : 'default'} 
+                />
+              </View>
             </View>
           </View>
 
@@ -253,12 +264,12 @@ export default function AppointmentDetailScreen({ route, navigation }) {
           <Text style={styles.sectionTitle}>Payment</Text>
           <View style={styles.paymentRow}>
             <Text style={styles.paymentLabel}>Consultation Fee</Text>
-            <Text style={styles.paymentAmount}>${appointment.payment_amount}</Text>
+            <Text style={styles.paymentAmount}>₹{appointment.payment_amount}</Text>
           </View>
           <View style={styles.paymentStatusRow}>
             <Text style={styles.paymentLabel}>Status</Text>
             <Badge 
-              text={appointment.payment_status === 'paid' ? '✓ Paid' : '⏳ Pending'} 
+              text={appointment.payment_status === 'paid' ? 'Paid' : 'Pending'} 
               variant={appointment.payment_status === 'paid' ? 'success' : 'warning'}
             />
           </View>
@@ -266,19 +277,12 @@ export default function AppointmentDetailScreen({ route, navigation }) {
 
         {/* Actions */}
         <View style={styles.actions}>
-          {/* Video Call Button */}
-          {canJoinCall && (
-            <Button
-              title="📹 Join Video Call"
-              onPress={() => navigation.navigate('VideoCall', { appointmentId })}
-              style={styles.actionButton}
-            />
-          )}
+
 
           {/* Chat Button */}
           {['pending', 'confirmed'].includes(appointment.status) && (
             <Button
-              title="💬 Chat"
+              title="Chat"
               variant="outline"
               onPress={() => navigation.navigate('Chat', { appointmentId })}
               style={styles.actionButton}
@@ -288,7 +292,7 @@ export default function AppointmentDetailScreen({ route, navigation }) {
           {/* Doctor Actions */}
           {isDoctor && appointment.status === 'pending' && (
             <Button
-              title="✓ Confirm Appointment"
+              title="Confirm Appointment"
               onPress={handleConfirm}
               loading={actionLoading}
               style={styles.actionButton}
@@ -308,7 +312,7 @@ export default function AppointmentDetailScreen({ route, navigation }) {
           {/* Patient Actions */}
           {isPatient && canReview && (
             <Button
-              title="⭐ Leave a Review"
+              title="Leave a Review"
               onPress={() => navigation.navigate('Review', { 
                 appointmentId, 
                 doctorId: appointment.doctor_id 

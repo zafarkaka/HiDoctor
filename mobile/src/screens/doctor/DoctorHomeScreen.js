@@ -12,10 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
-import { appointmentService, notificationService, doctorService } from '../../services/api';
+import { appointmentService, notificationService, doctorService, contentService } from '../../services/api';
 import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
+import { Bell, AlertTriangle, Calendar, Clock, CheckCircle, Star, Video, Building2 } from 'lucide-react-native';
 
 export default function DoctorHomeScreen({ navigation }) {
   const { user } = useAuth();
@@ -24,6 +25,9 @@ export default function DoctorHomeScreen({ navigation }) {
   const [notifications, setNotifications] = useState({ unread_count: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ads, setAds] = useState([]);
+  const [blogs, setBlogs] = useState([]);
+  const [contentLoading, setContentLoading] = useState(true);
 
   const fetchData = async () => {
     try {
@@ -42,8 +46,25 @@ export default function DoctorHomeScreen({ navigation }) {
     }
   };
 
+  const fetchContent = async () => {
+    try {
+      setContentLoading(true);
+      const [adsRes, blogsRes] = await Promise.all([
+        contentService.getCampaigns('home'),
+        contentService.getBlogs(),
+      ]);
+      setAds(adsRes.data.ads || []);
+      setBlogs((blogsRes.data.posts || []).slice(0, 5));
+    } catch (e) {
+      console.error('Error fetching content:', e);
+    } finally {
+      setContentLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchContent();
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -78,13 +99,13 @@ export default function DoctorHomeScreen({ navigation }) {
     return colors[status] || 'default';
   };
 
-  const StatCard = ({ icon, value, label, color }) => (
+  const StatCard = ({ icon: Icon, value, label, color }) => (
     <View style={styles.statCard}>
       <LinearGradient
         colors={[color + '20', color + '10']}
         style={styles.statIcon}
       >
-        <Text style={styles.statEmoji}>{icon}</Text>
+        <Icon size={24} color={color} />
       </LinearGradient>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
@@ -111,7 +132,7 @@ export default function DoctorHomeScreen({ navigation }) {
               />
             </View>
             <View>
-              <Text style={styles.greeting}>Good {getTimeGreeting()} 👋</Text>
+              <Text style={styles.greeting}>Good {getTimeGreeting()}</Text>
               <Text style={styles.userName}>Dr. {user?.full_name?.split(' ')[0]}</Text>
             </View>
           </View>
@@ -119,7 +140,7 @@ export default function DoctorHomeScreen({ navigation }) {
             style={styles.notificationBtn}
             onPress={() => {}}
           >
-            <Text style={styles.notificationIcon}>🔔</Text>
+            <Bell size={24} color={COLORS.text} />
             {notifications.unread_count > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>{notifications.unread_count}</Text>
@@ -135,7 +156,7 @@ export default function DoctorHomeScreen({ navigation }) {
               colors={[COLORS.warning + '20', COLORS.warning + '10']}
               style={styles.alertGradient}
             >
-              <Text style={styles.alertIcon}>⚠️</Text>
+              <AlertTriangle size={32} color={COLORS.warning} style={{ marginBottom: SPACING.xs }} />
               <View style={styles.alertContent}>
                 <Text style={styles.alertTitle}>Complete Your Profile</Text>
                 <Text style={styles.alertText}>
@@ -155,25 +176,25 @@ export default function DoctorHomeScreen({ navigation }) {
         {/* Stats */}
         <View style={styles.statsContainer}>
           <StatCard 
-            icon="📅" 
+            icon={Calendar} 
             value={todayAppointments.length} 
             label="Today" 
             color={COLORS.primary} 
           />
           <StatCard 
-            icon="⏳" 
+            icon={Clock} 
             value={pendingAppointments.length} 
             label="Pending" 
             color={COLORS.warning} 
           />
           <StatCard 
-            icon="✓" 
+            icon={CheckCircle} 
             value={confirmedAppointments.length} 
             label="Confirmed" 
             color={COLORS.success} 
           />
           <StatCard 
-            icon="⭐" 
+            icon={Star} 
             value={profile?.rating?.toFixed(1) || '5.0'} 
             label="Rating" 
             color={COLORS.info} 
@@ -212,10 +233,17 @@ export default function DoctorHomeScreen({ navigation }) {
                       </Text>
                     )}
                     <View style={styles.appointmentMeta}>
-                      <Text style={styles.metaText}>
-                        {apt.consultation_type === 'telehealth' ? '📹 Video' : '🏥 In-person'}
-                      </Text>
-                      <Text style={styles.metaText}>${apt.payment_amount}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        {apt.consultation_type === 'telehealth' ? (
+                          <Video size={12} color={COLORS.textMuted} />
+                        ) : (
+                          <Building2 size={12} color={COLORS.textMuted} />
+                        )}
+                        <Text style={styles.metaText}>
+                          {apt.consultation_type === 'telehealth' ? 'Video' : 'In-person'}
+                        </Text>
+                      </View>
+                      <Text style={styles.metaText}>₹{apt.payment_amount}</Text>
                     </View>
                   </View>
                 </View>
@@ -235,23 +263,78 @@ export default function DoctorHomeScreen({ navigation }) {
                   </View>
                 )}
 
-                {apt.status === 'confirmed' && apt.consultation_type === 'telehealth' && (
-                  <TouchableOpacity 
-                    style={styles.joinCallButton}
-                    onPress={() => navigation.navigate('VideoCall', { appointmentId: apt.id })}
-                  >
-                    <Text style={styles.joinCallText}>📹 Start Video Call</Text>
-                  </TouchableOpacity>
-                )}
+
               </Card>
             ))
           ) : (
             <Card style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>📅</Text>
+              <Calendar size={48} color={COLORS.primary + '80'} style={{ marginBottom: SPACING.sm }} />
               <Text style={styles.emptyTitle}>No appointments today</Text>
               <Text style={styles.emptyText}>Your schedule is free for today</Text>
             </Card>
           )}
+        </View>
+
+        {/* Sponsored Content (Ads) */}
+        {(ads.length > 0 || contentLoading) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Medical Partners &amp; Services</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md }}>
+              {contentLoading
+                ? [1, 2].map(i => <View key={i} style={[styles.adBanner, { backgroundColor: COLORS.border, opacity: 0.5 }]} />)
+                : ads.map((ad) => (
+                    <TouchableOpacity
+                      key={ad.id}
+                      activeOpacity={0.85}
+                      onPress={() => contentService.trackAdClick(ad.id).catch(() => {})}
+                    >
+                      <View style={[styles.adBanner, { position: 'relative', overflow: 'hidden', borderRadius: RADIUS.lg }]}>
+                        <Image source={{ uri: ad.image_url }} style={{ width: 280, height: 140 }} />
+                        <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>Sponsored</Text>
+                        </View>
+                        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 4 }}>
+                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{ad.title}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+              }
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Medical Journals */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Medical Journals</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md, paddingBottom: SPACING.md }}>
+            {contentLoading
+              ? [1, 2].map(i => <View key={i} style={[styles.blogCard, { backgroundColor: COLORS.surface }]} />)
+              : blogs.length > 0
+                ? blogs.map((post) => (
+                    <Card elevated key={post.id || post.slug} style={styles.blogCard}>
+                      <TouchableOpacity>
+                        {post.cover_image
+                          ? <Image source={{ uri: post.cover_image }} style={styles.blogImage} />
+                          : <View style={[styles.blogImage, { backgroundColor: COLORS.primary + '20', alignItems: 'center', justifyContent: 'center' }]}>
+                              <Text style={{ fontSize: 28, fontWeight: '700', color: COLORS.primary + '60' }}>{post.title?.charAt(0)}</Text>
+                            </View>
+                        }
+                        <View style={styles.blogContent}>
+                          {post.category && <Text style={styles.blogCategory}>{post.category}</Text>}
+                          <Text style={styles.blogTitle} numberOfLines={2}>{post.title}</Text>
+                          <Text style={styles.blogReadMore}>Read Article ›</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </Card>
+                  ))
+                : (
+                    <Card elevated style={[styles.blogCard, { alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.xl }]}>
+                      <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>No journals yet</Text>
+                    </Card>
+                  )
+            }
+          </ScrollView>
         </View>
 
         {/* Pending Requests */}
@@ -284,48 +367,7 @@ export default function DoctorHomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActions}>
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Schedule')}
-            >
-              <LinearGradient
-                colors={[COLORS.primary + '20', COLORS.primary + '10']}
-                style={styles.quickActionIcon}
-              >
-                <Text style={styles.quickActionEmoji}>⏰</Text>
-              </LinearGradient>
-              <Text style={styles.quickActionLabel}>Set Schedule</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <LinearGradient
-                colors={[COLORS.info + '20', COLORS.info + '10']}
-                style={styles.quickActionIcon}
-              >
-                <Text style={styles.quickActionEmoji}>👤</Text>
-              </LinearGradient>
-              <Text style={styles.quickActionLabel}>Edit Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Appointments')}
-            >
-              <LinearGradient
-                colors={[COLORS.success + '20', COLORS.success + '10']}
-                style={styles.quickActionIcon}
-              >
-                <Text style={styles.quickActionEmoji}>📋</Text>
-              </LinearGradient>
-              <Text style={styles.quickActionLabel}>All Patients</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -643,5 +685,43 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  adBanner: {
+    width: 280,
+    height: 140,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.surface,
+  },
+  blogCard: {
+    width: 240,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  blogImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: COLORS.surface,
+  },
+  blogContent: {
+    padding: SPACING.md,
+  },
+  blogCategory: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+    marginVertical: 4,
+  },
+  blogTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
+    lineHeight: 20,
+  },
+  blogReadMore: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
 });

@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doctorService } from '../../services/api';
 import { Card, Badge, Button, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
+import { ChevronLeft, Check, Video, Building2, GraduationCap, MapPin, Star } from 'lucide-react-native';
 
 export default function DoctorProfileScreen({ route, navigation }) {
   const { doctorId } = route.params;
@@ -87,7 +88,7 @@ export default function DoctorProfileScreen({ route, navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>‹</Text>
+          <ChevronLeft size={32} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Doctor Profile</Text>
         <View style={{ width: 40 }} />
@@ -118,7 +119,7 @@ export default function DoctorProfileScreen({ route, navigation }) {
             )}
             {doctor.is_verified && (
               <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedIcon}>✓</Text>
+                <Check size={14} color={COLORS.surface} strokeWidth={3} />
               </View>
             )}
           </View>
@@ -142,17 +143,17 @@ export default function DoctorProfileScreen({ route, navigation }) {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.stat}>
-              <Text style={styles.statValue}>${doctor.consultation_fee}</Text>
+              <Text style={styles.statValue}>₹{doctor.consultation_fee}</Text>
               <Text style={styles.statLabel}>Fee</Text>
             </View>
           </View>
 
           <View style={styles.tagsRow}>
             {doctor.consultation_types?.includes('telehealth') && (
-              <Badge text="📹 Video Consult" variant="info" />
+              <Badge text={<><Video size={10} color={COLORS.primary} style={{ marginRight: 4 }} /> Video Consult</>} variant="info" />
             )}
             {doctor.consultation_types?.includes('in_person') && (
-              <Badge text="🏥 In-person" variant="default" />
+              <Badge text={<><Building2 size={10} color={COLORS.textSecondary} style={{ marginRight: 4 }} /> In-person</>} variant="default" />
             )}
           </View>
 
@@ -195,13 +196,12 @@ export default function DoctorProfileScreen({ route, navigation }) {
                 </Card>
               )}
 
-              {/* Qualifications */}
               {doctor.qualifications?.length > 0 && (
                 <Card style={styles.sectionCard}>
                   <Text style={styles.sectionTitle}>Qualifications</Text>
                   {doctor.qualifications.map((qual, index) => (
                     <View key={index} style={styles.qualItem}>
-                      <Text style={styles.qualIcon}>🎓</Text>
+                      <GraduationCap size={16} color={COLORS.primary} style={{ marginRight: SPACING.sm }} />
                       <Text style={styles.qualText}>{qual}</Text>
                     </View>
                   ))}
@@ -224,7 +224,10 @@ export default function DoctorProfileScreen({ route, navigation }) {
                   <Text style={styles.sectionTitle}>Clinic</Text>
                   <Text style={styles.clinicName}>{doctor.clinic_name}</Text>
                   {doctor.clinic_address && (
-                    <Text style={styles.clinicAddress}>📍 {doctor.clinic_address}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <MapPin size={14} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+                      <Text style={styles.clinicAddress}>{doctor.clinic_address}</Text>
+                    </View>
                   )}
                 </Card>
               )}
@@ -270,7 +273,7 @@ export default function DoctorProfileScreen({ route, navigation }) {
                 ))
               ) : (
                 <View style={styles.emptyReviews}>
-                  <Text style={styles.emptyIcon}>⭐</Text>
+                  <Star size={48} color={COLORS.warning} fill={COLORS.warning} style={{ marginBottom: SPACING.md }} opacity={0.5} />
                   <Text style={styles.emptyText}>No reviews yet</Text>
                 </View>
               )}

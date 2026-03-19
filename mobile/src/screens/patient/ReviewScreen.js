@@ -13,8 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { reviewService } from '../../services/api';
+import { reviewService } from '../../services/api';
 import { Card, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
+import { ChevronLeft, Star as StarIcon, CheckCircle2 } from 'lucide-react-native';
 
 export default function ReviewScreen({ route, navigation }) {
   const { appointmentId, doctorId } = route.params;
@@ -85,15 +87,13 @@ export default function ReviewScreen({ route, navigation }) {
         onPress={() => handleRating(value)}
         activeOpacity={0.7}
       >
-        <Animated.Text
-          style={[
-            styles.star,
-            isSelected && styles.starFilled,
-            { transform: [{ scale: value === rating ? scaleAnim : 1 }] }
-          ]}
-        >
-          {isSelected ? '★' : '☆'}
-        </Animated.Text>
+        <Animated.View style={{ transform: [{ scale: value === rating ? scaleAnim : 1 }] }}>
+          <StarIcon 
+            size={44} 
+            color={isSelected ? COLORS.warning : COLORS.border} 
+            fill={isSelected ? COLORS.warning : "transparent"} 
+          />
+        </Animated.View>
       </TouchableOpacity>
     );
   };
@@ -103,7 +103,7 @@ export default function ReviewScreen({ route, navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>‹</Text>
+          <ChevronLeft size={32} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Leave a Review</Text>
         <View style={{ width: 40 }} />
@@ -169,15 +169,15 @@ export default function ReviewScreen({ route, navigation }) {
         <View style={styles.tipsSection}>
           <Text style={styles.tipsTitle}>Review Tips</Text>
           <View style={styles.tipItem}>
-            <Text style={styles.tipIcon}>✓</Text>
+            <CheckCircle2 size={14} color={COLORS.primary} style={{ marginRight: SPACING.sm, marginTop: 2 }} />
             <Text style={styles.tipText}>Was the doctor attentive and professional?</Text>
           </View>
           <View style={styles.tipItem}>
-            <Text style={styles.tipIcon}>✓</Text>
+            <CheckCircle2 size={14} color={COLORS.primary} style={{ marginRight: SPACING.sm, marginTop: 2 }} />
             <Text style={styles.tipText}>Did they explain things clearly?</Text>
           </View>
           <View style={styles.tipItem}>
-            <Text style={styles.tipIcon}>✓</Text>
+            <CheckCircle2 size={14} color={COLORS.primary} style={{ marginRight: SPACING.sm, marginTop: 2 }} />
             <Text style={styles.tipText}>Were you satisfied with the treatment plan?</Text>
           </View>
         </View>

@@ -143,7 +143,7 @@ export default function FamilyScreen({ navigation }) {
           style={styles.deleteButton}
           onPress={() => handleDeleteMember(item.id, item.full_name)}
         >
-          <Text style={styles.deleteIcon}>🗑️</Text>
+          <Trash2 size={24} color={COLORS.error} />
         </TouchableOpacity>
       </View>
 
@@ -253,7 +253,7 @@ export default function FamilyScreen({ navigation }) {
                 style={styles.input}
                 value={formData.date_of_birth}
                 onChangeText={(text) => setFormData({ ...formData, date_of_birth: text })}
-                placeholder="YYYY-MM-DD"
+                placeholder="DD-MM-YYYY"
                 placeholderTextColor={COLORS.textMuted}
               />
             </View>

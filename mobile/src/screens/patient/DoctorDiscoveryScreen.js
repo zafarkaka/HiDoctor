@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doctorService } from '../../services/api';
 import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS, SPECIALTIES } from '../../utils/constants';
+import { Check, Star, Video, Building2, Search, X as CloseIcon } from 'lucide-react-native';
 
 export default function DoctorDiscoveryScreen({ navigation }) {
   const [doctors, setDoctors] = useState([]);
@@ -90,7 +91,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
           )}
           {item.is_verified && (
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedIcon}>✓</Text>
+              <Check size={12} color={COLORS.surface} strokeWidth={3} />
             </View>
           )}
         </View>
@@ -101,7 +102,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
           
           <View style={styles.doctorMeta}>
             <View style={styles.ratingContainer}>
-              <Text style={styles.ratingStar}>⭐</Text>
+              <Star size={14} color={COLORS.warning} fill={COLORS.warning} style={{ marginRight: 4 }} />
               <Text style={styles.ratingText}>{item.rating?.toFixed(1) || '5.0'}</Text>
               <Text style={styles.reviewCount}>({item.review_count || 0})</Text>
             </View>
@@ -110,17 +111,17 @@ export default function DoctorDiscoveryScreen({ navigation }) {
 
           <View style={styles.doctorTags}>
             {item.consultation_types?.includes('telehealth') && (
-              <Badge text="📹 Video" variant="info" size="sm" />
+              <Badge text={<><Video size={10} color={COLORS.primary} style={{ marginRight: 2 }}/> Video</>} variant="info" size="sm" />
             )}
             {item.consultation_types?.includes('in_person') && (
-              <Badge text="🏥 In-person" variant="default" size="sm" />
+              <Badge text={<><Building2 size={10} color={COLORS.textSecondary} style={{ marginRight: 2 }}/> In-person</>} variant="default" size="sm" />
             )}
           </View>
         </View>
 
         <View style={styles.doctorPrice}>
           <Text style={styles.priceLabel}>Fee</Text>
-          <Text style={styles.priceValue}>${item.consultation_fee || 0}</Text>
+          <Text style={styles.priceValue}>₹{item.consultation_fee || 0}</Text>
         </View>
       </View>
     </Card>
@@ -149,7 +150,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
       {/* Search */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Search size={18} color={COLORS.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search doctors, specialties..."
@@ -159,7 +160,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={styles.clearIcon}>✕</Text>
+              <CloseIcon size={16} color={COLORS.textMuted} style={{ padding: SPACING.xs }} />
             </TouchableOpacity>
           )}
         </View>
@@ -203,7 +204,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🔍</Text>
+              <Search size={48} color={COLORS.textMuted} style={{ marginBottom: SPACING.lg }} />
               <Text style={styles.emptyTitle}>No doctors found</Text>
               <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
             </View>

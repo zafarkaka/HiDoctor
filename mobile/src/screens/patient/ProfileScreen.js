@@ -12,8 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { patientService } from '../../services/api';
+import { patientService } from '../../services/api';
 import { Card, Button, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
+import { ChevronRight, Bell, Shield, Download, Trash2, LogOut } from 'lucide-react-native';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
@@ -81,9 +83,11 @@ export default function ProfileScreen({ navigation }) {
 
   const MenuItem = ({ icon, label, onPress, danger = false }) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <Text style={styles.menuIcon}>{icon}</Text>
+      <View style={{ width: 24, alignItems: 'center', marginRight: SPACING.sm }}>
+        {icon}
+      </View>
       <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>{label}</Text>
-      <Text style={styles.menuArrow}>›</Text>
+      <ChevronRight size={20} color={COLORS.textMuted} />
     </TouchableOpacity>
   );
 
@@ -134,7 +138,7 @@ export default function ProfileScreen({ navigation }) {
               style={styles.input}
               value={formData.date_of_birth}
               onChangeText={(text) => setFormData({ ...formData, date_of_birth: text })}
-              placeholder="YYYY-MM-DD"
+              placeholder="DD-MM-YYYY"
               placeholderTextColor={COLORS.textMuted}
             />
           </View>
@@ -203,16 +207,17 @@ export default function ProfileScreen({ navigation }) {
         {/* Settings Menu */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          <MenuItem icon="🔔" label="Notifications" onPress={() => {}} />
-          <MenuItem icon="🔒" label="Privacy" onPress={() => {}} />
-          <MenuItem icon="📥" label="Download My Data" onPress={() => Alert.alert('Export Data', 'Your data export has been requested.')} />
-          <MenuItem icon="🗑️" label="Delete Account" onPress={() => Alert.alert('Delete Account', 'Contact support to delete your account.')} danger />
+          <MenuItem icon={<Bell size={20} color={COLORS.text} />} label="Notifications" onPress={() => {}} />
+          <MenuItem icon={<Shield size={20} color={COLORS.text} />} label="Privacy" onPress={() => {}} />
+          <MenuItem icon={<Download size={20} color={COLORS.text} />} label="Download My Data" onPress={() => Alert.alert('Export Data', 'Your data export has been requested.')} />
+          <MenuItem icon={<Trash2 size={20} color={COLORS.error} />} label="Delete Account" onPress={() => Alert.alert('Delete Account', 'Contact support to delete your account.')} danger />
         </Card>
 
         {/* Logout */}
         <Card style={styles.section}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>🚪 Logout</Text>
+            <LogOut size={20} color={COLORS.error} style={{ marginRight: SPACING.sm }} />
+            <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </Card>
 

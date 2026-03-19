@@ -14,8 +14,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorService, familyService, appointmentService, paymentService } from '../../services/api';
 import { Card, Button, Badge } from '../../components/UI';
+import { Card, Button, Badge } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, TIME_SLOTS } from '../../utils/constants';
 import { format, addDays, parseISO } from 'date-fns';
+import { ChevronLeft, Check, Building2, Video, User, UsersRound } from 'lucide-react-native';
 
 const STEPS = ['Type', 'Date', 'Patient', 'Details', 'Confirm'];
 
@@ -123,7 +125,7 @@ export default function BookingScreen({ route, navigation }) {
             // MOCK MODE: Auto-complete payment for testing
             Alert.alert(
               'Mock Payment',
-              `Payment of $${doctor?.consultation_fee} will be simulated.\n\nNote: Replace RAZORPAY keys in .env for real payments.`,
+              `Payment of ₹${doctor?.consultation_fee} will be simulated.\n\nNote: Replace RAZORPAY keys in .env for real payments.`,
               [
                 {
                   text: 'Simulate Payment',
@@ -193,7 +195,7 @@ export default function BookingScreen({ route, navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>‹</Text>
+          <ChevronLeft size={32} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Book Appointment</Text>
         <View style={{ width: 40 }} />
@@ -204,7 +206,7 @@ export default function BookingScreen({ route, navigation }) {
         {STEPS.map((s, i) => (
           <View key={s} style={styles.progressStep}>
             <View style={[styles.progressDot, i <= step && styles.progressDotActive]}>
-              {i < step ? <Text style={styles.progressCheck}>✓</Text> : <Text style={styles.progressNumber}>{i + 1}</Text>}
+              {i < step ? <Check size={14} color={COLORS.surface} strokeWidth={3} /> : <Text style={styles.progressNumber}>{i + 1}</Text>}
             </View>
             <Text style={[styles.progressLabel, i <= step && styles.progressLabelActive]}>{s}</Text>
           </View>
@@ -222,7 +224,7 @@ export default function BookingScreen({ route, navigation }) {
               <Text style={styles.doctorName}>{doctor?.title} {doctor?.full_name}</Text>
               <Text style={styles.doctorSpecialty}>{doctor?.specialties?.[0]}</Text>
             </View>
-            <Text style={styles.doctorFee}>${doctor?.consultation_fee}</Text>
+            <Text style={styles.doctorFee}>₹{doctor?.consultation_fee}</Text>
           </View>
         </Card>
 
@@ -236,7 +238,7 @@ export default function BookingScreen({ route, navigation }) {
                   style={[styles.optionCard, booking.consultation_type === 'in_person' && styles.optionCardActive]}
                   onPress={() => setBooking({ ...booking, consultation_type: 'in_person' })}
                 >
-                  <Text style={styles.optionIcon}>🏥</Text>
+                  <Building2 size={32} color={booking.consultation_type === 'in_person' ? COLORS.primary : COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
                   <Text style={styles.optionTitle}>In-Person</Text>
                   <Text style={styles.optionDesc}>Visit the clinic</Text>
                 </TouchableOpacity>
@@ -246,7 +248,7 @@ export default function BookingScreen({ route, navigation }) {
                   style={[styles.optionCard, booking.consultation_type === 'telehealth' && styles.optionCardActive]}
                   onPress={() => setBooking({ ...booking, consultation_type: 'telehealth' })}
                 >
-                  <Text style={styles.optionIcon}>📹</Text>
+                  <Video size={32} color={booking.consultation_type === 'telehealth' ? COLORS.primary : COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
                   <Text style={styles.optionTitle}>Video Call</Text>
                   <Text style={styles.optionDesc}>Consult from home</Text>
                 </TouchableOpacity>
@@ -321,7 +323,7 @@ export default function BookingScreen({ route, navigation }) {
               style={[styles.patientOption, booking.patient_type === 'myself' && styles.patientOptionActive]}
               onPress={() => setBooking({ ...booking, patient_type: 'myself', family_member_id: null })}
             >
-              <Text style={styles.patientIcon}>👤</Text>
+              <User size={28} color={booking.patient_type === 'myself' ? COLORS.primary : COLORS.textMuted} style={{ marginRight: SPACING.md }} />
               <View style={styles.patientInfo}>
                 <Text style={styles.patientName}>Myself</Text>
                 <Text style={styles.patientDesc}>{user?.full_name}</Text>
@@ -334,7 +336,7 @@ export default function BookingScreen({ route, navigation }) {
                 style={[styles.patientOption, booking.family_member_id === member.id && styles.patientOptionActive]}
                 onPress={() => setBooking({ ...booking, patient_type: 'family', family_member_id: member.id })}
               >
-                <Text style={styles.patientIcon}>👨‍👩‍👧</Text>
+                <UsersRound size={28} color={booking.family_member_id === member.id ? COLORS.primary : COLORS.textMuted} style={{ marginRight: SPACING.md }} />
                 <View style={styles.patientInfo}>
                   <Text style={styles.patientName}>{member.full_name}</Text>
                   <Text style={styles.patientDesc}>{member.relationship}</Text>
@@ -377,7 +379,7 @@ export default function BookingScreen({ route, navigation }) {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Type</Text>
-                <Badge text={booking.consultation_type === 'telehealth' ? '📹 Video' : '🏥 In-person'} variant="primary" />
+                <Badge text={<><View style={{flexDirection: 'row', alignItems: 'center'}}>{booking.consultation_type === 'telehealth' ? <Video size={10} color={COLORS.surface} style={{ marginRight: 2 }} /> : <Building2 size={10} color={COLORS.surface} style={{ marginRight: 2 }} />}</View> {booking.consultation_type === 'telehealth' ? 'Video' : 'In-person'}</>} variant="primary" />
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Date</Text>
@@ -399,7 +401,7 @@ export default function BookingScreen({ route, navigation }) {
               </View>
               <View style={[styles.summaryRow, styles.summaryTotal]}>
                 <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>${doctor?.consultation_fee}</Text>
+                <Text style={styles.totalValue}>₹{doctor?.consultation_fee}</Text>
               </View>
             </Card>
           </View>
@@ -413,7 +415,7 @@ export default function BookingScreen({ route, navigation }) {
         ) : (
           <View style={styles.paymentButtons}>
             <Button
-              title={`Pay Now - $${doctor?.consultation_fee}`}
+              title={`Pay Now - ₹${doctor?.consultation_fee}`}
               onPress={() => handleSubmit(true)}
               loading={submitting}
               style={styles.payButton}

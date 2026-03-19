@@ -12,6 +12,7 @@ import { appointmentService } from '../../services/api';
 import { Card, Badge } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
 import { format, parseISO } from 'date-fns';
+import { Calendar, ClipboardList, Clock, Video, Building2 } from 'lucide-react-native';
 
 export default function AppointmentsScreen({ navigation }) {
   const [appointments, setAppointments] = useState([]);
@@ -49,13 +50,13 @@ export default function AppointmentsScreen({ navigation }) {
 
   const getStatusConfig = (status) => {
     const configs = {
-      pending: { variant: 'warning', icon: '⏳' },
-      confirmed: { variant: 'success', icon: '✓' },
-      completed: { variant: 'info', icon: '✓' },
-      cancelled: { variant: 'error', icon: '✕' },
-      no_show: { variant: 'error', icon: '!' },
+      pending: { variant: 'warning' },
+      confirmed: { variant: 'success' },
+      completed: { variant: 'info' },
+      cancelled: { variant: 'error' },
+      no_show: { variant: 'error' },
     };
-    return configs[status] || { variant: 'default', icon: '?' };
+    return configs[status] || { variant: 'default' };
   };
 
   const renderAppointment = ({ item }) => {
@@ -72,7 +73,7 @@ export default function AppointmentsScreen({ navigation }) {
             <Text style={styles.dateMonth}>{format(parseISO(item.appointment_date), 'MMM')}</Text>
             <Text style={styles.dateDay}>{format(parseISO(item.appointment_date), 'd')}</Text>
           </View>
-          <Badge text={`${statusConfig.icon} ${item.status}`} variant={statusConfig.variant} />
+          <Badge text={item.status} variant={statusConfig.variant} />
         </View>
 
         <View style={styles.cardBody}>
@@ -80,26 +81,29 @@ export default function AppointmentsScreen({ navigation }) {
           <Text style={styles.specialty}>{item.doctor?.specialties?.[0] || 'General Medicine'}</Text>
           
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>🕐 {item.appointment_time}</Text>
-            <Text style={styles.metaText}>
-              {item.consultation_type === 'telehealth' ? '📹 Video Call' : '🏥 In-person'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Clock size={12} color={COLORS.textMuted} />
+              <Text style={styles.metaText}>{item.appointment_time}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {item.consultation_type === 'telehealth' ? (
+                <Video size={12} color={COLORS.textMuted} />
+              ) : (
+                <Building2 size={12} color={COLORS.textMuted} />
+              )}
+              <Text style={styles.metaText}>
+                {item.consultation_type === 'telehealth' ? 'Video Call' : 'In-person'}
+              </Text>
+            </View>
           </View>
 
-          {item.consultation_type === 'telehealth' && item.status === 'confirmed' && (
-            <TouchableOpacity
-              style={styles.joinButton}
-              onPress={() => navigation.navigate('VideoCall', { appointmentId: item.id })}
-            >
-              <Text style={styles.joinButtonText}>📹 Join Video Call</Text>
-            </TouchableOpacity>
-          )}
+
         </View>
 
         <View style={styles.cardFooter}>
-          <Text style={styles.priceText}>${item.payment_amount}</Text>
+          <Text style={styles.priceText}>₹{item.payment_amount}</Text>
           <Badge 
-            text={item.payment_status === 'paid' ? '✓ Paid' : 'Pending'} 
+            text={item.payment_status === 'paid' ? 'Paid' : 'Pending'} 
             variant={item.payment_status === 'paid' ? 'success' : 'warning'}
             size="sm"
           />
@@ -145,7 +149,11 @@ export default function AppointmentsScreen({ navigation }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>{activeTab === 'upcoming' ? '📅' : '📋'}</Text>
+            {activeTab === 'upcoming' ? (
+              <Calendar size={48} color={COLORS.primary + '80'} style={{ marginBottom: SPACING.md }} />
+            ) : (
+              <ClipboardList size={48} color={COLORS.primary + '80'} style={{ marginBottom: SPACING.md }} />
+            )}
             <Text style={styles.emptyTitle}>
               No {activeTab === 'upcoming' ? 'upcoming' : 'past'} appointments
             </Text>

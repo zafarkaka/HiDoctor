@@ -255,6 +255,10 @@ class UserLogin(BaseModel):
     phone: str
     password: str
 
+class UserLoginOTP(BaseModel):
+    phone: str
+    firebase_token: str
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
@@ -778,6 +782,61 @@ async def login(credentials: UserLogin):
         phone=user.get("phone"), 
         role=user.get("role", "patient"), 
         is_verified=user.get("is_verified", False),
+        created_at=user.get("created_at", datetime.now(timezone.utc).isoformat()),
+        profile_image=normalize_image_url(user.get("profile_image"))
+    )
+    return TokenResponse(access_token=token, user=user_response)
+
+@api_router.post("/auth/login-otp", response_model=TokenResponse)
+async def login_otp(credentials: UserLoginOTP):
+    phone = credentials.phone.strip()
+    logger.info(f"OTP Login attempt for phone={phone}")
+    
+    # 1. Verify Firebase Token
+    try:
+        decoded_token = auth.verify_id_token(credentials.firebase_token)
+        firebase_phone = decoded_token.get('phone_number')
+        
+        # Phone numbers from Firebase are typically E.164. 
+        if firebase_phone and firebase_phone.replace('+', '') != phone.replace('+', ''):
+             logger.warning(f"OTP login phone mismatch: token={firebase_phone}, provided={phone}")
+             # In OTP login, the token is the source of truth
+             phone = firebase_phone
+    except Exception as e:
+        logger.error(f"Firebase token verification failed for OTP login: {e}")
+        raise HTTPException(status_code=400, detail="Invalid verification session")
+
+    # 2. Find User
+    # 10-Digit matching
+    phone_digits = "".join(filter(str.isdigit, phone))
+    last_10 = phone_digits[-10:] if len(phone_digits) >= 10 else phone_digits
+
+    user = await db.users.find_one({
+        "$or": [
+            {"phone": phone},
+            {"phone": {"$regex": f"{last_10}$"}}
+        ]
+    })
+    
+    if not user:
+        logger.warning(f"AUTH_FAILURE: User not found for OTP login with phone {phone}")
+        raise HTTPException(status_code=401, detail="User not found. Please register first.")
+        
+    # Mark as verified if they successfully used OTP
+    if not user.get("is_verified"):
+        await db.users.update_one({"id": user["id"]}, {"$set": {"is_verified": True}})
+        user["is_verified"] = True
+
+    logger.info(f"AUTH_SUCCESS: OTP Login verified for user {user['id']}")
+    
+    token = create_access_token({"sub": user["id"], "role": user["role"]})
+    user_response = UserResponse(
+        id=user["id"], 
+        username=user.get("username", "user"), 
+        full_name=user.get("full_name", "User"),
+        phone=user.get("phone"), 
+        role=user.get("role", "patient"), 
+        is_verified=user.get("is_verified", True),
         created_at=user.get("created_at", datetime.now(timezone.utc).isoformat()),
         profile_image=normalize_image_url(user.get("profile_image"))
     )
@@ -3452,7 +3511,211 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")
 
+
+# ============================================================
+# CAMPAIGNS (ADS) API
+# ============================================================
+
+class CampaignCreate(BaseModel):
+    title: str
+    image_url: str
+    redirect_url: Optional[str] = None
+    placement: str = "home"  # "home" | "blog" | "all"
+    is_active: bool = True
+
+@app.get("/api/campaigns")
+async def get_campaigns(placement: Optional[str] = None):
+    """Return active ad campaigns. Optionally filter by placement."""
+    query: dict = {"is_active": True}
+    if placement and placement != "all":
+        query["$or"] = [{"placement": placement}, {"placement": "all"}]
+    cursor = db.campaigns.find(query, {"_id": 0})
+    ads = await cursor.to_list(length=50)
+    return {"ads": ads}
+
+@app.post("/api/campaigns/{campaign_id}/click")
+async def track_campaign_click(campaign_id: str):
+    """Increment click count for a campaign."""
+    await db.campaigns.update_one(
+        {"id": campaign_id},
+        {"$inc": {"click_count": 1}}
+    )
+    return {"success": True}
+
+# Admin: Create campaign
+@app.post("/api/admin/campaigns")
+async def create_campaign(data: CampaignCreate, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    campaign = {
+        "id": str(uuid.uuid4()),
+        "title": data.title,
+        "image_url": data.image_url,
+        "redirect_url": data.redirect_url,
+        "placement": data.placement,
+        "is_active": data.is_active,
+        "click_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.campaigns.insert_one(campaign)
+    campaign.pop("_id", None)
+    return campaign
+
+# Admin: List all campaigns
+@app.get("/api/admin/campaigns")
+async def admin_list_campaigns(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    cursor = db.campaigns.find({}, {"_id": 0})
+    campaigns = await cursor.to_list(length=200)
+    return {"campaigns": campaigns}
+
+# Admin: Toggle campaign active state
+@app.put("/api/admin/campaigns/{campaign_id}")
+async def update_campaign(campaign_id: str, data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    await db.campaigns.update_one({"id": campaign_id}, {"$set": data})
+    return {"success": True}
+
+# Admin: Delete campaign
+@app.delete("/api/admin/campaigns/{campaign_id}")
+async def delete_campaign(campaign_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    await db.campaigns.delete_one({"id": campaign_id})
+    return {"success": True}
+
+
+# ============================================================
+# BLOG API
+# ============================================================
+
+class BlogPostCreate(BaseModel):
+    title: str
+    slug: str
+    excerpt: Optional[str] = None
+    content: str
+    cover_image: Optional[str] = None
+    category: Optional[str] = None
+    is_published: bool = True
+
+@app.get("/api/blog")
+async def get_blog_posts():
+    """Return all published blog posts (newest first)."""
+    cursor = db.blog_posts.find({"is_published": True}, {"_id": 0}).sort("created_at", -1)
+    posts = await cursor.to_list(length=100)
+    return {"posts": posts}
+
+@app.get("/api/blog/{slug}")
+async def get_blog_post(slug: str):
+    """Return a single blog post by slug and increment view count."""
+    post = await db.blog_posts.find_one({"slug": slug, "is_published": True}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    await db.blog_posts.update_one({"slug": slug}, {"$inc": {"view_count": 1}})
+    post["view_count"] = (post.get("view_count") or 0) + 1
+    return post
+
+# Admin: Create blog post
+@app.post("/api/admin/blog")
+async def create_blog_post(data: BlogPostCreate, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    # Check slug uniqueness
+    existing = await db.blog_posts.find_one({"slug": data.slug})
+    if existing:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+    post = {
+        "id": str(uuid.uuid4()),
+        "title": data.title,
+        "slug": data.slug,
+        "excerpt": data.excerpt,
+        "content": data.content,
+        "cover_image": data.cover_image,
+        "category": data.category,
+        "is_published": data.is_published,
+        "view_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.blog_posts.insert_one(post)
+    post.pop("_id", None)
+    return post
+
+# Admin: List all blog posts
+@app.get("/api/admin/blog")
+async def admin_list_blog_posts(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    cursor = db.blog_posts.find({}, {"_id": 0}).sort("created_at", -1)
+    posts = await cursor.to_list(length=200)
+    return {"posts": posts}
+
+# Admin: Update blog post
+@app.put("/api/admin/blog/{post_id}")
+async def update_blog_post(post_id: str, data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.blog_posts.update_one({"id": post_id}, {"$set": data})
+    return {"success": True}
+
+# Admin: Delete blog post
+@app.delete("/api/admin/blog/{post_id}")
+async def delete_blog_post(post_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    await db.blog_posts.delete_one({"id": post_id})
+    return {"success": True}
+
+
+# ============================================================
+# TOP-RATED DOCTORS  (used by Landing Page and Mobile Home)
+# ============================================================
+
+@app.get("/api/doctors/top-rated")
+async def get_top_rated_doctors():
+    """Return top 6 verified doctors ordered by rating."""
+    pipeline = [
+        {"$match": {"is_verified": True}},
+        {"$lookup": {
+            "from": "users",
+            "localField": "user_id",
+            "foreignField": "id",
+            "as": "user_info"
+        }},
+        {"$unwind": {"path": "$user_info", "preserveNullAndEmptyArrays": True}},
+        {"$addFields": {
+            "full_name": "$user_info.full_name",
+            "profile_image": "$profile_image",
+        }},
+        {"$sort": {"rating": -1, "review_count": -1}},
+        {"$limit": 6},
+        {"$project": {
+            "_id": 0,
+            "user_id": 1,
+            "full_name": 1,
+            "specialties": 1,
+            "rating": 1,
+            "review_count": 1,
+            "profile_image": 1,
+            "years_experience": 1,
+            "consultation_fee": 1,
+        }},
+    ]
+    try:
+        doctors = await db.doctor_profiles.aggregate(pipeline).to_list(length=6)
+        return {"doctors": doctors}
+    except Exception as e:
+        logger.error(f"Error fetching top doctors: {e}")
+        return {"doctors": []}
+
+
+# ============================================================
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     scheduler.shutdown()
     client.close()
+

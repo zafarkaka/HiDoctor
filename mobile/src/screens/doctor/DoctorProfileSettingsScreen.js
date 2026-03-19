@@ -13,8 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorService, configService } from '../../services/api';
+import { doctorService, configService } from '../../services/api';
 import { Card, Button, Badge, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SPECIALTIES } from '../../utils/constants';
+import { Check, Building2, Video, LogOut } from 'lucide-react-native';
 
 export default function DoctorProfileSettingsScreen({ navigation }) {
   const { user, logout, refreshUser } = useAuth();
@@ -174,9 +176,9 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
           <Text style={styles.userName}>Dr. {user?.full_name}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
           {profile?.is_verified ? (
-            <Badge text="✓ Verified" variant="success" />
+            <Badge text="Verified" variant="success" />
           ) : (
-            <Badge text="⏳ Pending Verification" variant="warning" />
+            <Badge text="Pending Verification" variant="warning" />
           )}
         </View>
 
@@ -283,7 +285,7 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
                 ]}
                 onPress={() => toggleConsultationType('in_person')}
               >
-                <Text style={styles.toggleIcon}>🏥</Text>
+                <Building2 size={18} color={formData.consultation_types.includes('in_person') ? COLORS.primary : COLORS.textSecondary} />
                 <Text style={[
                   styles.toggleText,
                   formData.consultation_types.includes('in_person') && styles.toggleTextActive
@@ -298,7 +300,7 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
                 ]}
                 onPress={() => toggleConsultationType('telehealth')}
               >
-                <Text style={styles.toggleIcon}>📹</Text>
+                <Video size={18} color={formData.consultation_types.includes('telehealth') ? COLORS.primary : COLORS.textSecondary} />
                 <Text style={[
                   styles.toggleText,
                   formData.consultation_types.includes('telehealth') && styles.toggleTextActive
@@ -404,8 +406,9 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
 
         {/* Logout */}
         <Card style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>🚪 Logout</Text>
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.md }} onPress={handleLogout}>
+            <LogOut size={20} color={COLORS.error} style={{ marginRight: SPACING.sm }} />
+            <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </Card>
 

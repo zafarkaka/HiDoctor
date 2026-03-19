@@ -80,6 +80,9 @@ export const appointmentService = {
   cancel: (id) => api.post(`/api/appointments/${id}/cancel`),
   getMessages: (id) => api.get(`/api/appointments/${id}/messages`),
   sendMessage: (id, data) => api.post(`/api/appointments/${id}/messages`, data),
+  uploadChatFile: (formData) => api.post('/api/chat/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export const reviewService = {
@@ -118,4 +121,17 @@ export const paymentService = {
     api.post('/api/payments/create-checkout', { appointment_id: appointmentId }),
   getStripeStatus: (sessionId) => 
     api.get(`/api/payments/status/${sessionId}`),
+};
+
+export const contentService = {
+  // Ads / Campaigns
+  getCampaigns: (placement) => api.get('/api/campaigns', { params: { placement } }),
+  trackAdClick: (id) => api.post(`/api/campaigns/${id}/click`),
+
+  // Blog Posts
+  getBlogs: () => api.get('/api/blog'),
+  getBlogPost: (slug) => api.get(`/api/blog/${slug}`),
+
+  // Top-rated doctors
+  getTopDoctors: () => api.get('/api/doctors/top-rated'),
 };
