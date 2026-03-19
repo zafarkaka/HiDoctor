@@ -4,9 +4,9 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  Alert,
   Switch,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,20 +31,23 @@ export default function ScheduleScreen({ navigation }) {
   const [selectedDates, setSelectedDates] = useState({});
 
   // Weekly schedule state
+  // Weekly schedule state with shifts
   const [weeklySchedule, setWeeklySchedule] = useState(
     DAYS.map((day, index) => ({
-      day_of_week: index,
+      day_of_week: index + 1, // 1-7 for Mon-Sun as expected by backends usually, or check logic
       day_name: day,
-      is_active: index < 5, // Mon-Fri active by default
-      start_time: '09:00',
-      end_time: '17:00',
-      slot_duration: 30,
+      is_active: index < 5,
+      shifts: [{ start: '09:00', end: '17:00' }],
     }))
   );
 
-  const [breakTimes, setBreakTimes] = useState([
-    { start: '12:00', end: '13:00' } // Lunch break
-  ]);
+  const [timePicker, setTimePicker] = useState({
+    visible: false,
+    dayIndex: null,
+    shiftIndex: null,
+    field: null,
+    currentValue: '',
+  });
 
   useEffect(() => {
     fetchSchedule();
@@ -59,14 +62,24 @@ export default function ScheduleScreen({ navigation }) {
         if (response.data.schedule.weekly_schedule) {
           const updatedSchedule = weeklySchedule.map(day => {
             const serverDay = response.data.schedule.weekly_schedule.find(
-              s => s.day_of_week === day.day_of_week
+              s => (s.day_of_week === day.day_of_week) || (s.day_name === day.day_name)
             );
-            return serverDay ? { ...day, ...serverDay, day_name: day.day_name } : day;
+            // Convert legacy start_time/end_time to shifts if shifts is missing
+            let shifts = serverDay?.shifts || [];
+            if (shifts.length === 0 && serverDay?.start_time) {
+              shifts = [{ start: serverDay.start_time, end: serverDay.end_time }];
+            }
+            if (shifts.length === 0) shifts = [{ start: '09:00', end: '17:00' }];
+            
+            return { 
+              ...day, 
+              ...serverDay, 
+              shifts, 
+              is_active: serverDay ? serverDay.is_active : false,
+              day_name: day.day_name 
+            };
           });
           setWeeklySchedule(updatedSchedule);
-        }
-        if (response.data.schedule.break_times) {
-          setBreakTimes(response.data.schedule.break_times);
         }
       }
       if (response.data.blocked_dates) {
@@ -93,10 +106,16 @@ export default function ScheduleScreen({ navigation }) {
   const handleSaveSchedule = async () => {
     setSaving(true);
     try {
-      await doctorService.setSchedule({
-        weekly_schedule: weeklySchedule.filter(d => d.is_active),
-        break_times: breakTimes,
-      });
+      const payload = {
+        weekly_schedule: weeklySchedule.map(d => ({
+          day_of_week: d.day_of_week,
+          day_name: d.day_name,
+          is_active: d.is_active,
+          shifts: d.is_active ? d.shifts : []
+        })),
+        break_times: [],
+      };
+      await doctorService.setSchedule(payload);
       Alert.alert('Success', 'Schedule saved successfully');
     } catch (error) {
       Alert.alert('Error', 'Failed to save schedule');
@@ -133,11 +152,84 @@ export default function ScheduleScreen({ navigation }) {
     ));
   };
 
-  const updateDayTime = (dayIndex, field, value) => {
+  const addShift = (dayIndex) => {
     setWeeklySchedule(prev => prev.map((day, i) => 
-      i === dayIndex ? { ...day, [field]: value } : day
+      i === dayIndex ? { ...day, shifts: [...day.shifts, { start: '09:00', end: '17:00' }] } : day
     ));
   };
+
+  const removeShift = (dayIndex, shiftIndex) => {
+    setWeeklySchedule(prev => prev.map((day, i) => 
+      i === dayIndex ? { ...day, shifts: day.shifts.filter((_, idx) => idx !== shiftIndex) } : day
+    ));
+  };
+
+  const updateShiftTime = (dayIndex, shiftIndex, field, value) => {
+    setWeeklySchedule(prev => prev.map((day, i) => 
+      i === dayIndex ? { 
+        ...day, 
+        shifts: day.shifts.map((s, idx) => idx === shiftIndex ? { ...s, [field]: value } : s)
+      } : day
+    ));
+    setTimePicker({ ...timePicker, visible: false });
+  };
+
+  const openTimePicker = (dayIndex, shiftIndex, field, currentValue) => {
+    setTimePicker({
+      visible: true,
+      dayIndex,
+      shiftIndex,
+      field,
+      currentValue,
+    });
+  };
+
+  const TimePickerModal = () => (
+    <Modal
+      visible={timePicker.visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setTimePicker({ ...timePicker, visible: false })}
+    >
+      <TouchableOpacity 
+        style={styles.modalOverlay} 
+        activeOpacity={1} 
+        onPress={() => setTimePicker({ ...timePicker, visible: false })}
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Select {timePicker.field === 'start' ? 'Start' : 'End'} Time</Text>
+          <FlatList
+            data={TIME_OPTIONS}
+            numColumns={3}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.timeGridItem,
+                  timePicker.currentValue === item && styles.timeGridItemActive
+                ]}
+                onPress={() => updateShiftTime(timePicker.dayIndex, timePicker.shiftIndex, timePicker.field, item)}
+              >
+                <Text style={[
+                  styles.timeGridText,
+                  timePicker.currentValue === item && styles.timeGridTextActive
+                ]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.timeGrid}
+          />
+          <Button 
+            title="Cancel" 
+            variant="outline" 
+            onPress={() => setTimePicker({ ...timePicker, visible: false })}
+            style={{ marginTop: SPACING.md }}
+          />
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
 
   const onDayPress = (day) => {
     const dateString = day.dateString;
@@ -225,106 +317,46 @@ export default function ScheduleScreen({ navigation }) {
                     <Text style={[styles.dayName, !day.is_active && styles.dayNameInactive]}>
                       {day.day_name}
                     </Text>
-                    {!day.is_active && (
-                      <Badge text="Off" variant="default" size="sm" />
+                    {day.is_active && (
+                      <TouchableOpacity onPress={() => addShift(index)} style={styles.addShiftBtn}>
+                        <Text style={styles.addShiftBtnText}>+ Add Shift</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
 
-                  {day.is_active && (
-                    <View style={styles.dayTimes}>
+                  {day.is_active && day.shifts.map((shift, sIdx) => (
+                    <View key={sIdx} style={styles.dayTimes}>
                       <View style={styles.timeInput}>
-                        <Text style={styles.timeLabel}>From</Text>
                         <TouchableOpacity
                           style={styles.timeValue}
-                          onPress={() => {
-                            const times = TIME_OPTIONS.filter(t => t < day.end_time);
-                            Alert.alert(
-                              'Start Time',
-                              'Select start time',
-                              times.map(t => ({
-                                text: t,
-                                onPress: () => updateDayTime(index, 'start_time', t),
-                              }))
-                            );
-                          }}
+                          onPress={() => openTimePicker(index, sIdx, 'start', shift.start)}
                         >
-                          <Text style={styles.timeValueText}>{day.start_time}</Text>
+                          <Text style={styles.timeValueText}>{shift.start}</Text>
                         </TouchableOpacity>
                       </View>
                       <Text style={styles.timeSeparator}>to</Text>
                       <View style={styles.timeInput}>
-                        <Text style={styles.timeLabel}>To</Text>
                         <TouchableOpacity
                           style={styles.timeValue}
-                          onPress={() => {
-                            const times = TIME_OPTIONS.filter(t => t > day.start_time);
-                            Alert.alert(
-                              'End Time',
-                              'Select end time',
-                              times.map(t => ({
-                                text: t,
-                                onPress: () => updateDayTime(index, 'end_time', t),
-                              }))
-                            );
-                          }}
+                          onPress={() => openTimePicker(index, sIdx, 'end', shift.end)}
                         >
-                          <Text style={styles.timeValueText}>{day.end_time}</Text>
+                          <Text style={styles.timeValueText}>{shift.end}</Text>
                         </TouchableOpacity>
                       </View>
+                      {day.shifts.length > 1 && (
+                        <TouchableOpacity 
+                          style={styles.removeShiftBtn}
+                          onPress={() => removeShift(index, sIdx)}
+                        >
+                          <Text style={styles.removeShiftText}>×</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
-                  )}
+                  ))}
                 </View>
               ))}
             </Card>
 
-            {/* Break Times */}
-            <Card elevated style={styles.breakCard}>
-              <Text style={styles.cardTitle}>Break Times</Text>
-              <Text style={styles.cardSubtitle}>Set your lunch/break hours</Text>
-
-              {breakTimes.map((bt, index) => (
-                <View key={index} style={styles.breakRow}>
-                  <Text style={styles.breakLabel}>Break {index + 1}</Text>
-                  <View style={styles.breakTimes}>
-                    <TouchableOpacity style={styles.breakTime}>
-                      <Text style={styles.breakTimeText}>{bt.start}</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.breakSeparator}>to</Text>
-                    <TouchableOpacity style={styles.breakTime}>
-                      <Text style={styles.breakTimeText}>{bt.end}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </Card>
-
-            {/* Slot Duration */}
-            <Card elevated style={styles.slotCard}>
-              <Text style={styles.cardTitle}>Appointment Duration</Text>
-              <View style={styles.slotOptions}>
-                {[15, 30, 45, 60].map(duration => (
-                  <TouchableOpacity
-                    key={duration}
-                    style={[
-                      styles.slotOption,
-                      weeklySchedule[0]?.slot_duration === duration && styles.slotOptionActive
-                    ]}
-                    onPress={() => {
-                      setWeeklySchedule(prev => 
-                        prev.map(day => ({ ...day, slot_duration: duration }))
-                      );
-                    }}
-                  >
-                    <Text style={[
-                      styles.slotOptionText,
-                      weeklySchedule[0]?.slot_duration === duration && styles.slotOptionTextActive
-                    ]}>
-                      {duration} min
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </Card>
 
             <Button
               title="Save Schedule"
@@ -396,6 +428,7 @@ export default function ScheduleScreen({ navigation }) {
           </>
         )}
       </ScrollView>
+      <TimePickerModal />
     </SafeAreaView>
   );
 }
@@ -488,7 +521,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: SPACING.sm,
-    paddingLeft: 50,
+    paddingLeft: 40,
+  },
+  addShiftBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.primary + '15',
+  },
+  addShiftBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  removeShiftBtn: {
+    marginLeft: SPACING.md,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.error + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeShiftText: {
+    color: COLORS.error,
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: -2,
   },
   timeInput: {},
   timeLabel: {
@@ -616,5 +675,50 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginBottom: SPACING.xxl,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+  },
+  timeGrid: {
+    paddingBottom: SPACING.md,
+  },
+  timeGridItem: {
+    flex: 1,
+    margin: 4,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  timeGridItemActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  timeGridText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  timeGridTextActive: {
+    color: COLORS.surface,
   },
 });

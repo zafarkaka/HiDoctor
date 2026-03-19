@@ -16,7 +16,7 @@ import { appointmentService, notificationService, doctorService, contentService 
 import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
-import { Bell, AlertTriangle, Calendar, Clock, CheckCircle, Star, Video, Building2 } from 'lucide-react-native';
+import { Bell, AlertTriangle, Calendar, Clock, CheckCircle, Star, UsersRound, Building2 } from 'lucide-react-native';
 
 export default function DoctorHomeScreen({ navigation }) {
   const { user } = useAuth();
@@ -31,14 +31,15 @@ export default function DoctorHomeScreen({ navigation }) {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const [appointmentsRes, notificationsRes, profileRes] = await Promise.all([
-        appointmentService.list(),
-        notificationService.list(),
+        appointmentService.list().catch(e => ({ data: { appointments: [] } })),
+        notificationService.list().catch(e => ({ data: { unread_count: 0 } })),
         doctorService.getProfile().catch(() => ({ data: null })),
       ]);
-      setAppointments(appointmentsRes.data.appointments || []);
-      setNotifications(notificationsRes.data);
-      setProfile(profileRes.data);
+      setAppointments(appointmentsRes?.data?.appointments || []);
+      setNotifications(notificationsRes?.data || { unread_count: 0 });
+      setProfile(profileRes?.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -50,11 +51,11 @@ export default function DoctorHomeScreen({ navigation }) {
     try {
       setContentLoading(true);
       const [adsRes, blogsRes] = await Promise.all([
-        contentService.getCampaigns('home'),
-        contentService.getBlogs(),
+        contentService.getCampaigns('home').catch(e => ({ data: { ads: [] } })),
+        contentService.getBlogs().catch(e => ({ data: { posts: [] } })),
       ]);
-      setAds(adsRes.data.ads || []);
-      setBlogs((blogsRes.data.posts || []).slice(0, 5));
+      setAds(adsRes?.data?.ads || []);
+      setBlogs((blogsRes?.data?.posts || []).slice(0, 5));
     } catch (e) {
       console.error('Error fetching content:', e);
     } finally {
@@ -65,6 +66,14 @@ export default function DoctorHomeScreen({ navigation }) {
   useEffect(() => {
     fetchData();
     fetchContent();
+
+    // Emergency safety: force loading to false after 10s to prevent permanent white screen
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setContentLoading(false);
+    }, 10000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -99,17 +108,16 @@ export default function DoctorHomeScreen({ navigation }) {
     return colors[status] || 'default';
   };
 
-  const StatCard = ({ icon: Icon, value, label, color }) => (
-    <View style={styles.statCard}>
+  const QuickAction = ({ icon, label, onPress, color }) => (
+    <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.7}>
       <LinearGradient
         colors={[color + '20', color + '10']}
-        style={styles.statIcon}
+        style={styles.quickActionIcon}
       >
-        <Icon size={24} color={color} />
+        <Text style={styles.quickActionEmoji}>{icon}</Text>
       </LinearGradient>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+      <Text style={styles.quickActionLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 
   return (
@@ -138,7 +146,7 @@ export default function DoctorHomeScreen({ navigation }) {
           </View>
           <TouchableOpacity 
             style={styles.notificationBtn}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Notifications')}
           >
             <Bell size={24} color={COLORS.text} />
             {notifications.unread_count > 0 && (
@@ -201,6 +209,31 @@ export default function DoctorHomeScreen({ navigation }) {
           />
         </View>
 
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActions}>
+            <QuickAction 
+              icon="📅" 
+              label="Schedule" 
+              onPress={() => navigation.navigate('Schedule')} 
+              color={COLORS.primary} 
+            />
+            <QuickAction 
+              icon="💳" 
+              label="Payments" 
+              onPress={() => {}} 
+              color={COLORS.success} 
+            />
+            <QuickAction 
+              icon="👤" 
+              label="Profile" 
+              onPress={() => navigation.navigate('Profile')} 
+              color={COLORS.info} 
+            />
+          </View>
+        </View>
+
         {/* Today's Schedule */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -233,14 +266,14 @@ export default function DoctorHomeScreen({ navigation }) {
                       </Text>
                     )}
                     <View style={styles.appointmentMeta}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        {apt.consultation_type === 'telehealth' ? (
-                          <Video size={12} color={COLORS.textMuted} />
+                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        {apt.consultation_type === 'home_visit' ? (
+                          <UsersRound size={12} color={COLORS.textMuted} />
                         ) : (
                           <Building2 size={12} color={COLORS.textMuted} />
                         )}
                         <Text style={styles.metaText}>
-                          {apt.consultation_type === 'telehealth' ? 'Video' : 'In-person'}
+                          {apt.consultation_type === 'home_visit' ? 'Home Visit' : 'In-person'}
                         </Text>
                       </View>
                       <Text style={styles.metaText}>₹{apt.payment_amount}</Text>
@@ -664,19 +697,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.surface,
   },
+  blogReadMore: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: SPACING.sm,
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   quickAction: {
+    flex: 1,
     alignItems: 'center',
-    width: '30%',
+    backgroundColor: COLORS.surface,
+    paddingVertical: SPACING.md,
+    borderRadius: RADIUS.lg,
+    ...SHADOWS.sm,
   },
   quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: RADIUS.lg,
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xs,
@@ -686,46 +729,7 @@ const styles = StyleSheet.create({
   },
   quickActionLabel: {
     fontSize: 12,
-    fontWeight: '500',
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  adBanner: {
-    width: 280,
-    height: 140,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.surface,
-  },
-  blogCard: {
-    width: 240,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  blogImage: {
-    width: '100%',
-    height: 120,
-    backgroundColor: COLORS.surface,
-  },
-  blogContent: {
-    padding: SPACING.md,
-  },
-  blogCategory: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.primary,
-    textTransform: 'uppercase',
-    marginVertical: 4,
-  },
-  blogTitle: {
-    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: SPACING.sm,
-    lineHeight: 20,
-  },
-  blogReadMore: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary,
   },
 });

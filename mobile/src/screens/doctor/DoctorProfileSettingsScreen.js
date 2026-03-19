@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +16,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { doctorService, configService } from '../../services/api';
 import { Card, Button, Badge, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SPECIALTIES } from '../../utils/constants';
-import { Check, Building2, Video, LogOut, Bug } from 'lucide-react-native';
+import { Check, Building2, UsersRound, LogOut, Bug, Camera, Video } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useLogs } from '../../services/LoggingService';
 
 export default function DoctorProfileSettingsScreen({ navigation }) {
@@ -24,6 +26,7 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [languages, setLanguages] = useState([]);
   const [insurances, setInsurances] = useState([]);
   const [debugMode, setDebugMode] = useState(false);
@@ -83,6 +86,12 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
   const handleSave = async () => {
     if (!formData.license_number || formData.specialties.length === 0 || !formData.consultation_fee) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -96,6 +105,7 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
         years_experience: parseInt(formData.years_experience) || 0,
         consultation_fee: parseFloat(formData.consultation_fee) || 0,
         qualifications: formData.qualifications ? formData.qualifications.split(',').map(s => s.trim()) : [],
+        profile_image: profilePicture || user?.profile_image,
       };
 
       await doctorService.updateProfile(data);
@@ -105,6 +115,35 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
       Alert.alert('Error', 'Failed to save profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setSaving(true);
+      try {
+        const formData = new FormData();
+        const uri = result.assets[0].uri;
+        const filename = uri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append('file', { uri, name: filename, type });
+        await doctorService.uploadProfilePicture(formData);
+        refreshUser();
+        Alert.alert('Success', 'Profile picture updated');
+      } catch (error) {
+        Alert.alert('Error', 'Failed to upload image');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -196,16 +235,30 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.headerSection}>
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
-            style={styles.avatar}
-          >
-            <Text style={styles.avatarText}>{user?.full_name?.charAt(0)}</Text>
-          </LinearGradient>
-          <Text style={styles.userName}>Dr. {user?.full_name}</Text>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+        }
+      >
+         {/* Header */}
+         <View style={styles.headerSection}>
+           <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
+             {user?.profile_image ? (
+               <Image source={{ uri: user.profile_image }} style={styles.profileImage} />
+             ) : (
+               <LinearGradient
+                 colors={[COLORS.primary, COLORS.primaryDark]}
+                 style={styles.avatar}
+               >
+                 <Text style={styles.avatarText}>{user?.full_name?.charAt(0)}</Text>
+               </LinearGradient>
+             )}
+             <View style={styles.cameraBadge}>
+               <Camera size={12} color={COLORS.surface} />
+             </View>
+           </TouchableOpacity>
+           <Text style={styles.userName}>Dr. {user?.full_name}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
           {profile?.is_verified ? (
             <Badge text="Verified" variant="success" />
@@ -324,7 +377,22 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
                 ]}>
                   In-Person
                 </Text>
-              </TouchableOpacity>
+               </TouchableOpacity>
+               <TouchableOpacity
+                 style={[
+                   styles.toggleOption,
+                   formData.consultation_types.includes('home_visit') && styles.toggleOptionActive
+                 ]}
+                 onPress={() => toggleConsultationType('home_visit')}
+               >
+                 <UsersRound size={18} color={formData.consultation_types.includes('home_visit') ? COLORS.primary : COLORS.textSecondary} />
+                 <Text style={[
+                   styles.toggleText,
+                   formData.consultation_types.includes('home_visit') && styles.toggleTextActive
+                 ]}>
+                   Home Visit
+                 </Text>
+               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.toggleOption,
@@ -343,8 +411,8 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
             </View>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Consultation Fee (USD) *</Text>
+           <View style={styles.inputGroup}>
+             <Text style={styles.inputLabel}>Consultation Fee (INR) *</Text>
             <TextInput
               style={styles.input}
               value={formData.consultation_fee}
@@ -489,14 +557,28 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.sm,
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: COLORS.surface,
-  },
-  userName: {
+     marginBottom: SPACING.sm,
+     position: 'relative',
+   },
+   profileImage: {
+     width: 80,
+     height: 80,
+     borderRadius: 40,
+   },
+   cameraBadge: {
+     position: 'absolute',
+     bottom: 0,
+     right: 0,
+     backgroundColor: COLORS.primary,
+     width: 24,
+     height: 24,
+     borderRadius: 12,
+     alignItems: 'center',
+     justifyContent: 'center',
+     borderWidth: 2,
+     borderColor: COLORS.surface,
+   },
+   userName: {
     fontSize: 22,
     fontWeight: '700',
     color: COLORS.text,

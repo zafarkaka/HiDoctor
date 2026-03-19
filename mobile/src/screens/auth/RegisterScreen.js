@@ -79,17 +79,28 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
-    // Lenient phone formatting: remove leading zeros, keep only digits
-    const cleanedPhone = phone.replace(/^0+/, '').replace(/\D/g, '');
+    // Strict E.164 formatting: no leading zero, only digits
+    let cleanedPhone = phone.replace(/\D/g, '');
+    if (cleanedPhone.startsWith('0')) {
+      cleanedPhone = cleanedPhone.substring(1);
+    }
     const fullPhoneNumber = `${countryCode}${cleanedPhone}`;
 
     setLoading(true);
     try {
+      // Ensure firebase is initialized and app identifier is valid
       const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
       setConfirmData(confirmation);
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', error.message || 'Failed to send OTP. Make sure phone is valid.');
+      console.error('Firebase Auth Error:', error.code, error.message);
+      if (error.code === 'auth/missing-client-identifier') {
+        Alert.alert(
+          'Verification Error', 
+          'The app could not be verified. This usually happens if the SHA-1 fingerprint is not registered in Firebase Console or if the Play Integrity API is not enabled.'
+        );
+      } else {
+        Alert.alert('Error', error.message || 'Failed to send OTP.');
+      }
     } finally {
       setLoading(false);
     }
@@ -106,7 +117,10 @@ export default function RegisterScreen({ navigation }) {
       const userCredential = await confirmData.confirm(otpCode);
       const firebaseToken = await userCredential.user.getIdToken();
 
-      const cleanedPhone = phone.replace(/^0+/, '').replace(/\D/g, '');
+      let cleanedPhone = phone.replace(/\D/g, '');
+      if (cleanedPhone.startsWith('0')) {
+        cleanedPhone = cleanedPhone.substring(1);
+      }
       const fullPhoneNumber = `${countryCode}${cleanedPhone}`;
 
       await register({

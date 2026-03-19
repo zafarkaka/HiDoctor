@@ -24,6 +24,7 @@ import ChatScreen from '../screens/shared/ChatScreen';
 import ReviewScreen from '../screens/patient/ReviewScreen';
 
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import BlogDetailScreen from '../screens/shared/BlogDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -64,6 +65,7 @@ export default function RootNavigator() {
 
           <Stack.Screen name="Review" component={ReviewScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="BlogDetail" component={BlogDetailScreen} />
         </>
       ) : isDoctor ? (
         // Doctor Stack
@@ -73,6 +75,7 @@ export default function RootNavigator() {
           <Stack.Screen name="Chat" component={ChatScreen} />
 
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="BlogDetail" component={BlogDetailScreen} />
         </>
       ) : null}
     </Stack.Navigator>
