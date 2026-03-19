@@ -282,19 +282,23 @@ export default function DoctorHomeScreen({ navigation }) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md }}>
               {contentLoading
                 ? [1, 2].map(i => <View key={i} style={[styles.adBanner, { backgroundColor: COLORS.border, opacity: 0.5 }]} />)
-                : ads.map((ad) => (
+                : ads.map((ad, idx) => (
                     <TouchableOpacity
-                      key={ad.id}
+                      key={ad?.id || `ad-${idx}`}
                       activeOpacity={0.85}
-                      onPress={() => contentService.trackAdClick(ad.id).catch(() => {})}
+                      onPress={() => ad?.id && contentService.trackAdClick(ad.id).catch(() => {})}
                     >
                       <View style={[styles.adBanner, { position: 'relative', overflow: 'hidden', borderRadius: RADIUS.lg }]}>
-                        <Image source={{ uri: ad.image_url }} style={{ width: 280, height: 140 }} />
+                        {ad?.image_url ? (
+                          <Image source={{ uri: ad.image_url }} style={{ width: 280, height: 140 }} />
+                        ) : (
+                          <View style={{ width: 280, height: 140, backgroundColor: COLORS.surface }} />
+                        )}
                         <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
                           <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>Sponsored</Text>
                         </View>
                         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 4 }}>
-                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{ad.title}</Text>
+                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{ad?.title || 'Partner Service'}</Text>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -311,18 +315,18 @@ export default function DoctorHomeScreen({ navigation }) {
             {contentLoading
               ? [1, 2].map(i => <View key={i} style={[styles.blogCard, { backgroundColor: COLORS.surface }]} />)
               : blogs.length > 0
-                ? blogs.map((post) => (
-                    <Card elevated key={post.id || post.slug} style={styles.blogCard}>
-                      <TouchableOpacity>
-                        {post.cover_image
+                ? blogs.map((post, idx) => (
+                    <Card elevated key={post?.id || post?.slug || `blog-${idx}`} style={styles.blogCard}>
+                      <TouchableOpacity onPress={() => post?.slug && navigation.navigate('BlogDetail', { slug: post.slug })}>
+                        {post?.cover_image
                           ? <Image source={{ uri: post.cover_image }} style={styles.blogImage} />
                           : <View style={[styles.blogImage, { backgroundColor: COLORS.primary + '20', alignItems: 'center', justifyContent: 'center' }]}>
-                              <Text style={{ fontSize: 28, fontWeight: '700', color: COLORS.primary + '60' }}>{post.title?.charAt(0)}</Text>
+                              <Text style={{ fontSize: 28, fontWeight: '700', color: COLORS.primary + '60' }}>{post?.title?.charAt(0) || 'B'}</Text>
                             </View>
                         }
                         <View style={styles.blogContent}>
-                          {post.category && <Text style={styles.blogCategory}>{post.category}</Text>}
-                          <Text style={styles.blogTitle} numberOfLines={2}>{post.title}</Text>
+                          {post?.category && <Text style={styles.blogCategory}>{post.category}</Text>}
+                          <Text style={styles.blogTitle} numberOfLines={2}>{post?.title || 'Medical Journal'}</Text>
                           <Text style={styles.blogReadMore}>Read Article ›</Text>
                         </View>
                       </TouchableOpacity>

@@ -28,12 +28,29 @@ api.interceptors.request.use(
   }
 );
 
+import { LoggingService } from './LoggingService';
+
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Optional: Log successful sensitive requests if needed
+    if (response.config.url.includes('auth')) {
+       LoggingService.log(`API Success: ${response.config.method.toUpperCase()} ${response.config.url}`, 'info');
+    }
+    return response;
+  },
   (error) => {
+    const errorData = {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    };
+    
+    LoggingService.error(`API Error: ${error.message}`, errorData);
+
     if (error.response?.status === 401) {
-      // Handle unauthorized
       console.log('Unauthorized - Token may be expired');
     }
     return Promise.reject(error);

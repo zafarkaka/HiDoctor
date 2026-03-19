@@ -12,15 +12,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { patientService } from '../../services/api';
-import { patientService } from '../../services/api';
 import { Card, Button, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
-import { ChevronRight, Bell, Shield, Download, Trash2, LogOut } from 'lucide-react-native';
+import { ChevronRight, Bell, Shield, Download, Trash2, LogOut, Bug } from 'lucide-react-native';
+import { useLogs } from '../../services/LoggingService';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const { logs, clearLogs } = useLogs();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
   const [formData, setFormData] = useState({
     phone: '',
     address: '',
@@ -77,6 +80,35 @@ export default function ProfileScreen({ navigation }) {
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Logout', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
+
+  const handleVersionTap = () => {
+    const newCount = tapCount + 1;
+    setTapCount(newCount);
+    if (newCount === 5) {
+      setDebugMode(true);
+      Alert.alert('Debug Mode', 'Logs and diagnostic tools are now enabled in the menu.');
+    }
+  };
+
+  const showLogs = () => {
+    if (logs.length === 0) {
+      Alert.alert('No Logs', 'No errors or events have been captured yet.');
+      return;
+    }
+
+    const logSummary = logs.map(l => 
+      `[${l.type.toUpperCase()}] ${new Date(l.timestamp).toLocaleTimeString()}\n${l.message}\n${l.data ? JSON.stringify(l.data, null, 2) : ''}`
+    ).join('\n\n-------------------\n\n');
+
+    Alert.alert(
+      'Diagnostic Logs',
+      logSummary.slice(0, 1000) + (logSummary.length > 1000 ? '...' : ''),
+      [
+        { text: 'Clear', onPress: clearLogs, style: 'destructive' },
+        { text: 'Close', style: 'cancel' }
       ]
     );
   };
@@ -209,6 +241,13 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Settings</Text>
           <MenuItem icon={<Bell size={20} color={COLORS.text} />} label="Notifications" onPress={() => {}} />
           <MenuItem icon={<Shield size={20} color={COLORS.text} />} label="Privacy" onPress={() => {}} />
+          {debugMode && (
+            <MenuItem 
+              icon={<Bug size={20} color={COLORS.primary} />} 
+              label="Debug Logs" 
+              onPress={showLogs} 
+            />
+          )}
           <MenuItem icon={<Download size={20} color={COLORS.text} />} label="Download My Data" onPress={() => Alert.alert('Export Data', 'Your data export has been requested.')} />
           <MenuItem icon={<Trash2 size={20} color={COLORS.error} />} label="Delete Account" onPress={() => Alert.alert('Delete Account', 'Contact support to delete your account.')} danger />
         </Card>
@@ -221,7 +260,9 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </Card>
 
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <TouchableOpacity onPress={handleVersionTap} activeOpacity={1}>
+          <Text style={styles.version}>Version 1.0.0</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

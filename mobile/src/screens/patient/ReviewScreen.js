@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { reviewService } from '../../services/api';
-import { reviewService } from '../../services/api';
 import { Card, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
 import { ChevronLeft, Star as StarIcon, CheckCircle2 } from 'lucide-react-native';

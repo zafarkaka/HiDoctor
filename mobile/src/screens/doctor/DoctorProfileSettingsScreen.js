@@ -13,18 +13,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorService, configService } from '../../services/api';
-import { doctorService, configService } from '../../services/api';
 import { Card, Button, Badge, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SPECIALTIES } from '../../utils/constants';
-import { Check, Building2, Video, LogOut } from 'lucide-react-native';
+import { Check, Building2, Video, LogOut, Bug } from 'lucide-react-native';
+import { useLogs } from '../../services/LoggingService';
 
 export default function DoctorProfileSettingsScreen({ navigation }) {
   const { user, logout, refreshUser } = useAuth();
+  const { logs, clearLogs } = useLogs();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [languages, setLanguages] = useState([]);
   const [insurances, setInsurances] = useState([]);
+  const [debugMode, setDebugMode] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
 
   const [formData, setFormData] = useState({
     title: 'Dr.',
@@ -112,6 +115,35 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Logout', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
+
+  const handleVersionTap = () => {
+    const newCount = tapCount + 1;
+    setTapCount(newCount);
+    if (newCount === 5) {
+      setDebugMode(true);
+      Alert.alert('Debug Mode', 'Diagnostic tools are now enabled.');
+    }
+  };
+
+  const showLogs = () => {
+    if (logs.length === 0) {
+      Alert.alert('No Logs', 'No errors captured yet.');
+      return;
+    }
+
+    const logSummary = logs.map(l => 
+      `[${l.type.toUpperCase()}] ${new Date(l.timestamp).toLocaleTimeString()}\n${l.message}\n${l.data ? JSON.stringify(l.data, null, 2) : ''}`
+    ).join('\n\n-------------------\n\n');
+
+    Alert.alert(
+      'Doctor Diagnostics',
+      logSummary.slice(0, 1000) + (logSummary.length > 1000 ? '...' : ''),
+      [
+        { text: 'Clear', onPress: clearLogs, style: 'destructive' },
+        { text: 'Close', style: 'cancel' }
       ]
     );
   };
@@ -404,6 +436,19 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
           />
         </View>
 
+        {/* Debug Logs */}
+        {debugMode && (
+          <Card style={styles.section}>
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.md }} 
+              onPress={showLogs}
+            >
+              <Bug size={20} color={COLORS.primary} style={{ marginRight: SPACING.sm }} />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.primary }}>View Debug Logs</Text>
+            </TouchableOpacity>
+          </Card>
+        )}
+
         {/* Logout */}
         <Card style={styles.section}>
           <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.md }} onPress={handleLogout}>
@@ -412,7 +457,9 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
           </TouchableOpacity>
         </Card>
 
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <TouchableOpacity onPress={handleVersionTap} activeOpacity={1}>
+          <Text style={styles.version}>Version 1.0.0</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

@@ -150,7 +150,7 @@ export default function PatientHomeScreen({ navigation }) {
                 <View style={styles.reminderTextContainer}>
                   <Text style={styles.reminderTitle}>Upcoming Appointment</Text>
                   <Text style={styles.reminderText}>
-                    {reminders[0].message} with Dr. {reminders[0].appointment?.doctor?.full_name}
+                    {reminders[0]?.message} with Dr. {reminders[0]?.appointment?.doctor?.full_name || 'Doctor'}
                   </Text>
                 </View>
               </View>
@@ -164,21 +164,24 @@ export default function PatientHomeScreen({ navigation }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Featured Services</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md }}>
-              {contentLoading
                 ? [1, 2].map(i => <View key={i} style={[styles.adBanner, styles.adSkeleton]} />)
-                : ads.map((ad) => (
+                : ads.map((ad, idx) => (
                     <TouchableOpacity
-                      key={ad.id}
+                      key={ad?.id || `ad-${idx}`}
                       activeOpacity={0.85}
-                      onPress={() => contentService.trackAdClick(ad.id).catch(() => {})}
+                      onPress={() => ad?.id && contentService.trackAdClick(ad.id).catch(() => {})}
                     >
                       <View style={styles.adCard}>
-                        <Image source={{ uri: ad.image_url }} style={styles.adBanner} />
+                        {ad?.image_url ? (
+                          <Image source={{ uri: ad.image_url }} style={styles.adBanner} />
+                        ) : (
+                          <View style={[styles.adBanner, { backgroundColor: COLORS.surface }]} />
+                        )}
                         <View style={styles.adBadge}>
                           <Text style={styles.adBadgeText}>Sponsored</Text>
                         </View>
                         <View style={styles.adTitleBar}>
-                          <Text style={styles.adTitle} numberOfLines={1}>{ad.title}</Text>
+                          <Text style={styles.adTitle} numberOfLines={1}>{ad?.title || 'Featured'}</Text>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -266,20 +269,20 @@ export default function PatientHomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Latest Health Articles</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md, paddingBottom: SPACING.md }}>
             {contentLoading
-              ? [1, 2].map(i => <View key={i} style={[styles.blogCard, { backgroundColor: COLORS.surface }]} />)
+              ? [1, 2].map(i => <View key={i} style={[styles.blogCard, styles.blogSkeleton]} />)
               : blogs.length > 0
-                ? blogs.map((post) => (
-                    <Card elevated key={post.id || post.slug} style={styles.blogCard}>
-                      <TouchableOpacity onPress={() => navigation.navigate && null}>
-                        {post.cover_image
+                ? blogs.map((post, idx) => (
+                    <Card elevated key={post?.id || post?.slug || `blog-${idx}`} style={styles.blogCard}>
+                      <TouchableOpacity onPress={() => post?.slug && navigation.navigate('BlogDetail', { slug: post.slug })}>
+                        {post?.cover_image
                           ? <Image source={{ uri: post.cover_image }} style={styles.blogImage} />
                           : <View style={[styles.blogImage, { backgroundColor: COLORS.primary + '20', alignItems: 'center', justifyContent: 'center' }]}>
-                              <Text style={{ fontSize: 28, fontWeight: '700', color: COLORS.primary + '60' }}>{post.title?.charAt(0)}</Text>
+                              <Text style={{ fontSize: 28, fontWeight: '700', color: COLORS.primary + '60' }}>{post?.title?.charAt(0) || 'B'}</Text>
                             </View>
                         }
                         <View style={styles.blogContent}>
-                          {post.category && <Text style={styles.blogCategory}>{post.category}</Text>}
-                          <Text style={styles.blogTitle} numberOfLines={2}>{post.title}</Text>
+                          {post?.category && <Text style={styles.blogCategory}>{post.category}</Text>}
+                          <Text style={styles.blogTitle} numberOfLines={2}>{post?.title || 'Medical Article'}</Text>
                           <Text style={styles.blogReadMore}>Read Article ›</Text>
                         </View>
                       </TouchableOpacity>

@@ -578,6 +578,19 @@ def create_access_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+def normalize_phone(phone: str) -> str:
+    """Consistently normalize phone numbers to E.164-like (digits only or +digits)."""
+    if not phone: return ""
+    # Strip everything except digits and +
+    cleaned = "".join(c for c in phone if c.isdigit() or c == '+')
+    # If it starts with 0, remove the leading zero (common in many regions)
+    if cleaned.startswith('0'):
+        cleaned = cleaned[1:]
+    # Ensure it doesn't have multiple + or internal +
+    if cleaned.count('+') > 1:
+        cleaned = '+' + cleaned.replace('+', '')
+    return cleaned
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         # Debug logging for troubleshooting 401s
@@ -621,7 +634,7 @@ async def get_doctor_user(current_user: dict = Depends(get_current_user)):
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
     username = user_data.username.lower().strip()
-    phone = user_data.phone.strip()
+    phone = normalize_phone(user_data.phone)
     
     # 1. Verify Firebase Token
     try:
@@ -746,13 +759,13 @@ async def login(credentials: UserLogin):
                  )
     else:
         # NORMAL LOGIN
-        clean_phone = phone.lstrip('+')
+        phone = normalize_phone(phone)
         # Try both with and without country code if possible, or match by trailing
         user = await db.users.find_one({
             "$or": [
                 {"phone": phone},
-                {"phone": f"+{clean_phone}"},
-                {"phone": clean_phone},
+                {"phone": phone.lstrip('+')},
+                {"phone": f"+{phone.lstrip('+')}"},
                 {"phone": {"$regex": f"{last_10}$"}}
             ]
         })
@@ -789,7 +802,7 @@ async def login(credentials: UserLogin):
 
 @api_router.post("/auth/login-otp", response_model=TokenResponse)
 async def login_otp(credentials: UserLoginOTP):
-    phone = credentials.phone.strip()
+    phone = normalize_phone(credentials.phone)
     logger.info(f"OTP Login attempt for phone={phone}")
     
     # 1. Verify Firebase Token

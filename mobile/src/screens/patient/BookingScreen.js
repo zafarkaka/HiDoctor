@@ -14,7 +14,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorService, familyService, appointmentService, paymentService } from '../../services/api';
 import { Card, Button, Badge } from '../../components/UI';
-import { Card, Button, Badge } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, TIME_SLOTS } from '../../utils/constants';
 import { format, addDays, parseISO } from 'date-fns';
 import { ChevronLeft, Check, Building2, Video, User, UsersRound } from 'lucide-react-native';
