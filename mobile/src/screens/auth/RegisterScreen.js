@@ -88,18 +88,30 @@ export default function RegisterScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // Ensure firebase is initialized and app identifier is valid
+      console.log('--- OTP SEND START ---');
+      console.log('Phone:', fullPhoneNumber);
       const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
+      console.log('Confirmation object received:', !!confirmation);
       setConfirmData(confirmation);
+      console.log('--- OTP SEND SUCCESS ---');
     } catch (error) {
-      console.error('Firebase Auth Error:', error.code, error.message);
+      console.error('--- OTP SEND ERROR ---');
+      console.error('Error Code:', error.code);
+      console.error('Error Message:', error.message);
+      console.error('Full Error:', JSON.stringify(error, null, 2));
+      
       if (error.code === 'auth/missing-client-identifier') {
         Alert.alert(
           'Verification Error', 
-          'The app could not be verified. This usually happens if the SHA-1 fingerprint is not registered in Firebase Console or if the Play Integrity API is not enabled.'
+          'The app could not be verified. Possible reasons:\n1. Play Integrity API not enabled in Google Cloud.\n2. SHA-1/SHA-256 missing in Firebase.\n3. Package name mismatch.'
+        );
+      } else if (error.code === 'auth/too-many-requests') {
+        Alert.alert(
+          'Rate Limit Exceeded',
+          'Firebase has blocked requests from this device. Wait 30-60 mins or use a different network/VPN.'
         );
       } else {
-        Alert.alert('Error', error.message || 'Failed to send OTP.');
+        Alert.alert('Verification Failed', `[${error.code}] ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -112,10 +124,31 @@ export default function RegisterScreen({ navigation }) {
       Alert.alert('Error', 'Please enter the OTP');
       return;
     }
+
+    if (!confirmData) {
+      Alert.alert('Error', 'Session expired. Please request a new OTP.');
+      setConfirmData(null);
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('--- OTP VERIFY START ---');
+      console.log('Code:', otpCode);
+      
+      if (!confirmData || typeof confirmData.confirm !== 'function') {
+        throw new Error('Invalid verification session. Please restart registration.');
+      }
+
       const userCredential = await confirmData.confirm(otpCode);
+      console.log('Firebase verification success for UID:', userCredential?.user?.uid);
+      
+      if (!userCredential?.user) {
+        throw new Error('Verification succeeded but no user was returned.');
+      }
+
       const firebaseToken = await userCredential.user.getIdToken();
+      console.log('Firebase ID Token secured (length):', firebaseToken?.length);
 
       let cleanedPhone = phone.replace(/\D/g, '');
       if (cleanedPhone.startsWith('0')) {
@@ -123,7 +156,14 @@ export default function RegisterScreen({ navigation }) {
       }
       const fullPhoneNumber = `${countryCode}${cleanedPhone}`;
 
-      await register({
+      console.log('Sending data to backend:', {
+        name: fullName,
+        phone: fullPhoneNumber,
+        role: role
+      });
+
+      const result = await register({
+        username: fullPhoneNumber, // Backend requires a username
         full_name: fullName,
         phone: fullPhoneNumber,
         password,
@@ -132,12 +172,25 @@ export default function RegisterScreen({ navigation }) {
         profile_picture: profilePicture || null,
       });
 
+      console.log('--- REGISTRATION SUCCESS ---');
+
     } catch (error) {
-      console.error(error);
-      Alert.alert(
-        'Registration Failed', 
-        error.response?.data?.detail || error.message || 'Invalid OTP or network error'
-      );
+      console.error('--- REGISTRATION/VERIFY ERROR ---');
+      console.error('Error:', error);
+      
+      let errorMessage = 'Invalid OTP or network error';
+      
+      if (error.code === 'auth/invalid-verification-code') {
+        errorMessage = 'The OTP code is incorrect.';
+      } else if (error.code === 'auth/code-expired') {
+        errorMessage = 'The OTP code has expired.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Registration Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -317,7 +370,7 @@ export default function RegisterScreen({ navigation }) {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Enter OTP</Text>
                   <Text style={styles.otpSubtitle}>
-                    Sent to {countryCode}{phone.replace(/^0+/, '')}
+                    Sent to {countryCode} {phone.replace(/^0+/, '')}
                   </Text>
                   <TextInput
                     style={styles.input}

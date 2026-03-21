@@ -13,7 +13,7 @@ import { appointmentService } from '../../services/api';
 import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
-import { Calendar, ClipboardList, Clock, Video, Building2 } from 'lucide-react-native';
+import { Calendar, ClipboardList, Clock, UsersRound, Building2 } from 'lucide-react-native';
 
 export default function DoctorAppointmentsScreen({ navigation }) {
   const [appointments, setAppointments] = useState([]);
@@ -138,17 +138,17 @@ export default function DoctorAppointmentsScreen({ navigation }) {
           <View style={styles.patientDetails}>
             <Text style={styles.patientName}>{item.patient?.full_name || 'Patient'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {item.consultation_type === 'telehealth' ? (
-                <Video size={12} color={COLORS.textMuted} />
+              {item.consultation_type === 'home_visit' ? (
+                <UsersRound size={12} color={COLORS.textMuted} />
               ) : (
                 <Building2 size={12} color={COLORS.textMuted} />
               )}
               <Text style={styles.consultationType}>
-                {item.consultation_type === 'telehealth' ? 'Video Call' : 'In-person'}
+                {item.consultation_type === 'home_visit' ? 'Home Visit' : 'In-person'}
               </Text>
             </View>
           </View>
-          <Text style={styles.paymentAmount}>${item.payment_amount}</Text>
+           <Text style={styles.paymentAmount}>₹{item.payment_amount}</Text>
         </View>
 
         {item.reason && (

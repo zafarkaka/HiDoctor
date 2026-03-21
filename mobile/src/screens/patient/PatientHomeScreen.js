@@ -16,7 +16,7 @@ import { appointmentService, reminderService, notificationService, contentServic
 import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
-import { Bell, AlarmClock, Calendar, Clock, Video, Building2 } from 'lucide-react-native';
+import { Bell, AlarmClock, Calendar, Clock, UsersRound, Building2 } from 'lucide-react-native';
 
 export default function PatientHomeScreen({ navigation }) {
   const { user } = useAuth();
@@ -31,14 +31,16 @@ export default function PatientHomeScreen({ navigation }) {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const [appointmentsRes, remindersRes, notificationsRes] = await Promise.all([
-        appointmentService.list(),
-        reminderService.getUpcoming(),
-        notificationService.list(),
+        appointmentService.list().catch(e => { console.error('Apts error:', e); return { data: { appointments: [] } }; }),
+        reminderService.getUpcoming().catch(e => { console.error('Reminders error:', e); return { data: { reminders: [] } }; }),
+        notificationService.list().catch(e => { console.error('Notifications error:', e); return { data: { unread_count: 0 } }; }),
       ]);
-      setAppointments(appointmentsRes.data.appointments);
-      setReminders(remindersRes.data.reminders);
-      setNotifications(notificationsRes.data);
+      
+      setAppointments(appointmentsRes?.data?.appointments || []);
+      setReminders(remindersRes?.data?.reminders || []);
+      setNotifications(notificationsRes?.data || { unread_count: 0 });
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -50,11 +52,11 @@ export default function PatientHomeScreen({ navigation }) {
     try {
       setContentLoading(true);
       const [adsRes, blogsRes] = await Promise.all([
-        contentService.getCampaigns('home'),
-        contentService.getBlogs(),
+        contentService.getCampaigns('home').catch(e => { console.error('Ads error:', e); return { data: { ads: [] } }; }),
+        contentService.getBlogs().catch(e => { console.error('Blogs error:', e); return { data: { posts: [] } }; }),
       ]);
-      setAds(adsRes.data.ads || []);
-      setBlogs((blogsRes.data.posts || []).slice(0, 5));
+      setAds(adsRes?.data?.ads || []);
+      setBlogs((blogsRes?.data?.posts || []).slice(0, 5));
     } catch (error) {
       console.error('Error fetching content:', error);
     } finally {
@@ -65,6 +67,14 @@ export default function PatientHomeScreen({ navigation }) {
   useEffect(() => {
     fetchData();
     fetchContent();
+    
+    // Emergency safety: force loading to false after 10s to prevent permanent white screen
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setContentLoading(false);
+    }, 10000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -164,8 +174,9 @@ export default function PatientHomeScreen({ navigation }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Featured Services</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md }}>
+              {contentLoading
                 ? [1, 2].map(i => <View key={i} style={[styles.adBanner, styles.adSkeleton]} />)
-                : ads.map((ad, idx) => (
+                : (ads || []).map((ad, idx) => (
                     <TouchableOpacity
                       key={ad?.id || `ad-${idx}`}
                       activeOpacity={0.85}
@@ -235,13 +246,13 @@ export default function PatientHomeScreen({ navigation }) {
                         <Text style={styles.appointmentTime}>{apt.appointment_time}</Text>
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        {apt.consultation_type === 'telehealth' ? (
-                          <Video size={12} color={COLORS.textMuted} />
+                        {apt.consultation_type === 'home_visit' ? (
+                          <UsersRound size={12} color={COLORS.textMuted} />
                         ) : (
                           <Building2 size={12} color={COLORS.textMuted} />
                         )}
                         <Text style={styles.appointmentType}>
-                          {apt.consultation_type === 'telehealth' ? 'Video' : 'In-person'}
+                          {apt.consultation_type === 'home_visit' ? 'Home Visit' : 'In-person'}
                         </Text>
                       </View>
                     </View>

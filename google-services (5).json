@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "341259628119-8ivi5k26d8qt2h9vgjcn3np79g9ah6lb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.limratech.hidoctor",
+            "certificate_hash": "24dd195ddb1015e64e48cf37ebceec9d1a965e78"
+          }
+        },
+        {
           "client_id": "341259628119-vp86g1lei2selb013dfe14p7tv5or3ug.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

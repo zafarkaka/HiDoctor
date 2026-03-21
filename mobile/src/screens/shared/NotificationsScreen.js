@@ -60,6 +60,43 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
+  const handleNotificationPress = (notification) => {
+    // Mark as read
+    if (!notification.is_read) {
+      notificationService.markRead(notification.id).catch(() => {});
+    }
+
+    const type = notification.type;
+    const data = notification.data || {};
+
+    switch (type) {
+      case 'appointment':
+      case 'appointment_reminder':
+      case 'appointment_confirmed':
+      case 'appointment_cancelled':
+        if (data.appointment_id) {
+          navigation.navigate('AppointmentDetail', { appointmentId: data.appointment_id });
+        } else {
+          navigation.navigate('Appointments');
+        }
+        break;
+      case 'message':
+      case 'chat':
+        if (data.appointment_id) {
+          navigation.navigate('Chat', { appointmentId: data.appointment_id });
+        }
+        break;
+      case 'blog':
+      case 'blog_post':
+        if (data.slug) {
+          navigation.navigate('BlogDetail', { slug: data.slug });
+        }
+        break;
+      default:
+        console.log('Unrecognized notification type:', type);
+    }
+  };
+
   const renderNotification = ({ item }) => {
     const isUnread = !item.is_read;
     const timeAgo = formatDistanceToNow(parseISO(item.created_at), { addSuffix: true });
@@ -67,7 +104,7 @@ export default function NotificationsScreen({ navigation }) {
     return (
       <TouchableOpacity 
         style={[styles.notificationCard, isUnread && styles.notificationCardUnread]}
-        onPress={() => isUnread && handleMarkRead(item.id)}
+        onPress={() => handleNotificationPress(item)}
       >
         <View style={styles.iconContainer}>
           {item.type === 'appointment' ? <Calendar size={20} color={COLORS.primary} /> : <Bell size={20} color={COLORS.primary} />}

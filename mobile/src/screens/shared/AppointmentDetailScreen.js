@@ -16,7 +16,7 @@ import { appointmentService, reviewService } from '../../services/api';
 import { Card, Badge, Button, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS } from '../../utils/constants';
 import { format, parseISO, isPast, isToday } from 'date-fns';
-import { ChevronLeft, Clock, Video, Building2 } from 'lucide-react-native';
+import { ChevronLeft, Clock, UsersRound, Building2 } from 'lucide-react-native';
 
 export default function AppointmentDetailScreen({ route, navigation }) {
   const { appointmentId } = route.params;
@@ -200,14 +200,14 @@ export default function AppointmentDetailScreen({ route, navigation }) {
                 <Text style={styles.timeText}>{appointment.appointment_time}</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                {appointment.consultation_type === 'telehealth' ? (
-                  <Video size={14} color={COLORS.textMuted} />
+                {appointment.consultation_type === 'home_visit' ? (
+                  <UsersRound size={14} color={COLORS.textMuted} />
                 ) : (
                   <Building2 size={14} color={COLORS.textMuted} />
                 )}
                 <Badge 
-                  text={appointment.consultation_type === 'telehealth' ? 'Video Call' : 'In-person'} 
-                  variant={appointment.consultation_type === 'telehealth' ? 'info' : 'default'} 
+                  text={appointment.consultation_type === 'home_visit' ? 'Home Visit' : 'In-person'} 
+                  variant={appointment.consultation_type === 'home_visit' ? 'info' : 'default'} 
                 />
               </View>
             </View>

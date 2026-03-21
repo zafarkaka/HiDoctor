@@ -37,6 +37,7 @@ export default function BookingScreen({ route, navigation }) {
     patient_type: 'myself',
     family_member_id: null,
     reason: '',
+    home_address: user?.address || '',
   });
 
   // Generate next 14 days
@@ -107,7 +108,8 @@ export default function BookingScreen({ route, navigation }) {
         consultation_type: booking.consultation_type,
         appointment_date: format(booking.appointment_date, 'yyyy-MM-dd'),
         appointment_time: booking.appointment_time,
-        reason: booking.reason,
+         reason: booking.reason,
+        home_address: booking.consultation_type === 'home_visit' ? booking.home_address : null,
         family_member_id: booking.patient_type !== 'myself' ? booking.family_member_id : null,
       };
 
@@ -242,14 +244,14 @@ export default function BookingScreen({ route, navigation }) {
                   <Text style={styles.optionDesc}>Visit the clinic</Text>
                 </TouchableOpacity>
               )}
-              {doctor?.consultation_types?.includes('telehealth') && (
+              {doctor?.consultation_types?.includes('home_visit') && (
                 <TouchableOpacity
-                  style={[styles.optionCard, booking.consultation_type === 'telehealth' && styles.optionCardActive]}
-                  onPress={() => setBooking({ ...booking, consultation_type: 'telehealth' })}
+                  style={[styles.optionCard, booking.consultation_type === 'home_visit' && styles.optionCardActive]}
+                  onPress={() => setBooking({ ...booking, consultation_type: 'home_visit' })}
                 >
-                  <Video size={32} color={booking.consultation_type === 'telehealth' ? COLORS.primary : COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
-                  <Text style={styles.optionTitle}>Video Call</Text>
-                  <Text style={styles.optionDesc}>Consult from home</Text>
+                  <UsersRound size={32} color={booking.consultation_type === 'home_visit' ? COLORS.primary : COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
+                  <Text style={styles.optionTitle}>Home Visit</Text>
+                  <Text style={styles.optionDesc}>Doctor visits you</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -359,6 +361,22 @@ export default function BookingScreen({ route, navigation }) {
               numberOfLines={4}
               textAlignVertical="top"
             />
+
+            {booking.consultation_type === 'home_visit' && (
+              <>
+                <Text style={[styles.stepTitle, { marginTop: SPACING.lg }]}>Home Address *</Text>
+                <TextInput
+                  style={styles.reasonInput}
+                  placeholder="Enter your full address for the home visit..."
+                  placeholderTextColor={COLORS.textMuted}
+                  value={booking.home_address}
+                  onChangeText={(text) => setBooking({ ...booking, home_address: text })}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </>
+            )}
           </View>
         )}
 
@@ -376,10 +394,10 @@ export default function BookingScreen({ route, navigation }) {
                 <Text style={styles.summaryLabel}>Specialty</Text>
                 <Text style={styles.summaryValue}>{doctor?.specialties?.[0]}</Text>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Type</Text>
-                <Badge text={<><View style={{flexDirection: 'row', alignItems: 'center'}}>{booking.consultation_type === 'telehealth' ? <Video size={10} color={COLORS.surface} style={{ marginRight: 2 }} /> : <Building2 size={10} color={COLORS.surface} style={{ marginRight: 2 }} />}</View> {booking.consultation_type === 'telehealth' ? 'Video' : 'In-person'}</>} variant="primary" />
-              </View>
+               <View style={styles.summaryRow}>
+                 <Text style={styles.summaryLabel}>Type</Text>
+                 <Badge text={<><View style={{flexDirection: 'row', alignItems: 'center'}}>{booking.consultation_type === 'home_visit' ? <UsersRound size={10} color={COLORS.surface} style={{ marginRight: 2 }} /> : <Building2 size={10} color={COLORS.surface} style={{ marginRight: 2 }} />}</View> {booking.consultation_type === 'home_visit' ? 'Home Visit' : 'In-person'}</>} variant="primary" />
+               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Date</Text>
                 <Text style={styles.summaryValue}>
@@ -412,21 +430,14 @@ export default function BookingScreen({ route, navigation }) {
         {step < 4 ? (
           <Button title="Continue" onPress={handleNext} style={styles.nextButton} />
         ) : (
-          <View style={styles.paymentButtons}>
-            <Button
-              title={`Pay Now - ₹${doctor?.consultation_fee}`}
-              onPress={() => handleSubmit(true)}
-              loading={submitting}
-              style={styles.payButton}
-            />
-            <Button
-              title="Pay Later at Clinic"
-              variant="outline"
-              onPress={() => handleSubmit(false)}
-              disabled={submitting}
-              style={styles.payLaterButton}
-            />
-          </View>
+           <View style={styles.paymentButtons}>
+             <Button
+               title={`Confirm & Pay at Clinic - ₹${doctor?.consultation_fee}`}
+               onPress={() => handleSubmit(false)}
+               loading={submitting}
+               style={styles.payButton}
+             />
+           </View>
         )}
       </View>
     </SafeAreaView>

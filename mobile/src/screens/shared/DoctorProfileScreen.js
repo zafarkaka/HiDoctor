@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doctorService } from '../../services/api';
 import { Card, Badge, Button, Divider } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
-import { ChevronLeft, Check, Video, Building2, GraduationCap, MapPin, Star } from 'lucide-react-native';
+import { ChevronLeft, Check, UsersRound, Building2, GraduationCap, MapPin, Star } from 'lucide-react-native';
 
 export default function DoctorProfileScreen({ route, navigation }) {
   const { doctorId } = route.params;
@@ -149,8 +149,8 @@ export default function DoctorProfileScreen({ route, navigation }) {
           </View>
 
           <View style={styles.tagsRow}>
-            {doctor.consultation_types?.includes('telehealth') && (
-              <Badge text={<><Video size={10} color={COLORS.primary} style={{ marginRight: 4 }} /> Video Consult</>} variant="info" />
+            {doctor.consultation_types?.includes('home_visit') && (
+              <Badge text={<><UsersRound size={10} color={COLORS.primary} style={{ marginRight: 4 }} /> Home Visit</>} variant="info" />
             )}
             {doctor.consultation_types?.includes('in_person') && (
               <Badge text={<><Building2 size={10} color={COLORS.textSecondary} style={{ marginRight: 4 }} /> In-person</>} variant="default" />

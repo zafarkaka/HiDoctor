@@ -25,20 +25,29 @@ export const AuthProvider = ({ children }) => {
     try {
       const storedToken = await AsyncStorage.getItem('token');
       const storedUser = await AsyncStorage.getItem('user');
-      
+
       if (storedToken && storedUser) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        const finalUser = {
+          ...parsedUser,
+          role: parsedUser.role || 'patient'
+        };
+        setUser(finalUser);
         api.setAuthToken(storedToken);
-        
-        // Verify token is still valid
-        try {
-          const response = await api.get('/api/auth/me');
-          setUser(response.data);
-        } catch (error) {
-          // Token invalid, clear storage
-          await logout();
-        }
+
+        // Verify token is still valid (Removed background verify to prevent accidental logout loops)
+        // try {
+        //   const response = await api.get('/api/auth/me');
+        //   const verifiedUser = {
+        //     ...response.data,
+        //     role: response.data.role || parsedUser.role || 'patient'
+        //   };
+        //   setUser(verifiedUser);
+        // } catch (error) {
+        //   // Token invalid, clear storage
+        //   console.log('Background auth verification failed - keeping local session for stability');
+        // }
       }
     } catch (error) {
       console.error('Error loading auth:', error);
@@ -50,34 +59,34 @@ export const AuthProvider = ({ children }) => {
   const login = async (phone, password) => {
     const response = await api.post('/api/auth/login', { phone: phone, password: password });
     const { access_token, user: userData } = response.data;
-    
+
     await AsyncStorage.setItem('token', access_token);
     await AsyncStorage.setItem('user', JSON.stringify(userData));
-    
+
     setToken(access_token);
     setUser(userData);
     api.setAuthToken(access_token);
-    
+
     return userData;
   };
 
   const register = async (data) => {
     const response = await api.post('/api/auth/register', data);
     const { access_token, user: userDataRaw } = response.data;
-    
+
     // Graceful fallback to prevent Fatal Null-Stack Navigation Crashes
     const userData = {
       ...userDataRaw,
       role: userDataRaw.role || data.role || 'patient'
     };
-    
+
     await AsyncStorage.setItem('token', access_token);
     await AsyncStorage.setItem('user', JSON.stringify(userData));
-    
+
     setToken(access_token);
     setUser(userData);
     api.setAuthToken(access_token);
-    
+
     return userData;
   };
 

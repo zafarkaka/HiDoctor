@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { familyService } from '../../services/api';
 import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
+import { Trash2, UsersRound } from 'lucide-react-native';
 
 export default function FamilyScreen({ navigation }) {
   const [members, setMembers] = useState([]);
