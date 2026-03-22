@@ -61,20 +61,30 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/api/auth/login', { phone: phone, password: password });
       console.log('Login response data:', JSON.stringify(response.data));
-      const { access_token, user: userData } = response.data;
+      const { access_token, user: userDataRaw } = response.data;
 
-    if (!userData || !userData.role) {
-      throw new Error('User profile incomplete. Please contact support.');
+      // Force-check or fallback for role to prevent null navigator crashes
+      const userData = {
+        ...userDataRaw,
+        role: userDataRaw?.role || 'patient' // Default is patient if somehow missing
+      };
+
+      if (!userData || !userData.role) {
+        throw new Error('User profile incomplete. Please contact support.');
+      }
+
+      await AsyncStorage.setItem('token', access_token);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+
+      setToken(access_token);
+      setUser(userData);
+      api.setAuthToken(access_token);
+
+      return userData;
+    } catch (error) {
+      console.error('Login logic error:', error);
+      throw error;
     }
-
-    await AsyncStorage.setItem('token', access_token);
-    await AsyncStorage.setItem('user', JSON.stringify(userData));
-
-    setToken(access_token);
-    setUser(userData);
-    api.setAuthToken(access_token);
-
-    return userData;
   };
 
   const register = async (data) => {
