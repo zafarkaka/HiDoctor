@@ -47,13 +47,6 @@ export default function RootNavigator() {
         animation: 'slide_from_right',
       }}
     >
-      {!isAuthenticated ? (
-        // Auth Stack
-        <>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        </>
       ) : isPatient ? (
         // Patient Stack
         <>
@@ -77,7 +70,10 @@ export default function RootNavigator() {
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="BlogDetail" component={BlogDetailScreen} />
         </>
-      ) : null}
+      ) : (
+        // Fallback to Login if role is somehow invalid but user exists
+        <Stack.Screen name="LoginFallback" component={LoginScreen} />
+      )}
     </Stack.Navigator>
   );
 }

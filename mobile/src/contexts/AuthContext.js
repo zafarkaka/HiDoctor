@@ -60,6 +60,10 @@ export const AuthProvider = ({ children }) => {
     const response = await api.post('/api/auth/login', { phone: phone, password: password });
     const { access_token, user: userData } = response.data;
 
+    if (!userData || !userData.role) {
+      throw new Error('User profile incomplete. Please contact support.');
+    }
+
     await AsyncStorage.setItem('token', access_token);
     await AsyncStorage.setItem('user', JSON.stringify(userData));
 
