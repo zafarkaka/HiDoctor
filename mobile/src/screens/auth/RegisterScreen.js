@@ -34,7 +34,7 @@ export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
   const [role, setRole] = useState('patient');
   const [fullName, setFullName] = useState('');
-  const [countryCode, setCountryCode] = useState('+971');
+  const [countryCode, setCountryCode] = useState('+91');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');

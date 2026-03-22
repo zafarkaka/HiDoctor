@@ -28,7 +28,7 @@ const COUNTRY_CODES = [
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
-  const [countryCode, setCountryCode] = useState('+971');
+  const [countryCode, setCountryCode] = useState('+91');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');

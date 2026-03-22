@@ -29,7 +29,7 @@ const COUNTRY_CODES = [
 
 export default function ForgotPasswordScreen({ navigation }) {
   const [step, setStep] = useState(1); // 1: phone, 2: otp + new password, 3: success
-  const [countryCode, setCountryCode] = useState('+971');
+  const [countryCode, setCountryCode] = useState('+91');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
