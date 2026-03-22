@@ -23,6 +23,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import DoctorOnboarding from "./pages/DoctorOnboarding";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import ContactPage from "./pages/ContactPage";
 
 import { AIAssistantWrapper } from "./components/Layout";
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/contact" element={<ContactPage />} />
 
           {/* Patient Routes */}
           <Route path="/patient" element={<ProtectedRoute allowedRoles={["patient"]}><PatientDashboard /></ProtectedRoute>} />
