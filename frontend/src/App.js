@@ -21,6 +21,8 @@ import BlogPost from "./pages/BlogPost";
 import ProfileSettings from "./pages/ProfileSettings";
 import NotificationsPage from "./pages/NotificationsPage";
 import DoctorOnboarding from "./pages/DoctorOnboarding";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 import { AIAssistantWrapper } from "./components/Layout";
 
@@ -41,6 +43,8 @@ function App() {
           <Route path="/doctors/:doctorId" element={<DoctorProfile />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
 
           {/* Patient Routes */}
           <Route path="/patient" element={<ProtectedRoute allowedRoles={["patient"]}><PatientDashboard /></ProtectedRoute>} />

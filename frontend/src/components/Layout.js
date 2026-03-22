@@ -340,8 +340,8 @@ export const Footer = () => {
                   ✉️ Email Support
                 </a>
               </li>
-              <li><span className="cursor-pointer hover:text-foreground transition-colors">Privacy Policy</span></li>
-              <li><span className="cursor-pointer hover:text-foreground transition-colors">Terms of Service</span></li>
+              <li><Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
