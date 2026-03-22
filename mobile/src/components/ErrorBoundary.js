@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../utils/constants';
 import { AlertCircle, RotateCcw } from 'lucide-react-native';
 
@@ -30,11 +30,12 @@ export default class ErrorBoundary extends React.Component {
             <Text style={styles.message}>
               We encountered an unexpected error. Don't worry, your data is safe.
             </Text>
-            {__DEV__ && (
-              <ScrollView style={styles.debug}>
-                <Text style={styles.debugText}>{this.state.error?.toString()}</Text>
-              </ScrollView>
-            )}
+            
+            <ScrollView style={styles.debug}>
+              <Text style={styles.debugText}>Error: {this.state.error?.message || 'Unknown'}</Text>
+              <Text style={styles.debugText}>Stack: {this.state.error?.stack?.substring(0, 500) || 'No stack trace'}</Text>
+            </ScrollView>
+
             <TouchableOpacity style={styles.button} onPress={this.handleRestart}>
               <RotateCcw size={20} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.buttonText}>Retry App</Text>
