@@ -57,8 +57,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (phone, password) => {
-    const response = await api.post('/api/auth/login', { phone: phone, password: password });
-    const { access_token, user: userData } = response.data;
+    console.log('Attempting login for:', phone);
+    try {
+      const response = await api.post('/api/auth/login', { phone: phone, password: password });
+      console.log('Login response data:', JSON.stringify(response.data));
+      const { access_token, user: userData } = response.data;
 
     if (!userData || !userData.role) {
       throw new Error('User profile incomplete. Please contact support.');
