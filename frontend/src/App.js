@@ -61,7 +61,6 @@ function App() {
           {/* Shared Routes */}
           <Route path="/appointments/:appointmentId" element={<ProtectedRoute><AppointmentDetails /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
 
           {/* Fallback */}
