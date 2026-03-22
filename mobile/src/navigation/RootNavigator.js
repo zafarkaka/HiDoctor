@@ -47,6 +47,13 @@ export default function RootNavigator() {
         animation: 'slide_from_right',
       }}
     >
+      {!isAuthenticated ? (
+        // Auth Stack
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </>
       ) : isPatient ? (
         // Patient Stack
         <>
