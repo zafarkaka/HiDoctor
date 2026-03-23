@@ -108,6 +108,19 @@ export default function DoctorHomeScreen({ navigation }) {
     return colors[status] || 'default';
   };
 
+  const StatCard = ({ icon: Icon, value, label, color }) => (
+    <View style={styles.statCard}>
+      <LinearGradient
+        colors={[color + '20', color + '10']}
+        style={styles.statIcon}
+      >
+        <Icon size={24} color={color} />
+      </LinearGradient>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+
   const QuickAction = ({ icon, label, onPress, color }) => (
     <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.7}>
       <LinearGradient

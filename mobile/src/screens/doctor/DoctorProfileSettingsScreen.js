@@ -9,6 +9,7 @@ import {
   Alert,
   Switch,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -105,7 +106,7 @@ export default function DoctorProfileSettingsScreen({ navigation }) {
         years_experience: parseInt(formData.years_experience) || 0,
         consultation_fee: parseFloat(formData.consultation_fee) || 0,
         qualifications: formData.qualifications ? formData.qualifications.split(',').map(s => s.trim()) : [],
-        profile_image: profilePicture || user?.profile_image,
+        profile_image: user?.profile_image || null,
       };
 
       await doctorService.updateProfile(data);

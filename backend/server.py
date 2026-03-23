@@ -1608,21 +1608,27 @@ async def update_appointment(appointment_id: str, update: AppointmentUpdate, cur
     
     # Create notification
     if update.status:
+        doctor = await db.users.find_one({"id": appointment["doctor_id"]})
+        doctor_name = doctor.get("full_name", "Doctor") if doctor else "Doctor"
+        
         # Notify patient
         await create_notification(
             user_id=appointment["patient_id"],
             title=f"Appointment {update.status.value.title()}",
-            message=f"Your appointment with Dr. {appointment.get('doctor', {}).get('full_name', 'Doctor')} is now {update.status.value}",
+            message=f"Your appointment with Dr. {doctor_name} is now {update.status.value}",
             type="appointment",
             data={"appointment_id": appointment_id}
         )
         
         # Also notify doctor if the update didn't come from them (e.g. from payment or admin)
         if current_user["role"] != UserRole.DOCTOR:
+            patient = await db.users.find_one({"id": appointment["patient_id"]})
+            patient_name = patient.get("full_name", "Patient") if patient else "Patient"
+            
             await create_notification(
                 user_id=appointment["doctor_id"],
                 title="Appointment Status Updated",
-                message=f"Appointment with {appointment.get('patient', {}).get('full_name', 'Patient')} is now {update.status.value}",
+                message=f"Appointment with {patient_name} is now {update.status.value}",
                 type="appointment",
                 data={"appointment_id": appointment_id}
             )

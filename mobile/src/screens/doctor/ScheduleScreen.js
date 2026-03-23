@@ -7,6 +7,8 @@ import {
   Switch,
   Modal,
   FlatList,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -108,9 +110,12 @@ export default function ScheduleScreen({ navigation }) {
     try {
       const payload = {
         weekly_schedule: weeklySchedule.map(d => ({
-          day_of_week: d.day_of_week,
+          day_of_week: DAYS.indexOf(d.day_name),
           day_name: d.day_name,
           is_active: d.is_active,
+          start_time: d.shifts && d.shifts.length > 0 ? d.shifts[0].start : "09:00",
+          end_time: d.shifts && d.shifts.length > 0 ? d.shifts[0].end : "17:00",
+          slot_duration: 30,
           shifts: d.is_active ? d.shifts : []
         })),
         break_times: [],
