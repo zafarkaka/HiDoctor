@@ -64,6 +64,8 @@ export const authService = {
   login: (email, password) => api.post('/api/auth/login', { email, password }),
   register: (data) => api.post('/api/auth/register', data),
   getMe: () => api.get('/api/auth/me'),
+  forgotPassword: (phone) => api.post('/api/auth/forgot-password', { phone }),
+  resetPassword: (data) => api.post('/api/auth/reset-password', data),
 };
 
 export const doctorService = {

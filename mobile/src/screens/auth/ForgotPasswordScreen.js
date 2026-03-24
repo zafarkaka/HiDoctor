@@ -2,22 +2,23 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
-  TouchableOpacity,
-  Alert,
+  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
+  TouchableOpacity,
+  Alert,
+  Image,
   Modal,
   FlatList,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import auth from '@react-native-firebase/auth';
-import axios from 'axios';
-import { API_URL, COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
 import { Button, Card } from '../../components/UI';
+import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
+import auth from '@react-native-firebase/auth';
+import { authService } from '../../services/api';
 
 const COUNTRY_CODES = [
   { label: 'UAE (+971)', value: '+971', icon: '🇦🇪' },
@@ -28,15 +29,15 @@ const COUNTRY_CODES = [
 ];
 
 export default function ForgotPasswordScreen({ navigation }) {
-  const [step, setStep] = useState(1); // 1: phone, 2: otp + new password, 3: success
   const [countryCode, setCountryCode] = useState('+91');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [loading, setLoading] = useState(false);
-  const [confirmation, setConfirmation] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
+  const [otpCode, setOtpCode] = useState('');
 
   const handleSendOTP = async () => {
     if (!phone) {
@@ -44,32 +45,38 @@ export default function ForgotPasswordScreen({ navigation }) {
       return;
     }
 
-    const cleanedPhone = phone.replace(/^0+/, '').replace(/\D/g, '');
+    let cleanedPhone = phone.replace(/\D/g, '');
+    if (cleanedPhone.startsWith('0')) {
+      cleanedPhone = cleanedPhone.substring(1);
+    }
     const fullPhoneNumber = `${countryCode}${cleanedPhone}`;
-    
+
     setLoading(true);
     try {
-      // 1. Check if user exists on backend
-      await axios.post(`${API_URL}/api/auth/forgot-password`, { phone: fullPhoneNumber });
-
-      // 2. Send Firebase OTP
-      const confirmResult = await auth().signInWithPhoneNumber(fullPhoneNumber);
-      setConfirmation(confirmResult);
-      setStep(2);
-      Alert.alert('Success', 'Verification code sent to your phone');
+      // First check if phone exists in our DB
+      await authService.forgotPassword(fullPhoneNumber);
+      
+      console.log('--- OTP SEND START ---');
+      const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
+      setConfirmData(confirmation);
+      Alert.alert('Success', 'OTP sent to your phone!');
     } catch (error) {
-      console.error('Forgot password error:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.detail || 'Failed to initiate password reset. Ensure the phone number is correct and registered.'
-      );
+      console.error('--- OTP SEND ERROR ---', error);
+      if (error.response?.data?.detail) {
+          Alert.alert('Error', error.response.data.detail);
+      } else if (error.code === 'auth/too-many-requests') {
+        Alert.alert('Rate Limit Exceeded', 'Firebase has blocked requests. Try again later.');
+      } else {
+        Alert.alert('Verification Failed', `[${error.code || 'Network Error'}] ${error.message || 'Check your connection'}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!otp || !newPassword || !confirmPassword) {
+  const handleVerifyAndReset = async () => {
+    Keyboard.dismiss();
+    if (!otpCode || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -84,26 +91,48 @@ export default function ForgotPasswordScreen({ navigation }) {
       return;
     }
 
+    if (!confirmData) {
+      Alert.alert('Error', 'Session expired. Please request a new OTP.');
+      return;
+    }
+
     setLoading(true);
     try {
-      // 1. Verify OTP with Firebase
-      const userCredential = await confirmation.confirm(otp);
+      const userCredential = await confirmData.confirm(otpCode);
+      
+      if (!userCredential?.user) {
+        throw new Error('Verification succeeded but no user was returned.');
+      }
+
       const firebaseToken = await userCredential.user.getIdToken();
 
-      const cleanedPhone = phone.replace(/^0+/, '').replace(/\D/g, '');
+      let cleanedPhone = phone.replace(/\D/g, '');
+      if (cleanedPhone.startsWith('0')) {
+        cleanedPhone = cleanedPhone.substring(1);
+      }
       const fullPhoneNumber = `${countryCode}${cleanedPhone}`;
 
-      // 2. Reset password on backend
-      await axios.post(`${API_URL}/api/auth/reset-password`, {
+      await authService.resetPassword({
         phone: fullPhoneNumber,
         firebase_token: firebaseToken,
         new_password: newPassword,
       });
 
-      setStep(3);
+      Alert.alert('Success', 'Password reset successfully!');
+      navigation.navigate('Login');
     } catch (error) {
-      console.error('Reset password error:', error);
-      Alert.alert('Error', 'Invalid verification code or session expired');
+      console.error('--- RESET ERROR ---', error);
+      let errorMessage = 'Invalid OTP or network error';
+      if (error.code === 'auth/invalid-verification-code') {
+        errorMessage = 'The OTP code is incorrect.';
+      } else if (error.code === 'auth/code-expired') {
+        errorMessage = 'The OTP code has expired.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      Alert.alert('Reset Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -149,126 +178,133 @@ export default function ForgotPasswordScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
-
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>
-              {step === 1 ? 'Forgot Password' : step === 2 ? 'Reset Password' : 'Success!'}
-            </Text>
+            <View style={styles.logoContainer}>
+              <Image 
+                source={require('../../../assets/icon.png')} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.title}>Reset Password</Text>
             <Text style={styles.subtitle}>
-              {step === 1 
-                ? 'Enter your registered mobile number to receive a verification code.' 
-                : step === 2 
-                ? 'Enter the 6-digit code sent to your phone and choose a new password.'
-                : 'Your password has been reset successfully.'}
+              {!confirmData ? 'Enter your mobile number' : 'Verify OTP & set new password'}
             </Text>
           </View>
 
-          {step === 1 && (
-            <Card elevated style={styles.card}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Mobile Number *</Text>
-                <View style={styles.phoneInputContainer}>
-                  <TouchableOpacity 
-                    style={styles.countryCodeSelector} 
-                    onPress={() => setShowCountryPicker(true)}
-                  >
-                    <Text style={styles.countryCodeText}>{countryCode}</Text>
-                    <Text style={styles.countryCodeArrow}>▼</Text>
-                  </TouchableOpacity>
+          {/* Form */}
+          <Card elevated style={styles.formCard}>
+            {!confirmData ? (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Mobile Number *</Text>
+                  <View style={styles.phoneInputContainer}>
+                    <TouchableOpacity 
+                      style={styles.countryCodeSelector} 
+                      onPress={() => setShowCountryPicker(true)}
+                    >
+                      <Text style={styles.countryCodeText}>{countryCode}</Text>
+                      <Text style={styles.countryCodeArrow}>▼</Text>
+                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.phoneInput}
+                      placeholder="e.g. 501234567"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={phone}
+                      onChangeText={setPhone}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                </View>
+
+                <Button
+                  title="Send Verification Code"
+                  onPress={handleSendOTP}
+                  loading={loading}
+                  style={styles.actionButton}
+                />
+              </>
+            ) : (
+              // OTP Verification Step
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Enter 6-Digit OTP *</Text>
                   <TextInput
-                    style={styles.phoneInput}
-                    placeholder="e.g. 501234567"
+                    style={styles.input}
+                    placeholder="123456"
                     placeholderTextColor={COLORS.textMuted}
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
+                    value={otpCode}
+                    onChangeText={(text) => {
+                      setOtpCode(text);
+                      if (text.length === 6) {
+                        Keyboard.dismiss();
+                      }
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    textContentType="oneTimeCode"
+                    autoComplete="sms-otp"
                   />
                 </View>
-              </View>
-              <Button
-                title="Send Verification Code"
-                onPress={handleSendOTP}
-                loading={loading}
-              />
-            </Card>
-          )}
 
-          {step === 2 && (
-            <Card elevated style={styles.card}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Verification Code</Text>
-                <TextInput
-                  style={[styles.input, styles.otpInput]}
-                  placeholder="123456"
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  maxLength={6}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>New Password *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Min. 6 characters"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Confirm New Password *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Re-enter password"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                  />
+                </View>
+                
+                <Button
+                  title="Verify & Reset Password"
+                  onPress={handleVerifyAndReset}
+                  loading={loading}
+                  style={styles.actionButton}
                 />
-              </View>
+                
+                <TouchableOpacity
+                  style={{ marginTop: SPACING.md, alignItems: 'center' }}
+                  onPress={() => setConfirmData(null)}
+                >
+                  <Text style={{ color: COLORS.primary, fontWeight: '600' }}>
+                    Resend OTP / Edit Phone Number
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>New Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="At least 6 characters"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry
-                />
-              </View>
+            <TouchableOpacity
+              style={styles.loginLink}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Text style={styles.loginText}>
+                Remember your password?{' '}
+                <Text style={styles.loginTextBold}>Sign In</Text>
+              </Text>
+            </TouchableOpacity>
+          </Card>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm New Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Re-enter password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                />
-              </View>
-
-              <Button
-                title="Reset Password"
-                onPress={handleResetPassword}
-                loading={loading}
-              />
-              
-              <TouchableOpacity 
-                style={styles.resendButton}
-                onPress={() => setStep(1)}
-              >
-                <Text style={styles.resendText}>Resend Code</Text>
-              </TouchableOpacity>
-            </Card>
-          )}
-
-          {step === 3 && (
-            <Card elevated style={styles.card}>
-              <View style={styles.successIcon}>
-                <Text style={styles.successEmoji}>✅</Text>
-              </View>
-              <Text style={styles.successTitle}>Password Reset Complete</Text>
-              <Text style={styles.successDesc}>You can now login with your new password.</Text>
-              <Button
-                title="Back to Login"
-                onPress={() => navigation.navigate('Login')}
-                style={styles.successButton}
-              />
-            </Card>
-          )}
-
-          <View style={styles.footer}>
-            <Text style={styles.creditText}>Made By Mohammed Izyaan - LimraTech</Text>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
       {renderCountryPicker()}
@@ -287,32 +323,39 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: SPACING.lg,
-  },
-  backButton: {
-    marginBottom: SPACING.xl,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: '600',
+    justifyContent: 'center',
   },
   header: {
+    alignItems: 'center',
     marginBottom: SPACING.xl,
   },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+    ...SHADOWS.md,
+  },
+  logoImage: {
+    width: 50,
+    height: 50,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.textSecondary,
-    lineHeight: 22,
+    textAlign: 'center',
   },
-  card: {
-    padding: SPACING.lg,
-    marginBottom: SPACING.xxl,
+  formCard: {
+    marginBottom: SPACING.lg,
   },
   inputGroup: {
     marginBottom: SPACING.md,
@@ -326,7 +369,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.md,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
     color: COLORS.text,
@@ -369,56 +412,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  otpInput: {
-    fontSize: 24,
-    letterSpacing: 8,
-    textAlign: 'center',
-    fontWeight: 'bold',
-    color: COLORS.primary,
+  actionButton: {
+    marginTop: SPACING.sm,
   },
-  resendButton: {
-    marginTop: SPACING.md,
+  loginLink: {
+    marginTop: SPACING.xl,
     alignItems: 'center',
   },
-  resendText: {
-    color: COLORS.textSecondary,
+  loginText: {
     fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-  successIcon: {
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  successEmoji: {
-    fontSize: 64,
-  },
-  successTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  successDesc: {
-    fontSize: 15,
     color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
   },
-  successButton: {
-    marginTop: SPACING.md,
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 'auto',
-    paddingVertical: SPACING.xl,
-  },
-  creditText: {
-    fontSize: 13,
-    color: COLORS.textMuted,
+  loginTextBold: {
+    color: COLORS.primary,
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   modalOverlay: {
     flex: 1,

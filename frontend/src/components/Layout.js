@@ -344,19 +344,12 @@ export const Footer = () => {
             <div className="mt-8 space-y-3">
               <h5 className="font-semibold text-slate-800 text-sm mb-3">Download Our App</h5>
               <div className="flex gap-3">
-                <a href="#app-store" className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-1.5 flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
-                  <span className="text-xl">🍎</span>
-                  <div className="flex flex-col justify-center">
-                    <span className="text-[8px] opacity-80 uppercase leading-none font-medium">Download on the</span>
-                    <span className="text-[12px] font-semibold leading-tight">App Store</span>
-                  </div>
-                </a>
-                <a href="/download/hidoctor.apk" download className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-1.5 flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
-                  <span className="text-xl">▶️</span>
-                  <div className="flex flex-col justify-center">
-                    <span className="text-[8px] opacity-80 uppercase leading-none font-medium">GET IT ON</span>
-                    <span className="text-[12px] font-semibold leading-tight">Google Play</span>
-                  </div>
+                <a href="/download/hidoctor.apk" download className="inline-block hover:opacity-90 transition-opacity">
+                  <img 
+                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" 
+                    alt="Get it on Google Play" 
+                    className="h-12 w-auto object-contain"
+                  />
                 </a>
               </div>
             </div>
