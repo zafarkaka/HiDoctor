@@ -141,7 +141,7 @@ export default function AdminDashboard() {
         formData.append('file', uploadFile);
 
         await axios.post(`${API_URL}/api/admin/doctors/${editingDoctor.id}/profile-picture`, formData, {
-          headers: { ...getAuthHeader().headers }
+          headers: { Authorization: `Bearer ${token}` }
         });
       }
 

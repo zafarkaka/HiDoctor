@@ -2513,6 +2513,34 @@ async def admin_upload_doctor_profile_picture(doctor_id: str, file: UploadFile =
         logger.error(f"Error in admin_upload_doctor_profile_picture: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+@api_router.post("/doctors/profile-picture")
+async def doctor_upload_profile_picture(file: UploadFile = File(...), current_user: dict = Depends(get_doctor_user)):
+    """Doctor endpoint to upload/replace their own profile picture"""
+    doctor_id = current_user["id"]
+    logger.info(f"Doctor {doctor_id} uploading their profile picture")
+    
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+        
+    try:
+        ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+        filename = f"doctor_upload_{doctor_id}_{uuid.uuid4().hex[:6]}.{ext}"
+        file_path = UPLOADS_DIR / filename
+        
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
+        await save_image_to_db(filename, content, file.content_type)
+        file_url = f"/uploads/{filename}"
+        
+        await db.users.update_one({"id": doctor_id}, {"$set": {"profile_image": file_url}})
+        await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"profile_image": file_url}})
+        
+        return {"message": "Profile picture updated", "url": file_url}
+    except Exception as e:
+        logger.error(f"Error in doctor_upload_profile_picture: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 @api_router.get("/admin/users")
 async def admin_get_users(
     role: Optional[UserRole] = None,

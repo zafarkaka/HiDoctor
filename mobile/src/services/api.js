@@ -76,6 +76,9 @@ export const doctorService = {
   blockDates: (dates) => api.post('/api/doctors/availability/block', { dates }),
   getProfile: () => api.get('/api/doctors/profile'),
   updateProfile: (data) => api.post('/api/doctors/profile', data),
+  uploadProfilePicture: (formData) => api.post('/api/doctors/profile-picture', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export const patientService = {
