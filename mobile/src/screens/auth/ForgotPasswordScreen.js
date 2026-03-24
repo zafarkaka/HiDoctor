@@ -38,6 +38,17 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
   const [otpCode, setOtpCode] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+
+  React.useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleSendOTP = async () => {
     if (!phone) {
@@ -59,6 +70,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       console.log('--- OTP SEND START ---');
       const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
       setConfirmData(confirmation);
+      setResendTimer(30);
       Alert.alert('Success', 'OTP sent to your phone!');
     } catch (error) {
       console.error('--- OTP SEND ERROR ---', error);
@@ -283,14 +295,24 @@ export default function ForgotPasswordScreen({ navigation }) {
                   style={styles.actionButton}
                 />
                 
-                <TouchableOpacity
-                  style={{ marginTop: SPACING.md, alignItems: 'center' }}
-                  onPress={() => setConfirmData(null)}
-                >
-                  <Text style={{ color: COLORS.primary, fontWeight: '600' }}>
-                    Resend OTP / Edit Phone Number
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.md, gap: SPACING.lg }}>
+                  <TouchableOpacity
+                    onPress={handleSendOTP}
+                    disabled={resendTimer > 0 || loading}
+                  >
+                    <Text style={{ color: resendTimer > 0 ? COLORS.textMuted : COLORS.primary, fontWeight: '600' }}>
+                      {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => setConfirmData(null)}
+                  >
+                    <Text style={{ color: COLORS.textSecondary, fontWeight: '600' }}>
+                      Edit Phone Number
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
 

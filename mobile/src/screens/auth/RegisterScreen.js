@@ -44,6 +44,17 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
   const [otpCode, setOtpCode] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+
+  React.useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -93,6 +104,7 @@ export default function RegisterScreen({ navigation }) {
       const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
       console.log('Confirmation object received:', !!confirmation);
       setConfirmData(confirmation);
+      setResendTimer(30);
       console.log('--- OTP SEND SUCCESS ---');
     } catch (error) {
       console.error('--- OTP SEND ERROR ---');
@@ -397,14 +409,24 @@ export default function RegisterScreen({ navigation }) {
                   style={styles.registerButton}
                 />
                 
-                <TouchableOpacity
-                  style={{ marginTop: SPACING.md, alignItems: 'center' }}
-                  onPress={() => setConfirmData(null)}
-                >
-                  <Text style={{ color: COLORS.primary, fontWeight: '600' }}>
-                    Edit Phone Number
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.md, gap: SPACING.lg }}>
+                  <TouchableOpacity
+                    onPress={handleSendOTP}
+                    disabled={resendTimer > 0 || loading}
+                  >
+                    <Text style={{ color: resendTimer > 0 ? COLORS.textMuted : COLORS.primary, fontWeight: '600' }}>
+                      {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => setConfirmData(null)}
+                  >
+                    <Text style={{ color: COLORS.textSecondary, fontWeight: '600' }}>
+                      Edit Phone Number
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
 
