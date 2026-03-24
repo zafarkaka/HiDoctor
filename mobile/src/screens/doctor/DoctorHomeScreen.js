@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Animated,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -121,18 +122,6 @@ export default function DoctorHomeScreen({ navigation }) {
     </View>
   );
 
-  const QuickAction = ({ icon, label, onPress, color }) => (
-    <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.7}>
-      <LinearGradient
-        colors={[color + '20', color + '10']}
-        style={styles.quickActionIcon}
-      >
-        <Text style={styles.quickActionEmoji}>{icon}</Text>
-      </LinearGradient>
-      <Text style={styles.quickActionLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -222,30 +211,45 @@ export default function DoctorHomeScreen({ navigation }) {
           />
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActions}>
-            <QuickAction 
-              icon="📅" 
-              label="Schedule" 
-              onPress={() => navigation.navigate('Schedule')} 
-              color={COLORS.primary} 
-            />
-            <QuickAction 
-              icon="💳" 
-              label="Payments" 
-              onPress={() => {}} 
-              color={COLORS.success} 
-            />
-            <QuickAction 
-              icon="👤" 
-              label="Profile" 
-              onPress={() => navigation.navigate('Profile')} 
-              color={COLORS.info} 
-            />
+        {/* Sponsored Content (Ads) */}
+        {(ads.length > 0 || contentLoading) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Medical Partners & Services</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md }}>
+              {contentLoading
+                ? [1, 2].map(i => <View key={i} style={[styles.adBanner, { backgroundColor: COLORS.border, opacity: 0.5 }]} />)
+                : ads.map((ad, idx) => (
+                    <TouchableOpacity
+                      key={ad?.id || `ad-${idx}`}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        if (ad?.id) contentService.trackAdClick(ad.id).catch(() => {});
+                        if (ad?.doctor_id) {
+                          navigation.navigate('DoctorProfile', { doctorId: ad.doctor_id });
+                        } else if (ad?.redirect_url) {
+                          Linking.openURL(ad.redirect_url).catch(() => {});
+                        }
+                      }}
+                    >
+                      <View style={[styles.adBanner, { position: 'relative', overflow: 'hidden', borderRadius: RADIUS.lg }]}>
+                        {ad?.image_url ? (
+                          <Image source={{ uri: ad.image_url }} style={{ width: 280, height: 140 }} />
+                        ) : (
+                          <View style={{ width: 280, height: 140, backgroundColor: COLORS.surface }} />
+                        )}
+                        <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>Sponsored</Text>
+                        </View>
+                        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 4 }}>
+                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{ad?.title || 'Partner Service'}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+              }
+            </ScrollView>
           </View>
-        </View>
+        )}
 
         {/* Today's Schedule */}
         <View style={styles.section}>
@@ -320,39 +324,6 @@ export default function DoctorHomeScreen({ navigation }) {
             </Card>
           )}
         </View>
-
-        {/* Sponsored Content (Ads) */}
-        {(ads.length > 0 || contentLoading) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Medical Partners &amp; Services</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.md }}>
-              {contentLoading
-                ? [1, 2].map(i => <View key={i} style={[styles.adBanner, { backgroundColor: COLORS.border, opacity: 0.5 }]} />)
-                : ads.map((ad, idx) => (
-                    <TouchableOpacity
-                      key={ad?.id || `ad-${idx}`}
-                      activeOpacity={0.85}
-                      onPress={() => ad?.id && contentService.trackAdClick(ad.id).catch(() => {})}
-                    >
-                      <View style={[styles.adBanner, { position: 'relative', overflow: 'hidden', borderRadius: RADIUS.lg }]}>
-                        {ad?.image_url ? (
-                          <Image source={{ uri: ad.image_url }} style={{ width: 280, height: 140 }} />
-                        ) : (
-                          <View style={{ width: 280, height: 140, backgroundColor: COLORS.surface }} />
-                        )}
-                        <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
-                          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>Sponsored</Text>
-                        </View>
-                        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 8, paddingVertical: 4 }}>
-                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }} numberOfLines={1}>{ad?.title || 'Partner Service'}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))
-              }
-            </ScrollView>
-          </View>
-        )}
 
         {/* Medical Journals */}
         <View style={styles.section}>
@@ -715,34 +686,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.primary,
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-    marginBottom: SPACING.sm,
-  },
-  quickAction: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.lg,
-    ...SHADOWS.sm,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.xs,
-  },
-  quickActionEmoji: {
-    fontSize: 24,
-  },
-  quickActionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
+
 });

@@ -95,7 +95,7 @@ export default function BlogPost() {
           )}
 
           <div
-            className="prose prose-lg max-w-none"
+            className="prose prose-lg max-w-none whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 

@@ -45,8 +45,8 @@ export default function AdminDashboard() {
   const [bulkText, setBulkText] = useState("");
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
-  const [blogForm, setBlogForm] = useState({ title: '', content: '', excerpt: '', category: 'Health Tips', tags: '', is_published: true });
-  const [adForm, setAdForm] = useState({ title: '', image_url: '', redirect_url: '', placement: 'home', start_date: '', end_date: '' });
+  const [blogForm, setBlogForm] = useState({ title: '', content: '', excerpt: '', category: 'Health Tips', tags: '', is_published: true, cover_image: '' });
+  const [adForm, setAdForm] = useState({ title: '', image_url: '', redirect_url: '', placement: 'home', start_date: '', end_date: '', doctor_id: '' });
   const [doctorForm, setDoctorForm] = useState({ bio: '', specialties: '', clinic_name: '', consultation_fee: 0, profile_picture: '', is_verified: false, is_active: false });
   const [singleDocForm, setSingleDocForm] = useState({ full_name: '', phone: '', password: 'password123', specialties: '', years_experience: 0, clinic_name: 'HiDoctor Default', clinic_address: 'Main St, City', consultation_fee: 0, bio: '', title: 'Dr.' });
 
@@ -211,13 +211,18 @@ export default function AdminDashboard() {
   const handleCreateBlog = async (e) => {
     e.preventDefault();
     try {
+      let coverImg = blogForm.cover_image?.trim() || '';
+      if (coverImg && coverImg.startsWith('http://')) coverImg = coverImg.replace('http://', 'https://');
+      else if (coverImg && !coverImg.startsWith('http') && !coverImg.startsWith('/')) coverImg = `https://${coverImg}`;
+
       await axios.post(`${API_URL}/api/blog`, {
         ...blogForm,
+        cover_image: coverImg,
         tags: blogForm.tags.split(',').map(t => t.trim()).filter(Boolean)
       }, { headers });
       toast.success('Blog post created!');
       setShowBlogModal(false);
-      setBlogForm({ title: '', content: '', excerpt: '', category: 'Health Tips', tags: '', is_published: true });
+      setBlogForm({ title: '', content: '', excerpt: '', category: 'Health Tips', tags: '', is_published: true, cover_image: '' });
       fetchAllData();
     } catch (error) { toast.error('Failed to create blog post'); }
   };
@@ -225,10 +230,14 @@ export default function AdminDashboard() {
   const handleCreateAd = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_URL}/api/admin/campaigns`, adForm, { headers });
+      let securedImageUrl = adForm.image_url.trim();
+      if (securedImageUrl.startsWith('http://')) securedImageUrl = securedImageUrl.replace('http://', 'https://');
+      else if (!securedImageUrl.startsWith('http') && !securedImageUrl.startsWith('/')) securedImageUrl = `https://${securedImageUrl}`;
+
+      await axios.post(`${API_URL}/api/admin/campaigns`, { ...adForm, image_url: securedImageUrl }, { headers });
       toast.success('Ad created!');
       setShowAdModal(false);
-      setAdForm({ title: '', image_url: '', redirect_url: '', placement: 'home', start_date: '', end_date: '' });
+      setAdForm({ title: '', image_url: '', redirect_url: '', placement: 'home', start_date: '', end_date: '', doctor_id: '' });
       fetchAllData();
     } catch (error) { toast.error('Failed to create ad'); }
   };
@@ -915,6 +924,10 @@ export default function AdminDashboard() {
                 <Input value={blogForm.title} onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })} required placeholder="Blog post title" />
               </div>
               <div>
+                <label className="text-sm font-medium mb-1 block">Cover Image URL</label>
+                <Input value={blogForm.cover_image} onChange={(e) => setBlogForm({ ...blogForm, cover_image: e.target.value })} placeholder="https://example.com/image.png" />
+              </div>
+              <div>
                 <label className="text-sm font-medium mb-1 block">Content *</label>
                 <textarea
                   value={blogForm.content}
@@ -979,6 +992,19 @@ export default function AdminDashboard() {
               <div>
                 <label className="text-sm font-medium mb-1 block">Redirect URL *</label>
                 <Input value={adForm.redirect_url} onChange={(e) => setAdForm({ ...adForm, redirect_url: e.target.value })} required placeholder="https://example.com/landing" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Link to Doctor Profile (App Only)</label>
+                <select
+                  value={adForm.doctor_id}
+                  onChange={(e) => setAdForm({ ...adForm, doctor_id: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg p-2 text-sm"
+                >
+                  <option value="">-- No Doctor Redirect --</option>
+                  {users.filter(u => u.role === 'doctor').map(doc => (
+                    <option key={doc.id} value={doc.id}>{doc.full_name}</option>
+                  ))}
+                </select>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>

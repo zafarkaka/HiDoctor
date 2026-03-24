@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Image,
   Animated,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -180,7 +181,14 @@ export default function PatientHomeScreen({ navigation }) {
                     <TouchableOpacity
                       key={ad?.id || `ad-${idx}`}
                       activeOpacity={0.85}
-                      onPress={() => ad?.id && contentService.trackAdClick(ad.id).catch(() => {})}
+                      onPress={() => {
+                        if (ad?.id) contentService.trackAdClick(ad.id).catch(() => {});
+                        if (ad?.doctor_id) {
+                          navigation.navigate('DoctorProfile', { doctorId: ad.doctor_id });
+                        } else if (ad?.redirect_url) {
+                          Linking.openURL(ad.redirect_url).catch(() => {});
+                        }
+                      }}
                     >
                       <View style={styles.adCard}>
                         {ad?.image_url ? (

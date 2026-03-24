@@ -294,71 +294,133 @@ export const MobileNav = () => {
 
 export const Footer = () => {
   return (
-    <footer className="bg-card border-t border-border py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg">
-                <img src="/logo.png" alt="HiDoctor" className="w-full h-full object-cover" />
+    <footer className="bg-gradient-to-b from-[#fdfbf6] to-[#f5f1e7] border-t border-orange-100/50 pt-16 pb-8 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+          
+          {/* Brand Column */}
+          <div className="md:col-span-4 flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg border-2 border-orange-100 bg-white p-1">
+                <img src="/logo.png" alt="HiDoctor" className="w-full h-full object-contain rounded-xl" />
               </div>
-              <span className="font-bold text-2xl font-outfit">HiDoctor</span>
+              <span className="font-bold text-2xl font-outfit text-slate-800">HiDoctor</span>
             </div>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-slate-600 text-sm leading-relaxed">
               Your trusted healthcare companion. Book appointments, consult doctors, and manage your health journey.
             </p>
+            <div className="mt-2">
+              <h5 className="font-semibold text-slate-800 mb-3 text-sm">Subscribe to Our Newsletter</h5>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input 
+                  type="email" 
+                  placeholder="Enter your email" 
+                  className="px-4 py-2.5 rounded-xl border border-orange-200/60 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-sm flex-1"
+                />
+                <button className="bg-[#f97316] hover:bg-[#ea580c] transition-colors text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-md shadow-orange-500/20 whitespace-nowrap">
+                  Subscribe
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-4">For Patients</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/doctors" className="hover:text-foreground transition-colors">Find Doctors</Link></li>
-              <li><Link to="/blog" className="hover:text-foreground transition-colors">Health Blog</Link></li>
-              <li><Link to="/register" className="hover:text-foreground transition-colors">Create Account</Link></li>
+          {/* For Patients */}
+          <div className="md:col-span-3">
+            <h4 className="font-bold text-slate-800 mb-5 tracking-wide uppercase text-sm">FOR PATIENTS</h4>
+            <ul className="space-y-3 text-sm text-slate-600 font-medium">
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-200" />
+                <Link to="/doctors" className="hover:text-orange-600 transition-colors">Find Doctors</Link>
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-200" />
+                <Link to="/blog" className="hover:text-orange-600 transition-colors">Health Blog</Link>
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-200" />
+                <Link to="/register" className="hover:text-orange-600 transition-colors">Create Account</Link>
+              </li>
+            </ul>
+            <div className="mt-8 space-y-3">
+              <h5 className="font-semibold text-slate-800 text-sm mb-3">Download Our App</h5>
+              <div className="flex gap-3">
+                <a href="#app-store" className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-1.5 flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
+                  <span className="text-xl">🍎</span>
+                  <div className="flex flex-col justify-center">
+                    <span className="text-[8px] opacity-80 uppercase leading-none font-medium">Download on the</span>
+                    <span className="text-[12px] font-semibold leading-tight">App Store</span>
+                  </div>
+                </a>
+                <a href="/download/hidoctor.apk" download className="bg-slate-900 border border-slate-800 text-white rounded-lg px-3 py-1.5 flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm">
+                  <span className="text-xl">▶️</span>
+                  <div className="flex flex-col justify-center">
+                    <span className="text-[8px] opacity-80 uppercase leading-none font-medium">GET IT ON</span>
+                    <span className="text-[12px] font-semibold leading-tight">Google Play</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* For Doctors */}
+          <div className="md:col-span-2">
+            <h4 className="font-bold text-slate-800 mb-5 tracking-wide uppercase text-sm">FOR DOCTORS</h4>
+            <ul className="space-y-3 text-sm text-slate-600 font-medium">
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-200" />
+                <Link to="/register" className="hover:text-orange-600 transition-colors">Join as Doctor</Link>
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-200" />
+                <Link to="/blog" className="hover:text-orange-600 transition-colors">Resources</Link>
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-200" />
+                <Link to="/register" className="hover:text-orange-600 transition-colors">Practice Management Tools</Link>
+              </li>
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-4">For Doctors</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/register" className="hover:text-foreground transition-colors">Join as Doctor</Link></li>
-              <li><Link to="/blog" className="hover:text-foreground transition-colors">Resources</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Support</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <a href="https://wa.me/919894977003" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors flex items-center gap-2">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                  WhatsApp
+          {/* Support */}
+          <div className="md:col-span-3">
+            <h4 className="font-bold text-slate-800 mb-5 tracking-wide uppercase text-sm">SUPPORT</h4>
+            <ul className="space-y-4 text-sm text-slate-600 font-medium">
+              <li className="flex gap-4">
+                <a href="https://wa.me/919894977003" className="flex items-center gap-2 hover:text-green-600 transition-colors">
+                  <span className="text-green-500 text-lg">📱</span> WhatsApp
+                </a>
+                <a href="mailto:support@hidoctor.app" className="flex items-center gap-2 hover:text-blue-600 transition-colors">
+                  <span className="text-blue-500 text-lg">✉️</span> Email
                 </a>
               </li>
-              <li>
-                <a href="mailto:support@hidoctor.app" className="hover:text-foreground transition-colors flex items-center gap-2">
-                  ✉️ Email Support
+              <li className="pt-2"><Link to="/privacy" className="flex items-center gap-2 hover:text-orange-600"><span className="opacity-50 text-base">📄</span> Privacy Policy</Link></li>
+              <li><Link to="/terms" className="flex items-center gap-2 hover:text-orange-600"><span className="opacity-50 text-base">📄</span> Terms of Service</Link></li>
+              <li><a href="#faq" className="flex items-center gap-2 hover:text-orange-600"><span className="opacity-50 text-base">📄</span> FAQs & Help Center</a></li>
+              <li className="pt-2">
+                <a href="mailto:feedback@hidoctor.app" className="inline-block px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 shadow-sm font-medium">
+                  Feedback
                 </a>
               </li>
-              <li><Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
-              <li><Link to="/contact" className="hover:text-foreground transition-colors">Contact / Delete Account</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex flex-col items-center md:items-start">
-            <p className="text-sm text-muted-foreground">
+        {/* Footer Bottom */}
+        <div className="border-t border-slate-200/60 mt-12 pt-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex flex-col items-start">
+            <p className="text-sm font-medium text-slate-700">
               © 2025 HiDoctor. All rights reserved.
             </p>
-            <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-widest font-medium">
-              Made By Mohammed Izyaan - LimraTech
+            <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest font-semibold flex items-center gap-1.5">
+              MADE BY MOHAMMED IZYAN - LIMRATECH
             </p>
           </div>
-          <p className="text-xs text-muted-foreground text-center md:text-right">
-            Medical Disclaimer: This platform is not a substitute for emergency medical care.
-          </p>
+          
+          <div className="bg-slate-200/50 backdrop-blur-sm px-4 py-3 rounded-lg max-w-lg border border-slate-200">
+            <p className="text-xs text-slate-700 leading-tight">
+              <span className="font-bold">MEDICAL DISCLAIMER:</span> For life-threatening emergencies, call your local emergency number immediately. This platform does not substitute for urgent medical care.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

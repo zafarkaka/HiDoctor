@@ -543,6 +543,7 @@ class AdCreate(BaseModel):
     placement: str
     start_date: str
     end_date: str
+    doctor_id: Optional[str] = None
 
 class Notification(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1825,6 +1826,7 @@ async def create_blog_post(post: BlogPostCreate, current_user: dict = Depends(ge
     post_doc["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     await db.blog_posts.insert_one(post_doc)
+    post_doc.pop("_id", None)
     return {"message": "Post created", "post": post_doc}
 
 @api_router.put("/blog/{post_id}")
