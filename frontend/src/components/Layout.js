@@ -329,15 +329,15 @@ export const Footer = () => {
             <div className="mt-4">
               <h5 className="font-semibold text-slate-800 mb-3 text-sm">Follow Us</h5>
               <div className="flex gap-4">
-                <a href="https://facebook.com/hidoctor" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                <a href="https://www.facebook.com/share/17wmWF1gPx/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                   <Facebook size={20} strokeWidth={2} />
                 </a>
-                <a href="https://instagram.com/hidoctor" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors">
+                <a href="https://www.instagram.com/hidoctor.online?igsh=MXQ2Z3pxb3U2aTV3MQ%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors">
                   <Instagram size={20} strokeWidth={2} />
                 </a>
-                <a href="https://youtube.com/hidoctor" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
+                <button onClick={() => alert('Coming Soon!')} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
                   <Youtube size={20} strokeWidth={2} />
-                </a>
+                </button>
               </div>
             </div>
           </div>
