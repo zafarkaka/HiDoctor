@@ -21,7 +21,8 @@ import {
   Activity,
   Download,
   Smartphone,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://hidoctor-production.up.railway.app';
@@ -76,6 +77,49 @@ const stats = [
   { value: '50K+', label: 'Appointments Booked' },
   { value: '4.9', label: 'Average Rating', icon: Star },
 ];
+
+const faqs = [
+  {
+    question: "How do I book an appointment?",
+    answer: "Booking an appointment is easy! Just create a free account, browse our list of specialized doctors, select an available time slot, and confirm your booking. You'll receive a confirmation email instantly."
+  },
+  {
+    question: "Is video consultation secure?",
+    answer: "Yes, all our video consultations are end-to-end encrypted and comply with strict healthcare privacy standards to ensure your medical information remains completely confidential."
+  },
+  {
+    question: "Can I cancel or reschedule my appointment?",
+    answer: "Absolutely. You can manage your appointments directly from your Patient Dashboard. We simply ask that you cancel or reschedule at least 24 hours in advance."
+  },
+  {
+    question: "How do I pay for consultations?",
+    answer: "We accept all major credit cards, debit cards, and UPI payments securely through our platform. Payment is typically processed at the time of booking."
+  },
+  {
+    question: "What if I miss my appointment?",
+    answer: "If you miss an appointment without prior notice, please contact the doctor's clinic directly or reach out to our support team to discuss rescheduling options."
+  }
+];
+
+const FAQAccordion = ({ faq }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border border-slate-200 rounded-2xl mb-4 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
+      >
+        <span className="font-semibold text-slate-800 pr-4">{faq.question}</span>
+        <ChevronDown className={`w-5 h-5 text-orange-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="px-6 pb-6 text-slate-600 leading-relaxed font-light">
+          {faq.answer}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Removed static doctors
 
@@ -476,6 +520,26 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ==================== FAQ SECTION ==================== */}
+      <section id="faq" className="py-20 md:py-28 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge variant="secondary" className="px-4 py-1.5 text-sm bg-blue-50 text-blue-600 border-blue-200/50 rounded-full mb-4">
+              Help & Support
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-slate-900 tracking-tight">Frequently Asked Questions</h2>
+            <p className="text-lg text-slate-500 font-light">
+              Everything you need to know about HiDoctor and our services.
+            </p>
+          </div>
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <FAQAccordion key={index} faq={faq} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ==================== FINAL CTA ==================== */}
       <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -512,7 +576,7 @@ export default function LandingPage() {
                   <div className="relative">
                     <div className="absolute inset-0 bg-white/10 rounded-2xl blur-xl" />
                     <img
-                      src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=500&h=400&fit=crop"
+                      src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=500&h=400&fit=crop"
                       alt="Healthcare professional"
                       className="relative rounded-2xl shadow-2xl"
                     />
