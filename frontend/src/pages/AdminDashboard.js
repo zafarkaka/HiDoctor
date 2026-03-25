@@ -910,6 +910,40 @@ export default function AdminDashboard() {
         </div>
       )}
 
+          {/* Newsletter Subscribers Tab */}
+          <TabsContent value="newsletter">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle>Newsletter Subscribers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {newsletters && newsletters.length > 0 ? (
+                    newsletters.map((sub, idx) => (
+                      <div key={sub.id || idx} className="flex justify-between items-center p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <span className="font-medium block">{sub.email}</span>
+                        </div>
+                        <Badge variant="outline" className="text-muted-foreground whitespace-nowrap">
+                          {new Date(sub.created_at).toLocaleDateString()}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10">
+                      <Mail className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                      <p className="text-muted-foreground">No subscribers yet</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
       {/* Blog Create Modal */}
       {showBlogModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

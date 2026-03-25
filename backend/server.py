@@ -3505,6 +3505,33 @@ async def audio_websocket_endpoint(websocket: WebSocket, appointment_id: str):
         manager.disconnect(websocket, appointment_id)
 
 
+# ============== NEWSLETTER ROUTES ==============
+class NewsletterSubscribe(BaseModel):
+    email: str
+
+@api_router.post("/api/newsletter/subscribe")
+async def subscribe_newsletter(data: NewsletterSubscribe):
+    email = data.email.lower().strip()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+        
+    existing = await db.newsletter_subscribers.find_one({"email": email})
+    if existing:
+        return {"message": "You are already subscribed!"}
+    
+    await db.newsletter_subscribers.insert_one({
+        "id": str(uuid.uuid4()),
+        "email": email,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"message": "Successfully subscribed to the newsletter!"}
+
+@api_router.get("/api/admin/newsletter")
+async def get_newsletter_subscribers(current_admin: dict = Depends(get_admin_user)):
+    subscribers_cursor = db.newsletter_subscribers.find({}, {"_id": 0}).sort("created_at", -1)
+    subscribers = await subscribers_cursor.to_list(length=1000)
+    return {"subscribers": subscribers}
+
 # Attach global API Router
 app.include_router(api_router)
 

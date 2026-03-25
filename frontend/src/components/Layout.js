@@ -28,10 +28,13 @@ import {
   Smartphone,
   Facebook,
   Instagram,
-  Youtube
+  Instagram,
+  Youtube,
+  Mail
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -296,6 +299,24 @@ export const MobileNav = () => {
 };
 
 export const Footer = () => {
+  const [email, setEmail] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    if (!email) return;
+    setSubscribing(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/newsletter/subscribe`, { email });
+      toast.success(res.data.message || 'Subscribed successfully!');
+      setEmail('');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to subscribe. Please try again.');
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
   return (
     <footer className="bg-gradient-to-b from-[#fdfbf6] to-[#f5f1e7] border-t border-orange-100/50 pt-16 pb-8 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -314,16 +335,19 @@ export const Footer = () => {
             </p>
             <div className="mt-2">
               <h5 className="font-semibold text-slate-800 mb-3 text-sm">Subscribe to Our Newsletter</h5>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
                 <input 
                   type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email" 
                   className="px-4 py-2.5 rounded-xl border border-orange-200/60 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-sm flex-1"
+                  required
                 />
-                <button className="bg-[#f97316] hover:bg-[#ea580c] transition-colors text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-md shadow-orange-500/20 whitespace-nowrap">
-                  Subscribe
+                <button type="submit" disabled={subscribing} className="bg-[#f97316] hover:bg-[#ea580c] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-md shadow-orange-500/20 whitespace-nowrap">
+                  {subscribing ? 'Subscribing...' : 'Subscribe'}
                 </button>
-              </div>
+              </form>
             </div>
             
             <div className="mt-4">
@@ -404,7 +428,7 @@ export const Footer = () => {
                   WhatsApp
                 </a>
                 <a href="mailto:support@hidoctor.app" className="flex items-center gap-2 hover:text-blue-600 transition-colors">
-                  <span className="text-blue-500 text-lg">✉️</span> Email
+                  <Mail className="w-5 h-5 text-blue-500" /> Email
                 </a>
               </li>
               <li className="pt-2"><Link to="/privacy" className="flex items-center gap-2 hover:text-orange-600"><span className="opacity-50 text-base">📄</span> Privacy Policy</Link></li>
@@ -426,7 +450,7 @@ export const Footer = () => {
               © 2025 HiDoctor. All rights reserved.
             </p>
             <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest font-semibold flex items-center gap-1.5">
-              MADE BY MOHAMMED IZYAN - LIMRATECH
+              MADE BY MOHAMMED IZYAAN - LIMRATECH
             </p>
           </div>
           
