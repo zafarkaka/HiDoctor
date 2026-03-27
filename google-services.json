@@ -7,12 +7,36 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:341259628119:android:43ee2d60b8e16fa0ec7d12",
+        "mobilesdk_app_id": "1:341259628119:android:14551fae9096032eec7d12",
         "android_client_info": {
           "package_name": "com.limratech.hidoctor"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "341259628119-5rsajui50igoa4ersvpq8553ve2de4h1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.limratech.hidoctor",
+            "certificate_hash": "c3bdc9738c788365b0cfd357583c5fcc743728ea"
+          }
+        },
+        {
+          "client_id": "341259628119-8ivi5k26d8qt2h9vgjcn3np79g9ah6lb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.limratech.hidoctor",
+            "certificate_hash": "24dd195ddb1015e64e48cf37ebceec9d1a965e78"
+          }
+        },
+        {
+          "client_id": "341259628119-vp86g1lei2selb013dfe14p7tv5or3ug.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.limratech.hidoctor",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
         {
           "client_id": "341259628119-ls4ji1527lt2vu2jvipkreg0mua6f4kb.apps.googleusercontent.com",
           "client_type": 3
