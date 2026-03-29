@@ -97,14 +97,13 @@ export const Navbar = () => {
             <Link to="/blog" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Blog
             </Link>
-            <a
-              href="/download/final.apk"
+            <button
+              onClick={() => toast.info('App coming soon to Google Play Store!')}
               className="px-6 py-2 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-all font-semibold flex items-center gap-2 shadow-lg shadow-orange-500/20 active:scale-95"
-              download
             >
               <Smartphone className="w-4 h-4" />
               Download App
-            </a>
+            </button>
 
             {isAuthenticated ? (
               <>
@@ -355,13 +354,13 @@ export const Footer = () => {
             <div className="mt-4">
               <h5 className="font-semibold text-slate-800 mb-3 text-sm">Follow Us</h5>
               <div className="flex gap-4">
-                <a href="https://www.facebook.com/share/17wmWF1gPx/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                <a href="https://www.facebook.com/share/17wmWF1gPx/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#1877F2]/10 flex items-center justify-center text-[#1877F2] hover:bg-[#1877F2]/20 transition-colors">
                   <Facebook size={20} strokeWidth={2} />
                 </a>
-                <a href="https://www.instagram.com/hidoctor.online?igsh=MXQ2Z3pxb3U2aTV3MQ%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition-colors">
+                <a href="https://www.instagram.com/hidoctor.online?igsh=MXQ2Z3pxb3U2aTV3MQ%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#E4405F]/10 flex items-center justify-center text-[#E4405F] hover:bg-[#E4405F]/20 transition-colors">
                   <Instagram size={20} strokeWidth={2} />
                 </a>
-                <button onClick={() => alert('Coming Soon!')} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors">
+                <button onClick={() => toast.info('Coming Soon!')} className="w-10 h-10 rounded-full bg-[#FF0000]/10 flex items-center justify-center text-[#FF0000] hover:bg-[#FF0000]/20 transition-colors">
                   <Youtube size={20} strokeWidth={2} />
                 </button>
               </div>
@@ -388,13 +387,13 @@ export const Footer = () => {
             <div className="mt-8 space-y-3">
               <h5 className="font-semibold text-slate-800 text-sm mb-3">Download Our App</h5>
               <div className="flex gap-3">
-                <a href="/download/final.apk" download className="inline-block hover:opacity-90 transition-opacity">
+                <button onClick={() => toast.info('App coming soon to Google Play Store!')} className="inline-block hover:opacity-90 transition-opacity">
                   <img 
                     src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" 
                     alt="Get it on Google Play" 
                     className="h-12 w-auto object-contain"
                   />
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -436,11 +435,6 @@ export const Footer = () => {
               <li className="pt-2"><Link to="/privacy" className="flex items-center gap-2 hover:text-orange-600"><span className="opacity-50 text-base">📄</span> Privacy Policy</Link></li>
               <li><Link to="/terms" className="flex items-center gap-2 hover:text-orange-600"><span className="opacity-50 text-base">📄</span> Terms of Service</Link></li>
               <li><a href="#faq" className="flex items-center gap-2 hover:text-orange-600"><span className="opacity-50 text-base">📄</span> FAQs & Help Center</a></li>
-              <li className="pt-2">
-                <a href="mailto:feedback@hidoctor.app" className="inline-block px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-slate-700 shadow-sm font-medium">
-                  Feedback
-                </a>
-              </li>
             </ul>
           </div>
         </div>

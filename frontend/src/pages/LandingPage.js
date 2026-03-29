@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -570,14 +571,13 @@ export default function LandingPage() {
                     Take your health on the go. Our Android app gives you instant access to appointments, video calls, health records, and more — right from your pocket.
                   </p>
                   <div className="flex flex-wrap gap-4">
-                    <a
-                      href="/download/final.apk"
+                    <button
+                      onClick={() => toast.info('App coming soon to Google Play Store!')}
                       className="inline-flex items-center justify-center rounded-full bg-white px-10 py-4 text-lg font-bold text-orange-600 hover:bg-orange-50 shadow-2xl transition-all gap-3 hover:scale-105 active:scale-95"
-                      download
                     >
                       <Download className="w-6 h-6" />
-                      Download APK
-                    </a>
+                      Download App
+                    </button>
                   </div>
                   <div className="flex items-center gap-2 opacity-80">
                     <Smartphone className="w-5 h-5" />
