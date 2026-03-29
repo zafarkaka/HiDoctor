@@ -99,7 +99,7 @@ export const Navbar = () => {
               Blog
             </Link>
             <a
-              href="/download/hidoctor.apk"
+              href="/download/final.apk"
               className="px-6 py-2 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-all font-semibold flex items-center gap-2 shadow-lg shadow-orange-500/20 active:scale-95"
               download
             >
@@ -336,14 +336,17 @@ export const Footer = () => {
             <div className="mt-2">
               <h5 className="font-semibold text-slate-800 mb-3 text-sm">Subscribe to Our Newsletter</h5>
               <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email" 
-                  className="px-4 py-2.5 rounded-xl border border-orange-200/60 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-sm flex-1"
-                  required
-                />
+                <div className="relative flex-1">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email" 
+                    className="pl-10 pr-4 py-2.5 w-full rounded-xl border border-orange-200/60 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-sm"
+                    required
+                  />
+                </div>
                 <button type="submit" disabled={subscribing} className="bg-[#f97316] hover:bg-[#ea580c] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-md shadow-orange-500/20 whitespace-nowrap">
                   {subscribing ? 'Subscribing...' : 'Subscribe'}
                 </button>
@@ -386,7 +389,7 @@ export const Footer = () => {
             <div className="mt-8 space-y-3">
               <h5 className="font-semibold text-slate-800 text-sm mb-3">Download Our App</h5>
               <div className="flex gap-3">
-                <a href="/download/hidoctor.apk" download className="inline-block hover:opacity-90 transition-opacity">
+                <a href="/download/final.apk" download className="inline-block hover:opacity-90 transition-opacity">
                   <img 
                     src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" 
                     alt="Get it on Google Play" 

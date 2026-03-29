@@ -89,6 +89,54 @@ async def seed():
             "view_count": 0,
             "created_at": now.isoformat(),
             "updated_at": now.isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Mental Wellness in 2025",
+            "slug": "mental-wellness-2025",
+            "content": "<h1>Prioritizing Mental Health</h1><p>As we navigate modern challenges, maintaining mental equilibrium has never been more important...</p>",
+            "excerpt": "Modern strategies for maintaining peak mental health and emotional resilience.",
+            "author_id": "admin",
+            "author_name": "HiDoctor Health Team",
+            "cover_image": "https://img.freepik.com/free-photo/side-view-man-praying_23-2148408017.jpg",
+            "category": "Mental Health",
+            "tags": ["Mindfulness", "Wellness"],
+            "is_published": True,
+            "view_count": 0,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Nutrition: Eating for Longevity",
+            "slug": "nutrition-longevity",
+            "content": "<h1>Food as Medicine</h1><p>The science of nutrition has evolved. Learn which superfoods are essential for a long and healthy life...</p>",
+            "excerpt": "A guide to the most nutrient-dense foods that promote longevity and vitality.",
+            "author_id": "admin",
+            "author_name": "HiDoctor Health Team",
+            "cover_image": "https://img.freepik.com/free-photo/flat-lay-composition-healthy-vegetables_23-2148853332.jpg",
+            "category": "Nutrition",
+            "tags": ["Diet", "Superfoods"],
+            "is_published": True,
+            "view_count": 0,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Digital Detox: A Guide",
+            "slug": "digital-detox-guide",
+            "content": "<h1>Disconnect to Reconnect</h1><p>In an age of constant notifications, learning to step back from screens is essential for focus and peace...</p>",
+            "excerpt": "Practical steps to reduce screen time and improve your quality of life.",
+            "author_id": "admin",
+            "author_name": "HiDoctor Health Team",
+            "cover_image": "https://img.freepik.com/free-photo/person-holding-their-phone_23-2148301750.jpg",
+            "category": "Lifestyle",
+            "tags": ["Digital Health", "Focus"],
+            "is_published": True,
+            "view_count": 0,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat()
         }
     ]
     

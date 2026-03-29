@@ -101,6 +101,30 @@ const faqs = [
   }
 ];
 
+const blogPreviews = [
+  {
+    title: "10 Tips for a Healthy Heart",
+    excerpt: "Discover the best practices to keep your heart strong and healthy in our latest guide.",
+    date: "March 20, 2025",
+    category: "Health Tips",
+    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop"
+  },
+  {
+    title: "Mental Wellness in the Digital Age",
+    excerpt: "How to maintain your mental peace while navigating the constant digital noise.",
+    date: "March 18, 2025",
+    category: "Wellness",
+    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=300&fit=crop"
+  },
+  {
+    title: "Understanding Child Nutrition",
+    excerpt: "A comprehensive guide for parents to ensure their children get the right nutrients.",
+    date: "March 15, 2025",
+    category: "Pediatrics",
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop"
+  }
+];
+
 const FAQAccordion = ({ faq }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -163,8 +187,25 @@ export default function LandingPage() {
     if (ad.redirect_url) window.open(ad.redirect_url, '_blank');
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(f => ({
+      "@type": "Question",
+      "name": f.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": f.answer
+      }
+    }))
+  };
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* FAQ Schema */}
+      <script type="application/ld+json">
+        {JSON.stringify(faqSchema)}
+      </script>
       {/* Decorative Blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-400/10 rounded-full blur-[120px] animate-blob" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-400/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
@@ -469,6 +510,52 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ==================== BLOG PREVIEW ==================== */}
+      <section className="py-20 bg-slate-50/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <Badge variant="secondary" className="px-4 py-1.5 text-sm bg-orange-500/10 text-orange-600 border-orange-200/50 rounded-full mb-4">
+              Latest Insights
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-slate-900 tracking-tight">Our Medical Blog</h2>
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto font-light">
+              Stay informed with the latest health tips, medical news, and wellness guides from our experts.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {blogPreviews.map((post, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: idx * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <Card className="overflow-hidden card-hover border-border/50 group h-full flex flex-col">
+                  <div className="aspect-video relative overflow-hidden">
+                    <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Badge className="absolute top-4 left-4 bg-white/90 text-orange-600 border-none backdrop-blur-sm">{post.category}</Badge>
+                  </div>
+                  <CardContent className="p-6 flex-1 flex flex-col">
+                    <p className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+                       {post.date}
+                    </p>
+                    <h3 className="text-xl font-bold mb-3 text-slate-900 leading-tight group-hover:text-orange-600 transition-colors">{post.title}</h3>
+                    <p className="text-slate-600 text-sm font-light mb-6 line-clamp-3">
+                      {post.excerpt}
+                    </p>
+                    <Link to="/blog" className="mt-auto text-orange-600 font-bold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
+                      Read Article <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
 
       {/* ==================== DOWNLOAD APP ==================== */}
@@ -484,7 +571,7 @@ export default function LandingPage() {
                   </p>
                   <div className="flex flex-wrap gap-4">
                     <a
-                      href="/download/hidoctor.apk"
+                      href="/download/final.apk"
                       className="inline-flex items-center justify-center rounded-full bg-white px-10 py-4 text-lg font-bold text-orange-600 hover:bg-orange-50 shadow-2xl transition-all gap-3 hover:scale-105 active:scale-95"
                       download
                     >

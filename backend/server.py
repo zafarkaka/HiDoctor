@@ -102,25 +102,30 @@ def normalize_image_url(url: Optional[str]) -> Optional[str]:
     if not url:
         return url
     
-    # Clean whitespace and normalize slashes
     url = url.strip()
     
-    # If it's already a full URL with http/https, just return it
     if url.startswith('http://') or url.startswith('https://'):
-        # If it's a localhost URL, replace it with the live backend URL
         if 'localhost:8001' in url:
             return url.replace('http://localhost:8001', BACKEND_URL).replace('https://localhost:8001', BACKEND_URL)
         return url
     
-    # If it's a relative path starting with uploads/ or /uploads/
-    if url.startswith('/uploads/') or url.startswith('uploads/'):
+    # Remove leading slash for consistency in checks
+    clean_url = url.lstrip('/')
+    
+    if clean_url.startswith('api/uploads/'):
+        return f"{BACKEND_URL}/{clean_url.replace('api/', '')}"
+
+    if clean_url.startswith('uploads/'):
+        return f"{BACKEND_URL}/{clean_url}"
+    
+    if not '/' in clean_url and any(clean_url.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+        return f"{BACKEND_URL}/uploads/{clean_url}"
+        
+    # If it's a relative path but doesn't start with uploads, assume it needs BACKEND_URL
+    if not url.startswith('http'):
         path = url if url.startswith('/') else f"/{url}"
         return f"{BACKEND_URL}{path}"
-    
-    # Fallback: if it's just a filename that looks like it belongs in uploads
-    if not '/' in url and (url.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))):
-        return f"{BACKEND_URL}/uploads/{url}"
-        
+
     return url
 
 app = FastAPI(title="HiDoctor API")
@@ -295,6 +300,7 @@ class DoctorProfile(BaseModel):
     clinic_address: Optional[str] = None
     clinic_coordinates: Optional[Dict[str, float]] = None
     clinic_photos: List[str] = []
+    location: Optional[str] = None
 
 class PushTokenRequest(BaseModel):
     token: str
@@ -335,6 +341,7 @@ class DoctorCreate(BaseModel):
     bio: Optional[str] = None
     profile_image: Optional[str] = None
     phone: Optional[str] = None
+    location: Optional[str] = None
 
 class DoctorUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -355,6 +362,7 @@ class DoctorUpdate(BaseModel):
     bio: Optional[str] = None
     profile_image: Optional[str] = None
     phone: Optional[str] = None
+    location: Optional[str] = None
 
 class AdminDoctorUpdate(DoctorUpdate):
     is_verified: Optional[bool] = None
@@ -521,6 +529,10 @@ class BlogPostCreate(BaseModel):
     is_published: bool = False
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
+
+class NewsletterSubscriber(BaseModel):
+    email: EmailStr
+    subscribed_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class Ad(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1094,7 +1106,11 @@ async def list_doctors(
         ]
     
     if location:
-        query["clinic_address"] = {"$regex": location, "$options": "i"}
+        query["$or"] = query.get("$or", [])
+        query["$or"].extend([
+            {"location": {"$regex": location, "$options": "i"}},
+            {"clinic_address": {"$regex": location, "$options": "i"}}
+        ])
     
     skip = (page - 1) * limit
     doctors = await db.doctors.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
@@ -1593,8 +1609,26 @@ async def get_appointment(appointment_id: str, current_user: dict = Depends(get_
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"ERROR: Fetching appointment {appointment_id}: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+        logger.error(f"Error fetching appointment: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# ============== NEWSLETTER ROUTES ==============
+@api_router.post("/newsletter/subscribe")
+async def subscribe_newsletter(data: NewsletterSubscriber):
+    existing = await db.newsletters.find_one({"email": data.email})
+    if existing:
+        return {"message": "You are already subscribed!"}
+    
+    await db.newsletters.insert_one(data.model_dump())
+    return {"message": "Subscription successful!"}
+
+@api_router.get("/admin/newsletters")
+async def get_all_subscribers(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    subscribers = await db.newsletters.find({}, {"_id": 0}).sort("subscribed_at", -1).to_list(1000)
+    return {"subscribers": subscribers}
 
 @api_router.put("/appointments/{appointment_id}")
 async def update_appointment(appointment_id: str, update: AppointmentUpdate, current_user: dict = Depends(get_current_user)):

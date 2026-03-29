@@ -12,7 +12,7 @@ import {
   CheckCircle, XCircle, Search, Eye, MousePointer,
   FileText, Megaphone, Shield, Plus, Trash2,
   MoreHorizontal, UserCheck, UserX, CreditCard,
-  Sparkles, X, Edit, Stethoscope, UserPlus
+  Sparkles, X, Edit, Stethoscope, UserPlus, Mail
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -49,6 +49,7 @@ export default function AdminDashboard() {
   const [adForm, setAdForm] = useState({ title: '', image_url: '', redirect_url: '', placement: 'home', start_date: '', end_date: '', doctor_id: '' });
   const [doctorForm, setDoctorForm] = useState({ bio: '', specialties: '', clinic_name: '', consultation_fee: 0, profile_picture: '', is_verified: false, is_active: false });
   const [singleDocForm, setSingleDocForm] = useState({ full_name: '', phone: '', password: 'password123', specialties: '', years_experience: 0, clinic_name: 'HiDoctor Default', clinic_address: 'Main St, City', consultation_fee: 0, bio: '', title: 'Dr.' });
+  const [newsletters, setNewsletters] = useState([]);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -56,13 +57,14 @@ export default function AdminDashboard() {
 
   const fetchAllData = async () => {
     try {
-      const [analyticsRes, doctorsRes, usersRes, appointmentsRes, blogsRes, adsRes] = await Promise.all([
+      const [analyticsRes, doctorsRes, usersRes, appointmentsRes, blogsRes, adsRes, newslettersRes] = await Promise.all([
         axios.get(`${API_URL}/api/admin/analytics`, { headers }),
         axios.get(`${API_URL}/api/admin/doctors/pending`, { headers }),
         axios.get(`${API_URL}/api/admin/users`, { headers }),
         axios.get(`${API_URL}/api/admin/appointments`, { headers }),
         axios.get(`${API_URL}/api/admin/blog`, { headers }),
-        axios.get(`${API_URL}/api/admin/campaigns`, { headers })
+        axios.get(`${API_URL}/api/admin/campaigns`, { headers }),
+        axios.get(`${API_URL}/api/admin/newsletters`, { headers })
       ]);
       setAnalytics(analyticsRes.data);
       setPendingDoctors(doctorsRes.data.doctors);
@@ -70,6 +72,7 @@ export default function AdminDashboard() {
       setAppointments(appointmentsRes.data.appointments);
       setBlogs(blogsRes.data.posts);
       setAds(adsRes.data.ads);
+      setNewsletters(newslettersRes.data.subscribers || []);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load admin data');
@@ -342,7 +345,7 @@ export default function AdminDashboard() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="verification" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="verification" className="gap-1">
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Verify</span>
@@ -367,6 +370,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="ads" className="gap-1">
               <Megaphone className="w-4 h-4" />
               <span className="hidden sm:inline">Ads</span>
+            </TabsTrigger>
+            <TabsTrigger value="newsletter" className="gap-1">
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">News</span>
             </TabsTrigger>
             <TabsTrigger value="subscriptions" className="gap-1">
               <CreditCard className="w-4 h-4" />
@@ -707,6 +714,39 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Newsletter Subscribers Tab */}
+          <TabsContent value="newsletter">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle>Newsletter Subscribers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {newsletters && newsletters.length > 0 ? (
+                    newsletters.map((sub, idx) => (
+                      <div key={sub.id || idx} className="flex justify-between items-center p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <span className="font-medium block">{sub.email}</span>
+                        </div>
+                        <Badge variant="outline" className="text-muted-foreground whitespace-nowrap">
+                          {new Date(sub.subscribed_at || sub.created_at).toLocaleDateString()}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10">
+                      <Mail className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                      <p className="text-muted-foreground">No subscribers yet</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -909,40 +949,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-
-          {/* Newsletter Subscribers Tab */}
-          <TabsContent value="newsletter">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Newsletter Subscribers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {newsletters && newsletters.length > 0 ? (
-                    newsletters.map((sub, idx) => (
-                      <div key={sub.id || idx} className="flex justify-between items-center p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <Mail className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <span className="font-medium block">{sub.email}</span>
-                        </div>
-                        <Badge variant="outline" className="text-muted-foreground whitespace-nowrap">
-                          {new Date(sub.created_at).toLocaleDateString()}
-                        </Badge>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-10">
-                      <Mail className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
-                      <p className="text-muted-foreground">No subscribers yet</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
 
       {/* Blog Create Modal */}
       {showBlogModal && (
