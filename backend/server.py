@@ -34,6 +34,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from location_utils import extract_location_from_address
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -1010,6 +1011,11 @@ async def create_doctor_profile(profile: DoctorCreate, current_user: dict = Depe
     profile_doc["email"] = current_user.get("email")
     profile_doc["phone"] = profile.phone if hasattr(profile, 'phone') and profile.phone else current_user.get("phone")
     
+    # Auto-extract location from address if missing
+    if not profile_doc.get("location") and profile.clinic_address:
+        profile_doc["location"] = extract_location_from_address(profile.clinic_address)
+        logger.info(f"Auto-extracted location: {profile_doc['location']} from address: {profile.clinic_address}")
+    
     # Update user record with name if changed
     if profile.full_name:
         await db.users.update_one({"id": current_user["id"]}, {"$set": {"full_name": profile.full_name}})
@@ -1042,6 +1048,11 @@ async def update_doctor_profile(profile: DoctorUpdate, current_user: dict = Depe
             
         if user_update:
             await db.users.update_one({"id": current_user["id"]}, {"$set": user_update})
+
+        # Auto-extract location if address updated but location not explicitly changed
+        if "clinic_address" in update_data and "location" not in update_data:
+            update_data["location"] = extract_location_from_address(update_data["clinic_address"])
+            logger.info(f"Auto-extracted location: {update_data['location']} from address update: {update_data['clinic_address']}")
 
         await db.doctors.update_one({"user_id": current_user["id"]}, {"$set": update_data})
 

@@ -172,9 +172,114 @@ async def seed():
         }
     ]
     
-    for blog in sample_blogs:
-        await db.blog_posts.update_one({"slug": blog["slug"]}, {"$setOnInsert": blog}, upsert=True)
-        
+    # 3. Seed Doctors
+    print("Seeding Doctors...")
+    # Clean up malformed doctors
+    await db.doctors.delete_many({"user_id": "undefined"})
+    await db.users.delete_many({"id": "undefined"})
+
+    sample_doctors = [
+        {
+            "user_id": str(uuid.uuid4()),
+            "full_name": "Dr. Sarah Johnson",
+            "title": "Dr.",
+            "specialties": ["Cardiology"],
+            "years_experience": 15,
+            "consultation_fee": 800.0,
+            "is_verified": True,
+            "is_active": True,
+            "location": "Bangalore",
+            "clinic_name": "Heart Care Center",
+            "clinic_address": "Koramangala, Bangalore, Karnataka",
+            "profile_image": "https://img.freepik.com/free-photo/doctor-with-stethoscope-hospital-background_23-2148827774.jpg",
+            "created_at": now.isoformat()
+        },
+        {
+            "user_id": str(uuid.uuid4()),
+            "full_name": "Dr. Rajesh Kumar",
+            "title": "Dr.",
+            "specialties": ["Dermatology"],
+            "years_experience": 10,
+            "consultation_fee": 600.0,
+            "is_verified": True,
+            "is_active": True,
+            "location": "Chennai",
+            "clinic_name": "Skin & Glow Clinic",
+            "clinic_address": "Adyar, Chennai, Tamil Nadu",
+            "profile_image": "https://img.freepik.com/free-photo/portrait-smiling-male-doctor_23-2148827771.jpg",
+            "created_at": now.isoformat()
+        },
+        {
+            "user_id": str(uuid.uuid4()),
+            "full_name": "Dr. Ananya Reddy",
+            "title": "Dr.",
+            "specialties": ["Pediatrics"],
+            "years_experience": 8,
+            "consultation_fee": 500.0,
+            "is_verified": True,
+            "is_active": True,
+            "location": "Hyderabad",
+            "clinic_name": "Super Kids Hospital",
+            "clinic_address": "Banjara Hills, Hyderabad, Telangana",
+            "profile_image": "https://img.freepik.com/free-photo/female-doctor-white-coat-using-digital-tablet_23-2148827768.jpg",
+            "created_at": now.isoformat()
+        },
+        {
+            "user_id": str(uuid.uuid4()),
+            "full_name": "Dr. Mohammed Ismail",
+            "title": "Dr.",
+            "specialties": ["General Medicine"],
+            "years_experience": 12,
+            "consultation_fee": 400.0,
+            "is_verified": True,
+            "is_active": True,
+            "location": "Vaniyambadi",
+            "clinic_name": "Ismail Care Clinic",
+            "clinic_address": "New Town, Vaniyambadi, Tamil Nadu",
+            "profile_image": "https://img.freepik.com/free-photo/smiling-male-doctor-modern-hospital_23-2148827775.jpg",
+            "created_at": now.isoformat()
+        },
+        {
+            "user_id": str(uuid.uuid4()),
+            "full_name": "Dr. Lakshmi Menon",
+            "title": "Dr.",
+            "specialties": ["Gynecology"],
+            "years_experience": 20,
+            "consultation_fee": 1000.0,
+            "is_verified": True,
+            "is_active": True,
+            "location": "Kochi",
+            "clinic_name": "Kochi Women's Hospital",
+            "clinic_address": "MG Road, Kochi, Kerala",
+            "profile_image": "https://img.freepik.com/free-photo/portrait-female-doctor-hospital_23-2148827769.jpg",
+            "created_at": now.isoformat()
+        }
+    ]
+
+    for doc in sample_doctors:
+        # Check if doctor with same name exists to avoid duplication
+        exists = await db.doctors.find_one({"full_name": doc["full_name"]})
+        if not exists:
+            # Create a corresponding user for each doctor
+            user_doc = {
+                "id": doc["user_id"],
+                "full_name": doc["full_name"],
+                "username": doc["full_name"].lower().replace(' ', '_'),
+                "role": "doctor",
+                "is_verified": True,
+                "created_at": now.isoformat(),
+                "profile_image": doc["profile_image"]
+            }
+            await db.users.insert_one(user_doc)
+            await db.doctors.insert_one(doc)
+            print(f"Seeded doctor: {doc['full_name']} in {doc['location']}")
+        else:
+            # Ensure existing ones are verified and active
+            await db.doctors.update_one(
+                {"full_name": doc["full_name"]}, 
+                {"$set": {"is_verified": True, "is_active": True}}
+            )
+
     print("Seeding complete!")
 
 if __name__ == "__main__":
