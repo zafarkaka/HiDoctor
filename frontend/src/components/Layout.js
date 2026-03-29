@@ -28,7 +28,6 @@ import {
   Smartphone,
   Facebook,
   Instagram,
-  Instagram,
   Youtube,
   Mail
 } from 'lucide-react';
