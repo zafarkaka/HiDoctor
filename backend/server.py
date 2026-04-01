@@ -38,8 +38,20 @@ from location_utils import extract_location_from_address
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000)
 db = client[os.environ['DB_NAME']]
+
+async def check_db_connection():
+    try:
+        # The ping command is cheap and does not require auth.
+        await db.command('ping')
+        logger.info("DATABASE_SUCCESS: MongoDB Atlas connection established.")
+    except Exception as e:
+        logger.error("!!!" * 20)
+        logger.error(f"DATABASE_CRITICAL_FAILURE: Could not connect to MongoDB Atlas.")
+        logger.error(f"Error: {str(e)}")
+        logger.error("Possible causes: IP Whitelist (0.0.0.0/0) not active, incorrect credentials, or cluster paused.")
+        logger.error("!!!" * 20)
 
 # Firebase Admin Initialization
 firebase_service_account = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON')
@@ -145,6 +157,10 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+@app.on_event("startup")
+async def startup_event():
+    await check_db_connection()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
