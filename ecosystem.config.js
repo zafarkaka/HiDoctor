@@ -10,7 +10,7 @@ module.exports = {
             max_restarts: 10,
             restart_delay: 3000,
             env: {
-                MONGO_URL: 'mongodb+srv://zafukaka_db_user:ykxIa4hrUOBBLfKs@hidoctor.kqi4fdu.mongodb.net/?appName=HiDoctor',
+                MONGO_URL: 'mongodb+srv://zafukaka_db_user:EoTd4Tft7ih9p2c6@hidoctor.dcecigo.mongodb.net/?appName=HiDoctor',
                 DB_NAME: 'hidoctor_db',
                 CORS_ORIGINS: '*',
                 JWT_SECRET: 'hidoctor-platform-secret-key-2024-secure',
