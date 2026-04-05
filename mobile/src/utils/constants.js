@@ -1,5 +1,5 @@
 // API Configuration
-export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://hidoctor-production.up.railway.app';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://hidoctor-xreb.onrender.com';
 
 // Colors - Healthcare Professional Theme
 export const COLORS = {
