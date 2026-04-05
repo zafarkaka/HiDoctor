@@ -1,15 +1,23 @@
-- name: Humanized Render Wake-up
-        run: |
-          # Reduced jitter to 5 seconds to minimize GitHub delay
-          sleep 5
+name: ConvertRocket Keep-Alive
+run-name: Deep Wake Ping by ${{ github.actor }}
 
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Humanized Render Wake-up
+        run: |
+          sleep 5
           URL="https://hidoctor-xreb.onrender.com/"
           TIMESTAMP=$(date +%s)
-          
           REFERRERS=("https://www.google.com/" "https://www.bing.com/" "https://duckduckgo.com/")
           SELECTED_REF=${REFERRERS[$RANDOM % ${#REFERRERS[@]}]}
 
-          # Removed -f so the workflow stays green even during a cold boot
           curl -L -s \
             -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -e "$SELECTED_REF" \
@@ -17,7 +25,5 @@
             --retry-delay 5 \
             --connect-timeout 30 \
             -o /dev/null \
-            -w "%{http_code}" \
+            -w "Status: %{http_code}" \
             "$URL?utm_source=organic&v=$TIMESTAMP"
-          
-          echo -e "\nFinished ping at $(date)"
