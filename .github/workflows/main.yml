@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Humanized Render Wake-up (Multi Ping)
         run: |
-          URL="https://hidoctor-xreb.onrender.com/"
+          URL="https://hidoctor-xreb.onrender.com/api/health"
           REFERRERS=("https://www.google.com/" "https://www.bing.com/" "https://duckduckgo.com/")
 
           for i in {1..5}; do
