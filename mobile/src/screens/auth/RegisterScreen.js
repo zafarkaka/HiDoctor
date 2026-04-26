@@ -21,6 +21,7 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
 import { User, Stethoscope, Camera } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
+import { recordStep, wait } from '../../utils/forensics';
 
 const COUNTRY_CODES = [
   { label: 'UAE (+971)', value: '+971', icon: '🇦🇪' },
@@ -40,7 +41,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profilePicture, setProfilePicture] = useState(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
   const [otpCode, setOtpCode] = useState('');
@@ -55,6 +56,19 @@ export default function RegisterScreen({ navigation }) {
     }
     return () => clearInterval(interval);
   }, [resendTimer]);
+
+  // Listener for Automatic SMS Retrieval (Android)
+  React.useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+      // If we are in the "Waiting for OTP" state and a user appears in auth state,
+      // it means Android Auto-Retrieval has successfully logged them in background.
+      if (firebaseUser && confirmData && !loading) {
+        console.log('--- BACKGROUND AUTO-VERIFICATION DETECTED ---');
+        handleVerifyRegister(null, firebaseUser);
+      }
+    });
+    return () => unsubscribe();
+  }, [confirmData]);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -99,22 +113,29 @@ export default function RegisterScreen({ navigation }) {
 
     setLoading(true);
     try {
+      const startTime = new Date().toISOString();
       console.log('--- OTP SEND START ---');
+      console.log('Local Time:', startTime);
       console.log('Phone:', fullPhoneNumber);
+      
       const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
-      console.log('Confirmation object received:', !!confirmation);
+      
+      const endTime = new Date().toISOString();
+      console.log('--- OTP SEND SUCCESS ---');
+      console.log('Server response time:', endTime);
+      
       setConfirmData(confirmation);
       setResendTimer(30);
-      console.log('--- OTP SEND SUCCESS ---');
     } catch (error) {
       console.error('--- OTP SEND ERROR ---');
+      console.error('Local Time:', new Date().toISOString());
       console.error('Error Code:', error.code);
       console.error('Error Message:', error.message);
       console.error('Full Error:', JSON.stringify(error, null, 2));
-      
+
       if (error.code === 'auth/missing-client-identifier') {
         Alert.alert(
-          'Verification Error', 
+          'Verification Error',
           'The app could not be verified. Possible reasons:\n1. Play Integrity API not enabled in Google Cloud.\n2. SHA-1/SHA-256 missing in Firebase.\n3. Package name mismatch.'
         );
       } else if (error.code === 'auth/too-many-requests') {
@@ -130,49 +151,83 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-  const handleVerifyRegister = async () => {
+  const handleVerifyRegister = async (manualCode = null, autoUser = null) => {
     Keyboard.dismiss();
-    if (!otpCode) {
-      Alert.alert('Error', 'Please enter the OTP');
-      return;
-    }
-
-    if (!confirmData) {
-      Alert.alert('Error', 'Session expired. Please request a new OTP.');
-      setConfirmData(null);
-      return;
+    
+    // If not auto-verified, we need a code and a session
+    if (!autoUser) {
+      if (!otpCode && !manualCode) {
+        Alert.alert('Error', 'Please enter the OTP');
+        return;
+      }
+      if (!confirmData) {
+        Alert.alert('Error', 'Session expired. Please request a new OTP.');
+        setConfirmData(null);
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      console.log('--- OTP VERIFY START ---');
-      console.log('Code:', otpCode);
+      await recordStep('VERIFY_CLICKED');
+      console.log('--- VERIFY BUTTON CLICKED ---');
       
-      if (!confirmData || typeof confirmData.confirm !== 'function') {
-        throw new Error('Invalid verification session. Please restart registration.');
-      }
+      let user = autoUser;
 
-      const userCredential = await confirmData.confirm(otpCode);
-      console.log('Firebase verification success for UID:', userCredential?.user?.uid);
-      
-      if (!userCredential?.user) {
-        throw new Error('Verification succeeded but no user was returned.');
-      }
-
-      const firebaseToken = await userCredential.user.getIdToken();
-      console.log('Firebase ID Token secured (length):', firebaseToken?.length);
-
+      // Clean phone number for matching
       let cleanedPhone = phone.replace(/\D/g, '');
       if (cleanedPhone.startsWith('0')) {
         cleanedPhone = cleanedPhone.substring(1);
       }
       const fullPhoneNumber = `${countryCode}${cleanedPhone}`;
 
-      console.log('Sending data to backend:', {
-        name: fullName,
-        phone: fullPhoneNumber,
-        role: role
-      });
+      if (!user) {
+        // IDEMPOTENCY CHECK: If the background listener already logged the user in,
+        // we can skip the .confirm() call which would otherwise throw 'session-expired'.
+        const currentUser = auth().currentUser;
+        if (currentUser && (currentUser.phoneNumber === fullPhoneNumber || currentUser.phoneNumber?.includes(cleanedPhone))) {
+          console.log('--- USER ALREADY LOGGED IN TO FIREBASE (AUTO-DETECTED) ---');
+          user = currentUser;
+          await recordStep('VERIFY_AUTO_USER_DETECTED');
+        } else {
+          await recordStep('VERIFY_NATIVE_CONFIRM_START');
+          console.log('--- OTP MANUAL VERIFY START ---');
+
+          // Final sanity check before calling native confirm
+          if (!confirmData || typeof confirmData.confirm !== 'function') {
+            await recordStep('CRASH_PREVENTED_LOGIC_ERROR');
+            throw new Error('Verification session has been lost. Please request a new OTP.');
+          }
+
+          const codeToUse = manualCode || otpCode;
+          if (!codeToUse || codeToUse.length < 6) {
+            throw new Error('Please enter a valid 6-digit OTP.');
+          }
+
+          // Perform the native Firebase confirmation
+          await recordStep('VERIFY_NATIVE_CONFIRM_EXECUTING');
+          const userCredential = await confirmData.confirm(codeToUse);
+          await recordStep('VERIFY_NATIVE_CONFIRM_SUCCESS');
+          user = userCredential?.user;
+        }
+      } else {
+        console.log('--- OTP AUTO-VERIFY PROCEEDING ---');
+        await recordStep('VERIFY_ALREADY_SET');
+      }
+
+      if (!user) {
+        await recordStep('VERIFY_ERROR_NO_USER_RETURNED');
+        throw new Error('Verification succeeded but no user was returned.');
+      }
+
+      await recordStep('VERIFY_PREPARING_TOKEN');
+      const firebaseToken = await user.getIdToken();
+      console.log('Firebase ID Token secured (length):', firebaseToken?.length);
+      await recordStep('FIREBASE_TOKEN_SECURED');
+
+
+      await recordStep('BACKEND_REGISTER_START');
+      await wait(500); // 0.5s pause to ensure log is written
 
       const result = await register({
         username: fullPhoneNumber, // Backend requires a username
@@ -184,25 +239,38 @@ export default function RegisterScreen({ navigation }) {
         profile_picture: profilePicture || null,
       });
 
+      await recordStep('BACKEND_REGISTER_SUCCESS');
+      await wait(500);
+
       console.log('--- REGISTRATION SUCCESS ---');
 
     } catch (error) {
       console.error('--- REGISTRATION/VERIFY ERROR ---');
-      console.error('Error:', error);
-      
+      console.error('Error Code:', error.code);
+      console.error('Error Message:', error.message);
+      if (error.response) {
+        console.error('API Error Data:', error.response.data);
+      }
+
       let errorMessage = 'Invalid OTP or network error';
-      
+
       if (error.code === 'auth/invalid-verification-code') {
-        errorMessage = 'The OTP code is incorrect.';
+        errorMessage = 'The OTP code is incorrect. Please check and try again.';
       } else if (error.code === 'auth/code-expired') {
-        errorMessage = 'The OTP code has expired.';
+        errorMessage = 'The OTP code has expired. Please request a new code.';
+      } else if (error.code === 'auth/session-expired') {
+        errorMessage = 'The verification session has expired. Please restart the registration process.';
+      } else if (error.code === 'auth/invalid-verification-id') {
+        errorMessage = 'Invalid verification session. This usually happens if you requested a new OTP but entered the old one.';
       } else if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       } else if (error.message) {
         errorMessage = error.message;
       }
 
-      Alert.alert('Registration Failed', errorMessage);
+      // Add the error code suffix if available to help developer debugging
+      const codeSuffix = error.code ? ` (${error.code})` : '';
+      Alert.alert('Registration Failed', errorMessage + codeSuffix);
     } finally {
       setLoading(false);
     }
@@ -255,8 +323,8 @@ export default function RegisterScreen({ navigation }) {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Image 
-                source={require('../../../assets/icon.png')} 
+              <Image
+                source={require('../../../assets/icon.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -327,8 +395,8 @@ export default function RegisterScreen({ navigation }) {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Mobile Number *</Text>
                   <View style={styles.phoneInputContainer}>
-                    <TouchableOpacity 
-                      style={styles.countryCodeSelector} 
+                    <TouchableOpacity
+                      style={styles.countryCodeSelector}
                       onPress={() => setShowCountryPicker(true)}
                     >
                       <Text style={styles.countryCodeText}>{countryCode}</Text>
@@ -401,14 +469,14 @@ export default function RegisterScreen({ navigation }) {
                     autoComplete="sms-otp"
                   />
                 </View>
-                
+
                 <Button
                   title="Verify & Register"
                   onPress={handleVerifyRegister}
                   loading={loading}
                   style={styles.registerButton}
                 />
-                
+
                 <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.md, gap: SPACING.lg }}>
                   <TouchableOpacity
                     onPress={handleSendOTP}

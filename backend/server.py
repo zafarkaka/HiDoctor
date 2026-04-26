@@ -96,14 +96,15 @@ SECRET_KEY = os.environ.get('JWT_SECRET', 'healthcare-platform-secret-key-2024')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
-# Backend URL for absolute image paths
-BACKEND_URL = os.environ.get('BACKEND_URL', 'https://hidoctor-production.up.railway.app').rstrip('/')
+# Backend URL for absolute image paths - Update to Render URL as primary fallback
+BACKEND_URL = os.environ.get('BACKEND_URL', 'https://hidoctor-xreb.onrender.com').rstrip('/')
 
-# Robust production detection: ignore 'localhost' if running on cloud platforms
+# Robust production detection: Update for Render/Railway environment
+IS_RENDER = os.environ.get('RENDER') is not None
 IS_RAILWAY = os.environ.get('RAILWAY_ENVIRONMENT') is not None or os.environ.get('RAILWAY_STATIC_URL') is not None
-if IS_RAILWAY and 'localhost' in BACKEND_URL:
-    logger.info(f"Production detected (Railway). Overriding localhost BACKEND_URL '{BACKEND_URL}' with production default.")
-    BACKEND_URL = 'https://hidoctor-production.up.railway.app'
+if (IS_RAILWAY or IS_RENDER) and 'localhost' in BACKEND_URL:
+    logger.info(f"Production detected. Overriding localhost BACKEND_URL '{BACKEND_URL}' with production default.")
+    BACKEND_URL = 'https://hidoctor-xreb.onrender.com'
 
 if not BACKEND_URL.startswith('http') and not 'localhost' in BACKEND_URL:
     BACKEND_URL = f"https://{BACKEND_URL}"
@@ -151,7 +152,7 @@ security = HTTPBearer()
 # Max Permissive CORS for production stability
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -179,6 +180,21 @@ async def global_exception_handler(request: Request, exc: Exception):
 @api_router.get("/health")
 async def health_check():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+@api_router.get("/auth/diagnostic")
+async def auth_diagnostic():
+    """Verify Firebase Admin configuration status"""
+    has_service_account = os.environ.get('FIREBASE_SERVICE_ACCOUNT_JSON') is not None
+    active_apps = [app.name for app in firebase_admin._apps.values()]
+    
+    return {
+        "firebase_admin_initialized": len(active_apps) > 0,
+        "active_apps": active_apps,
+        "has_service_account_env": has_service_account,
+        "project_id": os.environ.get('GOOGLE_CLOUD_PROJECT', 'not set'),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "advice": "If has_service_account_env is false, SMS verification will fail in production."
+    }
 
 # Create uploads directory
 UPLOADS_DIR = ROOT_DIR / 'uploads'
@@ -672,13 +688,28 @@ async def register(user_data: UserCreate):
         firebase_phone = decoded_token.get('phone_number')
         logger.info(f"Firebase token verified for phone: {firebase_phone}")
         
-        # Phone numbers from Firebase are typically E.164. 
-        if firebase_phone and firebase_phone.replace('+', '') != phone.replace('+', ''):
-             logger.warning(f"Phone mismatch: token={firebase_phone}, provided={phone}. Overriding with token phone.")
-             phone = firebase_phone
+        # More robust phone comparison (normalized digits only)
+        if firebase_phone:
+            normalized_firebase = "".join(filter(str.isdigit, firebase_phone))
+            normalized_provided = "".join(filter(str.isdigit, phone))
+            
+            if normalized_firebase != normalized_provided:
+                 logger.warning(f"Phone mismatch: token_normalized={normalized_firebase}, provided_normalized={normalized_provided}. Overriding.")
+                 phone = firebase_phone
     except Exception as e:
-        logger.error(f"Firebase token verification failed for user {username}: {e}")
-        raise HTTPException(status_code=400, detail=f"Invalid or expired verification session: {str(e)}")
+        error_msg = str(e)
+        logger.error(f"Firebase token verification failed for user {username}: {error_msg}")
+        
+        # Determine if it's a specific Firebase error
+        friendly_msg = "Invalid or expired verification session"
+        if "token has expired" in error_msg.lower():
+            friendly_msg = "Your verification session has expired. Please try again."
+        elif "issued in the future" in error_msg.lower():
+            friendly_msg = "System clock mismatch. Please ensure your device time is correct."
+        elif "mismatched-credential" in error_msg.lower():
+            friendly_msg = "The verification code does not match the session. Please request a new OTP."
+            
+        raise HTTPException(status_code=400, detail=f"{friendly_msg} (Debug: {error_msg})")
 
     # 2. Check if username or phone already exists
     existing_username = await db.users.find_one({"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}})
@@ -991,7 +1022,7 @@ async def upload_profile_picture(
             result = await db.doctors.update_one({"user_id": current_user["id"]}, {"$set": {"profile_image": file_url}})
             logger.info(f"Doctor profile update result: matched={result.matched_count}, modified={result.modified_count}")
             
-        return {"message": "Profile picture updated", "url": file_url}
+        return {"message": "Profile picture updated", "url": normalize_image_url(file_url)}
     except Exception as e:
         logger.error(f"Error in upload_profile_picture: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error during upload: {str(e)}")
@@ -1081,11 +1112,13 @@ async def get_my_doctor_profile_endpoint(current_user: dict = Depends(get_doctor
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
         
-    # Enrich with user info
+    # Enrich with user info and normalize image
     if not profile.get("full_name"):
         profile["full_name"] = current_user.get("full_name")
-    if not profile.get("profile_image"):
-        profile["profile_image"] = current_user.get("profile_image")
+    
+    # Priority: Profile record image -> User record image (which is already normalized)
+    raw_img = profile.get("profile_image") or current_user.get("profile_image")
+    profile["profile_image"] = normalize_image_url(raw_img)
     profile["email"] = current_user.get("email")
     profile["phone"] = current_user.get("phone")
     
@@ -1445,6 +1478,11 @@ async def get_patient_profile(current_user: dict = Depends(get_current_user)):
     profile["full_name"] = current_user.get("full_name", "User")
     profile["email"] = current_user.get("email")
     profile["phone"] = current_user.get("phone")
+    
+    # Normalize profile image
+    raw_img = profile.get("profile_image") or current_user.get("profile_image")
+    profile["profile_image"] = normalize_image_url(raw_img)
+    
     return profile
 
 @api_router.put("/patients/profile")
@@ -2571,7 +2609,7 @@ async def admin_upload_doctor_profile_picture(doctor_id: str, file: UploadFile =
         
         logger.info(f"Admin upload successful. URL: {file_url}. Doctor update: matched={result.matched_count}")
         
-        return {"message": "Doctor profile picture updated by admin", "url": file_url}
+        return {"message": "Doctor profile picture updated by admin", "url": normalize_image_url(file_url)}
     except Exception as e:
         logger.error(f"Error in admin_upload_doctor_profile_picture: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -2600,7 +2638,7 @@ async def doctor_upload_profile_picture(file: UploadFile = File(...), current_us
         await db.users.update_one({"id": doctor_id}, {"$set": {"profile_image": file_url}})
         await db.doctors.update_one({"user_id": doctor_id}, {"$set": {"profile_image": file_url}})
         
-        return {"message": "Profile picture updated", "url": file_url}
+        return {"message": "Profile picture updated", "url": normalize_image_url(file_url)}
     except Exception as e:
         logger.error(f"Error in doctor_upload_profile_picture: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -3156,6 +3194,8 @@ async def get_upcoming_reminders(current_user: dict = Depends(get_current_user))
         # Enrich with details
         if current_user["role"] == UserRole.PATIENT:
             doctor = await db.doctors.find_one({"user_id": apt["doctor_id"]}, {"_id": 0, "full_name": 1, "profile_image": 1})
+            if doctor:
+                doctor["profile_image"] = normalize_image_url(doctor.get("profile_image"))
             apt["doctor"] = doctor
         else:
             patient = await db.users.find_one({"id": apt["patient_id"]}, {"_id": 0, "full_name": 1})
@@ -3570,7 +3610,7 @@ async def audio_websocket_endpoint(websocket: WebSocket, appointment_id: str):
 class NewsletterSubscribe(BaseModel):
     email: str
 
-@api_router.post("/api/newsletter/subscribe")
+@api_router.post("/newsletter/subscribe")
 async def subscribe_newsletter(data: NewsletterSubscribe):
     email = data.email.lower().strip()
     if not email or "@" not in email:
@@ -3587,7 +3627,7 @@ async def subscribe_newsletter(data: NewsletterSubscribe):
     })
     return {"message": "Successfully subscribed to the newsletter!"}
 
-@api_router.get("/api/admin/newsletter")
+@api_router.get("/admin/newsletter")
 async def get_newsletter_subscribers(current_admin: dict = Depends(get_admin_user)):
     subscribers_cursor = db.newsletter_subscribers.find({}, {"_id": 0}).sort("created_at", -1)
     subscribers = await subscribers_cursor.to_list(length=1000)

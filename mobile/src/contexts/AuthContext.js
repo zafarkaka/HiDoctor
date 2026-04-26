@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
+import { recordStep } from '../utils/forensics';
 
 const AuthContext = createContext(null);
 
@@ -91,17 +92,24 @@ export const AuthProvider = ({ children }) => {
     const response = await api.post('/api/auth/register', data);
     const { access_token, user: userDataRaw } = response.data;
 
+    if (!access_token || !userDataRaw) {
+      console.error('Invalid response from registration API:', response.data);
+      throw new Error('Registration succeeded but user profile was not returned. Please try logging in manually.');
+    }
+
     // Graceful fallback to prevent Fatal Null-Stack Navigation Crashes
     const userData = {
       ...userDataRaw,
-      role: userDataRaw.role || data.role || 'patient'
+      role: userDataRaw?.role || data.role || 'patient'
     };
 
     await AsyncStorage.setItem('token', access_token);
     await AsyncStorage.setItem('user', JSON.stringify(userData));
+    await recordStep('AUTH_ASYNC_STORAGE_SAVED');
 
     setToken(access_token);
     setUser(userData);
+    await recordStep('AUTH_CONTEXT_STATE_UPDATED');
     api.setAuthToken(access_token);
 
     return userData;

@@ -18,6 +18,7 @@ import { Card, Badge, Button } from '../../components/UI';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../utils/constants';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { Bell, AlarmClock, Calendar, Clock, UsersRound, Building2 } from 'lucide-react-native';
+import { recordStep } from '../../utils/forensics';
 
 export default function PatientHomeScreen({ navigation }) {
   const { user } = useAuth();

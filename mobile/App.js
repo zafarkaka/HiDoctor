@@ -5,6 +5,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider } from './src/contexts/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import appCheck from '@react-native-firebase/app-check';
+
+// Initialize App Check
+const rnAppCheck = appCheck();
+rnAppCheck.activate('playIntegrity', true);
 
 // Global error tracking for unhandled rejections
 if (!__DEV__) {
@@ -16,7 +21,13 @@ if (!__DEV__) {
   });
 }
 
+import { checkLastStep } from './src/utils/forensics';
+
 export default function App() {
+  React.useEffect(() => {
+    checkLastStep();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <ErrorBoundary>

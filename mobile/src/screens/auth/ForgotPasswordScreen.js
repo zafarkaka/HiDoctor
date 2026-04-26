@@ -34,7 +34,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [phone, setPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
   const [otpCode, setOtpCode] = useState('');
@@ -49,6 +49,19 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
     return () => clearInterval(interval);
   }, [resendTimer]);
+
+  // Listener for Automatic SMS Retrieval (Android)
+  React.useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+      // If we are in the "Waiting for OTP" state and a user appears in auth state,
+      // it means Android Auto-Retrieval has successfully logged them in background.
+      if (firebaseUser && confirmData && !loading) {
+        console.log('--- BACKGROUND AUTO-VERIFICATION DETECTED (RESET) ---');
+        handleVerifyAndReset(null, firebaseUser);
+      }
+    });
+    return () => unsubscribe();
+  }, [confirmData]);
 
   const handleSendOTP = async () => {
     if (!phone) {
@@ -66,7 +79,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     try {
       // First check if phone exists in our DB
       await authService.forgotPassword(fullPhoneNumber);
-      
+
       console.log('--- OTP SEND START ---');
       const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
       setConfirmData(confirmation);
@@ -75,7 +88,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     } catch (error) {
       console.error('--- OTP SEND ERROR ---', error);
       if (error.response?.data?.detail) {
-          Alert.alert('Error', error.response.data.detail);
+        Alert.alert('Error', error.response.data.detail);
       } else if (error.code === 'auth/too-many-requests') {
         Alert.alert('Rate Limit Exceeded', 'Firebase has blocked requests. Try again later.');
       } else {
@@ -86,11 +99,24 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   };
 
-  const handleVerifyAndReset = async () => {
+  const handleVerifyAndReset = async (manualCode = null, autoUser = null) => {
     Keyboard.dismiss();
-    if (!otpCode || !newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+    
+    // Validate fields first
+    if (!newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Please enter and confirm your new password');
       return;
+    }
+
+    if (!autoUser) {
+      if (!otpCode && !manualCode) {
+        Alert.alert('Error', 'Please enter the OTP');
+        return;
+      }
+      if (!confirmData) {
+        Alert.alert('Error', 'Session expired. Please request a new OTP.');
+        return;
+      }
     }
 
     if (newPassword !== confirmPassword) {
@@ -103,26 +129,38 @@ export default function ForgotPasswordScreen({ navigation }) {
       return;
     }
 
-    if (!confirmData) {
-      Alert.alert('Error', 'Session expired. Please request a new OTP.');
-      return;
-    }
-
     setLoading(true);
     try {
-      const userCredential = await confirmData.confirm(otpCode);
-      
-      if (!userCredential?.user) {
-        throw new Error('Verification succeeded but no user was returned.');
-      }
+      let user = autoUser;
 
-      const firebaseToken = await userCredential.user.getIdToken();
-
+      // Clean phone number for matching
       let cleanedPhone = phone.replace(/\D/g, '');
       if (cleanedPhone.startsWith('0')) {
         cleanedPhone = cleanedPhone.substring(1);
       }
       const fullPhoneNumber = `${countryCode}${cleanedPhone}`;
+
+      if (!user) {
+        // IDEMPOTENCY CHECK: Avoid session-expired error if auto-verified in background
+        const currentUser = auth().currentUser;
+        if (currentUser && (currentUser.phoneNumber === fullPhoneNumber || currentUser.phoneNumber?.includes(cleanedPhone))) {
+          console.log('--- USER ALREADY LOGGED IN TO FIREBASE (RESET-AUTO) ---');
+          user = currentUser;
+        } else {
+          console.log('--- OTP MANUAL VERIFY START (RESET) ---');
+          // Perform the native Firebase confirmation
+          const userCredential = await confirmData.confirm(manualCode || otpCode);
+          user = userCredential?.user;
+        }
+      } else {
+        console.log('--- OTP AUTO-VERIFY PROCEEDING (RESET) ---');
+      }
+
+      if (!user) {
+        throw new Error('Verification succeeded but no user was returned.');
+      }
+
+      const firebaseToken = await user.getIdToken();
 
       await authService.resetPassword({
         phone: fullPhoneNumber,
@@ -133,18 +171,31 @@ export default function ForgotPasswordScreen({ navigation }) {
       Alert.alert('Success', 'Password reset successfully!');
       navigation.navigate('Login');
     } catch (error) {
-      console.error('--- RESET ERROR ---', error);
+      console.error('--- RESET ERROR ---');
+      console.error('Error Code:', error.code);
+      console.error('Error Message:', error.message);
+      if (error.response) {
+        console.error('API Error Data:', error.response.data);
+      }
+
       let errorMessage = 'Invalid OTP or network error';
       if (error.code === 'auth/invalid-verification-code') {
-        errorMessage = 'The OTP code is incorrect.';
+        errorMessage = 'The OTP code is incorrect. Please check and try again.';
       } else if (error.code === 'auth/code-expired') {
-        errorMessage = 'The OTP code has expired.';
+        errorMessage = 'The OTP code has expired. Please request a new code.';
+      } else if (error.code === 'auth/session-expired') {
+        errorMessage = 'The verification session has expired. Please request a new OTP.';
+      } else if (error.code === 'auth/invalid-verification-id') {
+        errorMessage = 'Invalid verification session. This usually happens if you requested a new OTP but entered the old one.';
       } else if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      Alert.alert('Reset Failed', errorMessage);
+
+      // Add the error code suffix if available to help developer debugging
+      const codeSuffix = error.code ? ` (${error.code})` : '';
+      Alert.alert('Reset Failed', errorMessage + codeSuffix);
     } finally {
       setLoading(false);
     }
@@ -197,8 +248,8 @@ export default function ForgotPasswordScreen({ navigation }) {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Image 
-                source={require('../../../assets/icon.png')} 
+              <Image
+                source={require('../../../assets/icon.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -216,8 +267,8 @@ export default function ForgotPasswordScreen({ navigation }) {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Mobile Number *</Text>
                   <View style={styles.phoneInputContainer}>
-                    <TouchableOpacity 
-                      style={styles.countryCodeSelector} 
+                    <TouchableOpacity
+                      style={styles.countryCodeSelector}
                       onPress={() => setShowCountryPicker(true)}
                     >
                       <Text style={styles.countryCodeText}>{countryCode}</Text>
@@ -287,14 +338,14 @@ export default function ForgotPasswordScreen({ navigation }) {
                     secureTextEntry
                   />
                 </View>
-                
+
                 <Button
                   title="Verify & Reset Password"
                   onPress={handleVerifyAndReset}
                   loading={loading}
                   style={styles.actionButton}
                 />
-                
+
                 <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.md, gap: SPACING.lg }}>
                   <TouchableOpacity
                     onPress={handleSendOTP}
