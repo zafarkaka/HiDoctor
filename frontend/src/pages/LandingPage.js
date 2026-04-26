@@ -23,13 +23,13 @@ import {
   Download,
   Smartphone,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  Search,
+  MapPin,
+  Users
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://hidoctor-production.up.railway.app';
-if (!process.env.REACT_APP_BACKEND_URL) {
-  console.warn('LandingPage: REACT_APP_BACKEND_URL is missing! Falling back to production default.');
-}
 
 const specialties = [
   { name: 'Cardiology', icon: Heart, color: 'bg-red-100 text-red-600' },
@@ -71,88 +71,71 @@ const specialties = [
   { name: 'Nutrition & Dietetics', icon: Activity, color: 'bg-lime-100 text-lime-600' },
 ];
 
+const MedicalIllustration = () => (
+  <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden">
+    <motion.svg
+      animate={{ 
+        y: [0, -30, 0],
+        rotate: [0, 8, 0],
+        scale: [1, 1.05, 1]
+      }}
+      transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute top-20 right-[-5%] w-[400px] h-[400px] opacity-[0.15] text-orange-600"
+      viewBox="0 0 200 200"
+    >
+      <path fill="currentColor" d="M100 20 L120 80 L180 80 L130 120 L150 180 L100 140 L50 180 L70 120 L20 80 L80 80 Z" />
+    </motion.svg>
+    <motion.div
+      animate={{ 
+        scale: [1, 1.2, 1],
+        opacity: [0.1, 0.3, 0.1],
+        x: [0, 50, 0]
+      }}
+      transition={{ duration: 12, repeat: Infinity }}
+      className="absolute bottom-20 left-[-10%] w-[600px] h-[600px] bg-orange-500/20 rounded-full blur-[120px]"
+    />
+    <div className="absolute top-0 left-0 w-full h-full mesh-orange-red opacity-30" />
+  </div>
+);
 
-const stats = [
-  { value: '35+', label: 'Medical Specialties' },
-  { value: '500+', label: 'Verified Doctors' },
-  { value: '50K+', label: 'Appointments Booked' },
-  { value: '4.9', label: 'Average Rating', icon: Star },
-];
-
-const faqs = [
-  {
-    question: "How do I book an appointment?",
-    answer: "Booking an appointment is easy! Just create a free account, browse our list of specialized doctors, select an available time slot, and confirm your booking. You'll receive a confirmation email instantly."
-  },
-  {
-    question: "Is video consultation secure?",
-    answer: "Yes, all our video consultations are end-to-end encrypted and comply with strict healthcare privacy standards to ensure your medical information remains completely confidential."
-  },
-  {
-    question: "Can I cancel or reschedule my appointment?",
-    answer: "Absolutely. You can manage your appointments directly from your Patient Dashboard. We simply ask that you cancel or reschedule at least 24 hours in advance."
-  },
-  {
-    question: "How do I pay for consultations?",
-    answer: "We accept all major credit cards, debit cards, and UPI payments securely through our platform. Payment is typically processed at the time of booking."
-  },
-  {
-    question: "What if I miss my appointment?",
-    answer: "If you miss an appointment without prior notice, please contact the doctor's clinic directly or reach out to our support team to discuss rescheduling options."
-  }
-];
-
-const blogPreviews = [
-  {
-    title: "10 Tips for a Healthy Heart",
-    excerpt: "Discover the best practices to keep your heart strong and healthy in our latest guide.",
-    date: "March 20, 2025",
-    category: "Health Tips",
-    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop"
-  },
-  {
-    title: "Mental Wellness in the Digital Age",
-    excerpt: "How to maintain your mental peace while navigating the constant digital noise.",
-    date: "March 18, 2025",
-    category: "Wellness",
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=300&fit=crop"
-  },
-  {
-    title: "Understanding Child Nutrition",
-    excerpt: "A comprehensive guide for parents to ensure their children get the right nutrients.",
-    date: "March 15, 2025",
-    category: "Pediatrics",
-    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop"
-  }
-];
-
-const FAQAccordion = ({ faq }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div className="border border-slate-200 rounded-2xl mb-4 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
-      >
-        <span className="font-semibold text-slate-800 pr-4">{faq.question}</span>
-        <ChevronDown className={`w-5 h-5 text-orange-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-      {isOpen && (
-        <div className="px-6 pb-6 text-slate-600 leading-relaxed font-light">
-          {faq.answer}
-        </div>
-      )}
+const FloatingBadge = ({ icon: Icon, text, delay = 0, className }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.5 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay, duration: 1, type: "spring" }}
+    className={`absolute glass-premium px-6 py-3.5 rounded-[2rem] flex items-center gap-4 shadow-2xl border-white/60 z-20 animate-float-complex ${className}`}
+  >
+    <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+      <Icon className="w-6 h-6" />
     </div>
-  );
-};
+    <span className="text-sm font-black text-slate-900 whitespace-nowrap tracking-tight">{text}</span>
+  </motion.div>
+);
 
-// Removed static doctors
+const TrustTicker = () => (
+  <div className="bg-slate-950 py-6 overflow-hidden border-y border-white/5">
+    <div className="flex animate-slide-infinite whitespace-nowrap gap-20">
+      {[...Array(10)].map((_, i) => (
+        <div key={i} className="flex items-center gap-10 opacity-40 grayscale hover:grayscale-0 transition-all cursor-default">
+          <span className="text-white font-black text-xl tracking-[0.2em]">HIDOCTOR EXCELLENCE</span>
+          <div className="w-2 h-2 bg-orange-600 rounded-full" />
+          <span className="text-white font-black text-xl tracking-[0.2em]">VERIFIED CLINICAL CARE</span>
+          <div className="w-2 h-2 bg-red-600 rounded-full" />
+          <span className="text-white font-black text-xl tracking-[0.2em]">ISO 27001 SECURE</span>
+          <div className="w-2 h-2 bg-orange-600 rounded-full" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [topDoctors, setTopDoctors] = useState([]);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
+  const [searchName, setSearchName] = useState('');
+  const [searchLocation, setSearchLocation] = useState('');
 
   useEffect(() => {
     const fetchAds = async () => {
@@ -179,499 +162,439 @@ export default function LandingPage() {
     fetchTopDoctors();
   }, []);
 
-  const handleAdClick = async (ad) => {
-    try {
-      await axios.post(`${API_URL}/api/campaigns/${ad.id}/click`);
-    } catch (error) {
-      console.error('Error tracking click:', error);
-    }
-    if (ad.redirect_url) window.open(ad.redirect_url, '_blank');
+  const handleSearch = (e) => {
+    e.preventDefault();
+    navigate(`/doctors?search=${searchName}&location=${searchLocation}`);
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqs.map(f => ({
-      "@type": "Question",
-      "name": f.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": f.answer
-      }
-    }))
+  const blogPreviews = [
+    {
+      title: "Understanding Modern Telehealth",
+      excerpt: "How digital medicine is revolutionizing the patient experience in 2026.",
+      image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop",
+      category: "Innovation",
+      date: "Oct 24, 2025"
+    },
+    {
+      title: "The Future of Preventive Care",
+      excerpt: "New strategies to stay ahead of your health with early diagnostic tools.",
+      image: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&h=600&fit=crop",
+      category: "Clinical",
+      date: "Oct 20, 2025"
+    },
+    {
+      title: "Holistic Health Trends",
+      excerpt: "Combining clinical excellence with wellness for a complete life approach.",
+      image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop",
+      category: "Wellness",
+      date: "Oct 15, 2025"
+    }
+  ];
+
+  const faqs = [
+    { question: "How do I book an appointment?", answer: "Simply search for a doctor, view their profile, and click the 'Book Now' button to choose an available slot." },
+    { question: "Are the doctors verified?", answer: "Yes, every doctor on our platform undergoes a rigorous 5-step verification process for clinical excellence." },
+    { question: "Can I cancel my booking?", answer: "Yes, you can cancel or reschedule through your dashboard up to 24 hours before the appointment." }
+  ];
+
+  const FAQAccordion = ({ faq }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+      <div className="border-b border-slate-100 last:border-none">
+        <button onClick={() => setIsOpen(!isOpen)} className="w-full py-8 flex justify-between items-center text-left hover:text-orange-600 transition-colors group">
+          <span className="text-xl font-black text-slate-900 group-hover:text-orange-600 tracking-tight">{faq.question}</span>
+          <div className={`w-8 h-8 rounded-full border-2 border-slate-200 flex items-center justify-center transition-transform ${isOpen ? 'rotate-180 border-orange-600 text-orange-600' : ''}`}>
+             <ChevronDown className="w-5 h-5" />
+          </div>
+        </button>
+        <motion.div initial={false} animate={{ height: isOpen ? 'auto' : 0, opacity: isOpen ? 1 : 0 }} className="overflow-hidden">
+          <p className="pb-8 text-slate-500 text-lg font-medium leading-relaxed">{faq.answer}</p>
+        </motion.div>
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* FAQ Schema */}
-      <script type="application/ld+json">
-        {JSON.stringify(faqSchema)}
-      </script>
-      {/* Decorative Blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-400/10 rounded-full blur-[120px] animate-blob" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-400/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
-      <div className="absolute top-[40%] right-[-5%] w-[30%] h-[30%] bg-rose-400/5 rounded-full blur-[100px] animate-blob animation-delay-4000" />
-
+    <div className="min-h-screen bg-[#fcfdfd] font-jakarta overflow-x-hidden">
       <Navbar />
 
       {/* ==================== HERO SECTION ==================== */}
-      <section className="relative pt-24 pb-20 md:pt-36 md:pb-28 hero-mesh">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-8"
-          >
-            {/* Slogan Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.15, duration: 0.5 }}
+      <section className="relative pt-24 pb-48 overflow-hidden">
+        <MedicalIllustration />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-24 items-center">
+            
+            {/* Left Content */}
+            <motion.div 
+              initial={{ opacity: 0, x: -80 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1 }}
+              className="space-y-16"
             >
-              <Badge variant="secondary" className="px-5 py-2 text-sm bg-orange-500/10 text-orange-600 border-orange-200/50 rounded-full backdrop-blur-md">
-                ✨ Your Health, Our Priority — Anytime, Anywhere
-              </Badge>
+              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100 px-6 py-3 rounded-full shadow-lg shadow-orange-500/5">
+                <div className="w-2.5 h-2.5 bg-orange-600 rounded-full animate-ping" />
+                <span className="text-orange-700 text-[11px] font-black uppercase tracking-[0.25em]">Global Clinical Standard 2026</span>
+              </div>
+
+              <h1 className="text-8xl md:text-9xl font-black text-slate-950 leading-[0.85] tracking-tight">
+                Health care <br /> that <br /> <span className="text-orange-600 relative inline-block animate-pulse">
+                  inspires.
+                  <svg className="absolute -bottom-6 left-0 w-full h-6 text-red-500/20" viewBox="0 0 100 10" preserveAspectRatio="none">
+                    <path d="M0 5 Q 25 0, 50 5 T 100 5" fill="none" stroke="currentColor" strokeWidth="8" />
+                  </svg>
+                </span>
+              </h1>
+
+              <p className="text-2xl text-slate-500 leading-relaxed max-w-xl font-bold italic border-l-8 border-orange-500/30 pl-8">
+                "We don't just treat symptoms. We redesign your future health through precision medicine and elite clinical expertise."
+              </p>
+
+              {/* Advanced Search Bar */}
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center bg-white p-4 rounded-[2.5rem] shadow-[0_30px_90px_rgba(239,68,68,0.12)] border border-orange-100/50 max-w-3xl group focus-within:ring-4 ring-orange-500/10 transition-all">
+                <div className="flex-1 flex items-center px-6 w-full border-b sm:border-b-0 sm:border-r border-slate-100 py-5 sm:py-0">
+                  <Search className="w-8 h-8 text-orange-600 mr-5 animate-pulse" />
+                  <input 
+                    type="text" 
+                    placeholder="Doctor, specialty, or clinic..." 
+                    className="w-full bg-transparent border-none focus:ring-0 text-slate-900 placeholder:text-slate-400 font-black text-xl"
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                  />
+                </div>
+                <div className="flex-1 flex items-center px-6 w-full py-5 sm:py-0">
+                  <MapPin className="w-8 h-8 text-red-600 mr-5" />
+                  <input 
+                    type="text" 
+                    placeholder="Near you" 
+                    className="w-full bg-transparent border-none focus:ring-0 text-slate-900 placeholder:text-slate-400 font-black text-xl"
+                    value={searchLocation}
+                    onChange={(e) => setSearchLocation(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full sm:w-auto bg-gradient-to-br from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white rounded-[1.5rem] px-16 py-8 text-xl font-black shadow-2xl shadow-red-600/30 active:scale-95 transition-all shimmer-btn">
+                  Explore Now
+                </Button>
+              </form>
             </motion.div>
 
-            {/* Large Title */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.7 }}
-              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-[0.95]"
+            {/* Right Image Container */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.7, rotate: 5 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ duration: 1.2, delay: 0.2 }}
+              className="relative hidden lg:block"
             >
-              <span className="text-slate-900">Hi</span>
-              <span className="text-gradient">Doctor</span>
-            </motion.h1>
+              <div className="relative z-10 rounded-[5rem] overflow-hidden shadow-[0_60px_120px_rgba(239,68,68,0.15)] border-[15px] border-white group">
+                <img src="/images/hero_doctor_new.png" alt="Elite Specialist" className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-1000" />
+                <div className="absolute inset-0 bg-gradient-to-t from-red-600/30 via-transparent to-transparent mix-blend-overlay" />
+                <div className="absolute top-0 left-0 w-full h-full bg-orange-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              
+              <FloatingBadge 
+                icon={CheckCircle2} 
+                text="100% Elite Verification" 
+                className="-top-12 -right-16 bg-white border-orange-500"
+                delay={0.6}
+              />
+              <FloatingBadge 
+                icon={Video} 
+                text="Ultra-HD Telehealth" 
+                className="top-1/3 -left-24 bg-white border-red-500"
+                delay={0.8}
+              />
+              <FloatingBadge 
+                icon={Smartphone} 
+                text="Unified Health App" 
+                className="-bottom-16 left-1/4 bg-white border-orange-500"
+                delay={1.1}
+              />
 
-            {/* Tagline */}
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-              className="text-2xl md:text-3xl font-semibold text-slate-700 tracking-tight"
-            >
-              Healthcare, Simplified.
-            </motion.p>
-
-            {/* Description */}
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.65, duration: 0.6 }}
-              className="text-lg sm:text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed font-light"
-            >
-              HiDoctor connects you with <strong className="text-slate-700 font-medium">500+ verified specialists</strong> across
-              {' '}<strong className="text-slate-700 font-medium">35+ medical fields</strong>. Book in-person or video consultations
-              in seconds, manage your family's health, and get expert care — all from one platform.
-            </motion.p>
-
-            {/* Trust Indicators */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="flex flex-wrap items-center justify-center gap-5 text-sm text-slate-500"
-            >
-              <span className="flex items-center gap-1.5 bg-white/60 px-4 py-2 rounded-full border border-slate-200/50 backdrop-blur-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-500" /> Verified Doctors
-              </span>
-              <span className="flex items-center gap-1.5 bg-white/60 px-4 py-2 rounded-full border border-slate-200/50 backdrop-blur-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-500" /> Secure & HIPAA Compliant
-              </span>
-              <span className="flex items-center gap-1.5 bg-white/60 px-4 py-2 rounded-full border border-slate-200/50 backdrop-blur-sm">
-                <CheckCircle2 className="w-4 h-4 text-green-500" /> 24/7 Telehealth
-              </span>
-              <span className="flex items-center gap-1.5 bg-white/60 px-4 py-2 rounded-full border border-slate-200/50 backdrop-blur-sm">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> 4.9 Patient Rating
-              </span>
+              <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-200/40 rounded-full blur-[120px] -z-10 animate-pulse" />
+              <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-red-200/40 rounded-full blur-[120px] -z-10 animate-pulse animation-delay-2000" />
             </motion.div>
-
-            {/* CTA Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.95, duration: 0.5 }}
-              className="flex flex-wrap gap-4 justify-center pt-2"
-            >
-              <Button
-                size="xl"
-                onClick={() => navigate('/doctors')}
-                className="bg-orange-600 text-white hover:bg-orange-700 rounded-full px-12 h-14 shadow-2xl shadow-orange-500/25 btn-premium group text-base"
-              >
-                Find a Doctor
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-
-              <Button
-                size="xl"
-                variant="outline"
-                onClick={() => navigate('/register')}
-                className="rounded-full px-12 h-14 border-orange-200 text-orange-700 hover:bg-orange-50 transition-all font-semibold text-base"
-              >
-                Create Free Account
-              </Button>
-            </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
+
+      <TrustTicker />
 
       {/* ==================== TRUST STATS BAR ==================== */}
-      <section className="py-8 bg-white border-y border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center"
+      <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#f97316_1.5px,transparent_1.5px)] [background-size:30px_30px]" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-20">
+            {[
+              { label: 'Total Patients', value: '50k+', icon: Users },
+              { label: 'Top Doctors', value: '1,200+', icon: Stethoscope },
+              { label: 'Success Rate', value: '99.9%', icon: Star },
+              { label: 'Expert Care', value: '24/7', icon: Shield }
+            ].map((stat, idx) => (
+              <motion.div 
+                key={idx} 
+                whileHover={{ y: -10, scale: 1.05 }}
+                className="text-center group"
               >
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  {stat.icon && <stat.icon className="w-6 h-6 fill-amber-400 text-amber-400" />}
-                  <span className="text-3xl md:text-4xl font-bold text-gradient">{stat.value}</span>
+                <div className="flex items-center justify-center gap-4 mb-6">
+                   <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-orange-600 transition-all duration-500">
+                      <stat.icon className="w-8 h-8 text-orange-500 group-hover:text-white" />
+                   </div>
+                   <span className="text-6xl font-black tracking-tighter text-white drop-shadow-[0_0_15px_rgba(249,115,22,0.5)]">{stat.value}</span>
                 </div>
-                <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] group-hover:text-orange-500 transition-colors">{stat.label}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ==================== ADS SECTION ==================== */}
-      {ads.length > 0 && (
-        <section className="py-10 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {ads.map((ad, idx) => (
-                <Card key={idx} className="overflow-hidden cursor-pointer hover:shadow-md transition-all rounded-xl border-slate-100 group" onClick={() => handleAdClick(ad)}>
-                  <div className="flex flex-col h-full">
-                    <div className="w-full h-40 overflow-hidden">
-                      <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    </div>
-                    <CardContent className="p-4 flex flex-col flex-1">
-                      <Badge className="w-fit mb-2 bg-primary/10 text-primary border-none text-[9px] uppercase tracking-wider py-0 px-2">Sponsored</Badge>
-                      <h3 className="text-sm font-bold mb-1 line-clamp-2 leading-tight">{ad.title}</h3>
-                      <p className="text-primary font-semibold text-[10px] flex items-center mt-auto pt-2">
-                        Learn more <ArrowRight className="w-2.5 h-2.5 ml-1" />
-                      </p>
-                    </CardContent>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ==================== SPECIALTIES ==================== */}
-      <section className="py-20 md:py-28 bg-slate-50/70 relative">
+      {/* ==================== BROWSE BY SPECIALTY ==================== */}
+      <section id="specialties" className="py-40 bg-white relative">
+        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-slate-50 to-transparent" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <Badge variant="secondary" className="px-4 py-1.5 text-sm bg-orange-500/10 text-orange-600 border-orange-200/50 rounded-full mb-4">
-              Our Specialties
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-slate-900 tracking-tight">Expertise in Every Field</h2>
-            <p className="text-xl text-slate-500 max-w-2xl mx-auto font-light">
-              Connect with specialized doctors across over 35 categories, ensuring you get the specific care you deserve.
-            </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-24 gap-12">
+            <div className="space-y-6">
+              <h2 className="text-6xl font-black text-slate-950 tracking-tight leading-none">Curated Excellence.</h2>
+              <p className="text-slate-500 text-2xl max-w-xl font-bold leading-relaxed">
+                Elite medical divisions categorized to connect you with the top 0.1% of global specialists.
+              </p>
+            </div>
+            <Link to="/doctors" className="inline-flex items-center bg-slate-950 hover:bg-orange-600 text-white px-12 py-6 rounded-[2rem] font-black gap-4 transition-all group shadow-2xl shadow-slate-950/20 active:scale-95">
+              Full Directory <ArrowRight className="w-6 h-6 group-hover:translate-x-3 transition-transform" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {specialties.slice(0, 12).map((specialty, index) => (
-              <motion.div
-                key={specialty.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                viewport={{ once: true }}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+            {specialties.slice(0, 8).map((spec, idx) => (
+              <motion.div 
+                key={idx}
+                whileHover={{ y: -15, scale: 1.02 }}
+                className="group cursor-pointer bg-slate-50 border border-slate-100 p-12 rounded-[4rem] hover:bg-white hover:shadow-[0_40px_80px_rgba(239,68,68,0.12)] transition-all duration-500 relative overflow-hidden"
+                onClick={() => navigate(`/doctors?specialty=${spec.name}`)}
               >
-                <Card
-                  className="card-hover border-slate-100 group cursor-pointer overflow-hidden"
-                  onClick={() => navigate(`/doctors?specialty=${specialty.name}`)}
-                  data-testid={`specialty-${specialty.name.toLowerCase()}`}
-                >
-                  <CardContent className="p-6 text-center relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-400/0 to-orange-400/5 group-hover:from-orange-400/5 transition-all" />
-                    <div className={`w-16 h-16 rounded-2xl ${specialty.color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-current/10`}>
-                      <specialty.icon className="w-8 h-8" />
-                    </div>
-                    <p className="font-bold text-slate-700 tracking-tight">{specialty.name}</p>
-                  </CardContent>
-                </Card>
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/5 rounded-full group-hover:scale-150 transition-transform duration-700" />
+                <div className={`w-20 h-20 rounded-3xl ${spec.color} flex items-center justify-center mb-10 group-hover:scale-110 transition-transform shadow-xl relative z-10`}>
+                  <spec.icon className="w-10 h-10" />
+                </div>
+                <h3 className="text-3xl font-black text-slate-950 mb-5 relative z-10">{spec.name}</h3>
+                <p className="text-base text-slate-500 font-bold leading-relaxed mb-8 relative z-10">
+                   World-class diagnostics and precision care protocols for your {spec.name.toLowerCase()} health.
+                </p>
+                <div className="flex items-center gap-3 text-red-600 font-black text-xs uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">
+                  Explore Hub <ArrowRight className="w-4 h-4" />
+                </div>
               </motion.div>
             ))}
-          </div>
-
-          <div className="text-center mt-10">
-            <Button variant="outline" onClick={() => navigate('/doctors')} className="rounded-full px-8 h-12 border-orange-200 text-orange-700 hover:bg-orange-50 font-semibold group">
-              View All 35+ Specialties <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
           </div>
         </div>
       </section>
 
-      {/* ==================== FEATURED DOCTORS ==================== */}
-      <section className="py-20 md:py-28 bg-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <Badge variant="secondary" className="px-4 py-1.5 text-sm bg-orange-500/10 text-orange-600 border-orange-200/50 rounded-full mb-4">
-                Top Professionals
-              </Badge>
-              <h2 className="text-4xl md:text-5xl font-bold mb-2 text-slate-900 tracking-tight">Top Rated Doctors</h2>
-              <p className="text-lg text-slate-500 font-light">Meet our most trusted and highest-rated healthcare professionals</p>
-            </div>
-            <Button variant="outline" onClick={() => navigate('/doctors')} className="hidden md:flex rounded-full px-6 border-orange-200 text-orange-700 hover:bg-orange-50">
-              View All
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {loadingDoctors ? (
-              [1, 2, 3].map(i => (
-                <div key={i} className="h-64 bg-slate-100 animate-pulse rounded-2xl" />
-              ))
-            ) : topDoctors.length > 0 ? (
-              topDoctors.map((doctor, index) => (
-                <motion.div
-                  key={doctor.user_id || doctor.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <Card className="overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border-border/50 cursor-pointer group rounded-2xl" onClick={() => navigate(`/doctors/${doctor.user_id || doctor.id}`)}>
-                    <div className="aspect-[4/3] relative overflow-hidden">
-                      {/* Dynamic image resolution: handles already absolute URLs, relative uploads, and fallbacks */}
-                      <img
-                        src={(() => {
-                          const raw = doctor.profile_image;
-                          let finalUrl = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop';
-
-                          if (raw && raw.trim() !== '') {
-                            if (raw.startsWith('http')) {
-                              finalUrl = raw;
-                            } else {
-                              // If it's a relative path, ensure it doesn't double-slash
-                              const cleanPath = raw.startsWith('/') ? raw : `/${raw}`;
-                              finalUrl = `${API_URL}${cleanPath}`;
-                            }
-                          }
-
-                          // LOUD DEBUG LOG to help identify broken links in browser console
-                          if (index === 0) console.log(`IMAGE_DEBUG [${doctor.full_name}]: raw="${raw}" -> final="${finalUrl}"`);
-                          return finalUrl;
-                        })()}
-                        alt={doctor.full_name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          console.error(`IMAGE_LOAD_FAILED for ${doctor.full_name}: ${e.currentTarget.src}`);
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute bottom-4 left-4 right-4 text-white">
-                        <h3 className="font-semibold text-lg">{doctor.full_name}</h3>
-                        <p className="text-white/80 text-sm">{doctor.specialties?.join(', ') || 'Specialist'}</p>
-                      </div>
+      {/* ==================== WHY HIDOCTOR ==================== */}
+      <section className="py-40 bg-slate-950 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-32 items-center">
+            <div className="space-y-16">
+              <h2 className="text-7xl font-black text-white tracking-tight leading-[1.1]">
+                Demand <span className="text-shine">quality</span> <br /> without compromise.
+              </h2>
+              <div className="space-y-10">
+                {[
+                  { title: "Clinical Elite", desc: "Rigorous vetting ensures only the top practitioners join our network.", icon: Stethoscope, color: "bg-orange-500" },
+                  { title: "Military-Grade Security", desc: "Your health records are protected with 256-bit AES encryption.", icon: Shield, color: "bg-red-600" },
+                  { title: "Real-time Ecosystem", desc: "Instant clinical synchronization across your entire digital life.", icon: Smartphone, color: "bg-orange-600" }
+                ].map((item, i) => (
+                  <motion.div 
+                    key={i} 
+                    whileHover={{ x: 20 }}
+                    className="flex gap-8 group cursor-default"
+                  >
+                    <div className={`w-20 h-20 ${item.color} rounded-3xl flex items-center justify-center shadow-2xl group-hover:rotate-12 transition-all duration-500`}>
+                      <item.icon className="w-10 h-10 text-white" />
                     </div>
-                    <CardContent className="p-5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                          <span className="font-bold text-slate-800">{doctor.rating || 5.0}</span>
-                          <span className="text-muted-foreground text-sm">({doctor.review_count || 0} reviews)</span>
-                        </div>
-                        <Button size="sm" className="rounded-full px-5">
-                          Book Now
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-10 text-slate-500">
-                No doctors rated yet.
+                    <div>
+                      <h4 className="text-3xl font-black text-white mb-2 tracking-tight group-hover:text-orange-500 transition-colors">{item.title}</h4>
+                      <p className="text-slate-400 text-lg font-bold leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-            )}
+            </div>
+            <div className="relative">
+               <div className="aspect-square bg-gradient-to-br from-orange-500 to-red-600 rounded-[5rem] shadow-[0_50px_100px_rgba(239,68,68,0.4)] overflow-hidden p-6 animate-float-complex">
+                  <div className="w-full h-full bg-slate-950 rounded-[4rem] relative overflow-hidden flex flex-col items-center justify-center text-center gap-8 border border-white/10">
+                     <div className="relative">
+                        <Stethoscope className="w-32 h-32 text-orange-500 animate-pulse relative z-10" />
+                        <div className="absolute inset-0 bg-orange-600/50 blur-[50px] animate-ping" />
+                     </div>
+                     <div className="space-y-2">
+                        <p className="text-white text-5xl font-black tracking-[0.3em] uppercase">HiDoctor</p>
+                        <p className="text-orange-500 font-black tracking-[0.5em] text-xs uppercase">Premium Clinical AI</p>
+                     </div>
+                     <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-red-600/20 blur-[100px] rounded-full" />
+                     <div className="absolute -top-20 -left-20 w-80 h-80 bg-orange-600/20 blur-[100px] rounded-full" />
+                  </div>
+               </div>
+               <div className="absolute -top-10 -right-10 w-24 h-24 bg-red-500 rounded-full blur-3xl animate-pulse" />
+               <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-orange-500 rounded-full blur-3xl animate-pulse delay-1000" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== TOP RATED SPECIALISTS ==================== */}
+      <section id="doctors" className="py-40 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center text-center mb-32 space-y-6">
+            <Badge className="bg-orange-100 text-orange-700 border-none font-black text-xs px-6 py-2 rounded-full uppercase tracking-widest mb-4">Elite 1% Only</Badge>
+            <h2 className="text-7xl font-black text-slate-950 tracking-tight leading-tight">Elite Clinical Network.</h2>
+            <p className="text-slate-500 text-2xl font-bold max-w-3xl leading-relaxed italic">"Access the most prestigious medical minds, globally recognized for excellence in patient outcomes."</p>
           </div>
 
-          <div className="mt-10 text-center md:hidden">
-            <Button variant="outline" onClick={() => navigate('/doctors')} className="rounded-full px-8">
-              View All Doctors
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-16">
+            {loadingDoctors ? (
+              [1, 2, 3].map(i => <div key={i} className="h-[600px] bg-slate-100 animate-pulse rounded-[4rem]" />)
+            ) : topDoctors.map((doc, idx) => (
+              <motion.div 
+                key={idx}
+                whileHover={{ y: -20 }}
+                className="bg-white rounded-[4.5rem] border border-slate-100 shadow-[0_30px_70px_rgba(239,68,68,0.06)] overflow-hidden flex flex-col group relative"
+              >
+                <div className="relative h-96 overflow-hidden">
+                  <img src={doc.profile_image || `https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=600&h=800&fit=crop`} alt={doc.full_name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                  <div className="absolute top-8 right-8">
+                    <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl border border-white/30 text-white animate-pulse">
+                       <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-10 left-10 right-10">
+                    <p className="text-orange-400 text-xs font-black uppercase tracking-[0.3em] mb-2">{doc.specialties?.[0] || 'Premium Specialist'}</p>
+                    <h3 className="text-4xl font-black text-white tracking-tight">{doc.full_name}</h3>
+                  </div>
+                </div>
+                
+                <div className="p-12 space-y-10 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 bg-orange-50 px-6 py-3 rounded-full border border-orange-100">
+                      <Star className="w-5 h-5 fill-orange-500 text-orange-500" />
+                      <span className="text-orange-700 font-black text-lg">{doc.rating || '5.0'}</span>
+                    </div>
+                    <span className="text-slate-400 text-sm font-black uppercase tracking-widest">{doc.review_count || 150}+ PATIENT REVIEWS</span>
+                  </div>
+
+                  <p className="text-slate-500 text-lg font-bold leading-relaxed border-l-4 border-slate-100 pl-6">
+                    Specializing in advanced clinical pathways with a focus on patient-centric outcomes and precision diagnosis.
+                  </p>
+
+                  <Button 
+                    onClick={() => navigate(`/doctors/${doc.user_id || doc.id}`)}
+                    className="w-full bg-slate-950 hover:bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-[2rem] py-10 text-xl font-black transition-all shadow-2xl shadow-slate-950/20 active:scale-95 group-hover:shadow-red-600/30"
+                  >
+                    Clinical Profile
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== MOBILE APP SECTION ==================== */}
+      <section className="py-48 bg-slate-950 overflow-hidden relative border-y border-white/5">
+        <div className="absolute top-0 right-0 w-[70%] h-full bg-gradient-to-l from-orange-600/10 to-transparent blur-[150px] rounded-full" />
+        <div className="absolute bottom-0 left-0 w-[50%] h-full bg-gradient-to-r from-red-600/10 to-transparent blur-[150px] rounded-full" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-40 items-center">
+            <div className="space-y-16 text-center lg:text-left">
+              <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-2.5 rounded-full text-white/60 font-black text-[10px] uppercase tracking-widest">
+                <Smartphone className="w-4 h-4 text-orange-500" /> Native Experience
+              </div>
+              <h2 className="text-8xl md:text-9xl font-black text-white leading-[0.9] tracking-tighter">
+                Unified <br /> control. <br /> <span className="text-orange-500">Perfected.</span>
+              </h2>
+              <p className="text-slate-400 text-3xl font-bold leading-relaxed max-w-xl mx-auto lg:mx-0">
+                The HiDoctor ecosystem reimagined for your device. Elite care, in your pocket.
+              </p>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-10">
+                <Button className="bg-white hover:bg-orange-50 text-slate-950 px-12 py-12 rounded-[2.5rem] flex items-center gap-6 group transition-all shadow-2xl shadow-white/5 active:scale-95">
+                  <Download className="w-10 h-10 text-orange-600 group-hover:scale-110 transition-transform" />
+                  <div className="text-left">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1.5">Download on</p>
+                    <p className="text-2xl font-black">App Store</p>
+                  </div>
+                </Button>
+                <Button className="bg-slate-900 hover:bg-slate-800 text-white border border-white/10 px-12 py-12 rounded-[2.5rem] flex items-center gap-6 group transition-all shadow-2xl active:scale-95">
+                  <Smartphone className="w-10 h-10 text-red-600 group-hover:scale-110 transition-transform" />
+                  <div className="text-left">
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 leading-none mb-1.5">Get it on</p>
+                    <p className="text-2xl font-black">Play Store</p>
+                  </div>
+                </Button>
+              </div>
+            </div>
+            <motion.div 
+               initial={{ y: 200, opacity: 0, rotate: 10 }}
+               whileInView={{ y: 0, opacity: 1, rotate: 0 }}
+               viewport={{ once: true }}
+               transition={{ duration: 1.5, type: "spring" }}
+               className="relative"
+            >
+              <div className="relative max-w-xl mx-auto group">
+                <img src="/images/app_mockup.png" alt="Mobile App Ecosystem" className="w-full h-auto relative z-10 drop-shadow-[0_100px_150px_rgba(239,68,68,0.4)] group-hover:scale-105 transition-transform duration-1000" />
+                <div className="absolute inset-0 bg-orange-600/30 blur-[150px] -z-10 rounded-full group-hover:bg-red-600/30 transition-colors duration-1000" />
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* ==================== BLOG PREVIEW ==================== */}
-      <section className="py-20 bg-slate-50/50">
+      <section id="blog" className="py-40 bg-white relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <Badge variant="secondary" className="px-4 py-1.5 text-sm bg-orange-500/10 text-orange-600 border-orange-200/50 rounded-full mb-4">
-              Latest Insights
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-slate-900 tracking-tight">Our Medical Blog</h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto font-light">
-              Stay informed with the latest health tips, medical news, and wellness guides from our experts.
-            </p>
+          <div className="text-center mb-32 space-y-8">
+             <h2 className="text-7xl font-black text-slate-950 tracking-tight leading-tight">Clinical Insights.</h2>
+             <p className="text-slate-500 text-2xl font-bold max-w-2xl mx-auto leading-relaxed italic">"Knowledge is the first step to longevity. Explore our elite research hub."</p>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-16">
             {blogPreviews.map((post, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: idx * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="overflow-hidden card-hover border-border/50 group h-full flex flex-col">
-                  <div className="aspect-video relative overflow-hidden">
-                    <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <Badge className="absolute top-4 left-4 bg-white/90 text-orange-600 border-none backdrop-blur-sm">{post.category}</Badge>
+              <motion.div key={idx} whileHover={{ y: -15 }} className="group cursor-pointer">
+                <div className="aspect-[4/3] overflow-hidden rounded-[4rem] mb-12 relative shadow-[0_40px_80px_rgba(0,0,0,0.12)]">
+                  <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                  <div className="absolute top-10 left-10">
+                    <Badge className="bg-white/95 backdrop-blur text-slate-950 border-none font-black text-[11px] uppercase tracking-[0.2em] px-8 py-4 rounded-[1.5rem] shadow-2xl">{post.category}</Badge>
                   </div>
-                  <CardContent className="p-6 flex-1 flex flex-col">
-                    <p className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-                       {post.date}
-                    </p>
-                    <h3 className="text-xl font-bold mb-3 text-slate-900 leading-tight group-hover:text-orange-600 transition-colors">{post.title}</h3>
-                    <p className="text-slate-600 text-sm font-light mb-6 line-clamp-3">
-                      {post.excerpt}
-                    </p>
-                    <Link to="/blog" className="mt-auto text-orange-600 font-bold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-                      Read Article <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  </CardContent>
-                </Card>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent" />
+                </div>
+                <div className="space-y-8 px-6">
+                  <p className="text-orange-600 text-[11px] font-black uppercase tracking-[0.4em]">{post.date}</p>
+                  <h3 className="text-4xl font-black text-slate-950 group-hover:text-orange-600 transition-colors leading-tight tracking-tight">{post.title}</h3>
+                  <p className="text-slate-500 text-xl font-bold leading-relaxed line-clamp-2">{post.excerpt}</p>
+                  <Link to="/blog" className="inline-flex items-center text-slate-950 font-black gap-4 group/link text-sm uppercase tracking-[0.3em]">
+                    Read Full Study <ArrowRight className="w-6 h-6 group-hover/link:translate-x-3 transition-transform text-red-600" />
+                  </Link>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-
-
-      {/* ==================== DOWNLOAD APP ==================== */}
-      <section className="py-16 bg-slate-50/70">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="glass-premium overflow-hidden border-0 bg-gradient-premium text-white rounded-[2rem]">
-            <CardContent className="p-10 md:p-16">
-              <div className="grid md:grid-cols-2 gap-10 items-center">
-                <div className="space-y-6">
-                  <h3 className="text-3xl md:text-4xl font-bold">Experience HiDoctor on Mobile</h3>
-                  <p className="text-lg text-white/90 font-light leading-relaxed">
-                    Take your health on the go. Our Android app gives you instant access to appointments, video calls, health records, and more — right from your pocket.
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <button
-                      onClick={() => toast.info('App coming soon to Google Play Store!')}
-                      className="inline-flex items-center justify-center rounded-full bg-white px-10 py-4 text-lg font-bold text-orange-600 hover:bg-orange-50 shadow-2xl transition-all gap-3 hover:scale-105 active:scale-95"
-                    >
-                      <Download className="w-6 h-6" />
-                      Download App
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 opacity-80">
-                    <Smartphone className="w-5 h-5" />
-                    <span className="text-sm font-medium tracking-wide">Version 1.0.0 · Android</span>
-                  </div>
-                </div>
-                <div className="hidden md:flex justify-center">
-                  <div className="relative">
-                    <div className="absolute -inset-8 bg-white/10 rounded-[2rem] blur-2xl" />
-                    <div className="relative bg-white/10 rounded-[2rem] p-8 backdrop-blur-sm border border-white/20">
-                      <div className="space-y-4 text-center">
-                        <Smartphone className="w-16 h-16 mx-auto text-white/80" />
-                        <h4 className="text-2xl font-bold">HiDoctor App</h4>
-                        <div className="flex items-center justify-center gap-1">
-                          {[1, 2, 3, 4, 5].map(i => (
-                            <Star key={i} className="w-5 h-5 fill-amber-300 text-amber-300" />
-                          ))}
-                        </div>
-                        <p className="text-white/70 text-sm">Rated 4.9 by our users</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
       {/* ==================== FAQ SECTION ==================== */}
-      <section id="faq" className="py-20 md:py-28 bg-slate-50">
+      <section id="faq" className="py-40 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Badge variant="secondary" className="px-4 py-1.5 text-sm bg-blue-50 text-blue-600 border-blue-200/50 rounded-full mb-4">
-              Help & Support
-            </Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-slate-900 tracking-tight">Frequently Asked Questions</h2>
-            <p className="text-lg text-slate-500 font-light">
-              Everything you need to know about HiDoctor and our services.
-            </p>
+          <div className="text-center mb-32 space-y-8">
+            <h2 className="text-7xl font-black text-slate-950 tracking-tight leading-tight">Patient Support.</h2>
+            <p className="text-slate-500 text-2xl font-bold italic leading-relaxed">"Every query answered with clinical precision."</p>
           </div>
           <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <FAQAccordion key={index} faq={faq} />
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="bg-white rounded-[3rem] px-10 border border-slate-100 shadow-sm hover:shadow-xl hover:border-orange-100 transition-all mb-6">
+                <FAQAccordion faq={faq} />
+              </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ==================== FINAL CTA ==================== */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="overflow-hidden border-0 bg-primary rounded-[2rem]">
-            <CardContent className="p-10 md:p-16">
-              <div className="grid md:grid-cols-2 gap-10 items-center">
-                <div className="text-white space-y-6">
-                  <h2 className="text-3xl md:text-5xl font-bold leading-tight">Ready to take control of your health?</h2>
-                  <p className="text-white/80 text-lg font-light leading-relaxed">
-                    Join thousands of patients who trust HiDoctor for seamless, secure, and professional healthcare. Create your free account today and book your first appointment in under 60 seconds.
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <Button
-                      size="lg"
-                      variant="secondary"
-                      onClick={() => navigate('/register')}
-                      className="rounded-full px-8 h-14 text-base"
-                      data-testid="cta-signup-btn"
-                    >
-                      Create Free Account
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      onClick={() => navigate('/doctors')}
-                      className="rounded-full px-8 h-14 border-white/30 text-white hover:bg-white/10 text-base"
-                    >
-                      Explore Doctors
-                    </Button>
-                  </div>
-                </div>
-                <div className="hidden md:flex justify-end">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-white/10 rounded-2xl blur-xl" />
-                    <img
-                      src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=500&h=400&fit=crop"
-                      alt="Healthcare professional"
-                      className="relative rounded-2xl shadow-2xl"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </section>
 
