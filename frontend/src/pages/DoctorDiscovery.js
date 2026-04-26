@@ -123,46 +123,45 @@ export default function DoctorDiscovery() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfdfd] font-jakarta overflow-x-hidden">
+    <div className="min-h-screen bg-[#fcfdfd] font-jakarta overflow-x-hidden scale-[0.92] origin-top">
       <Navbar />
 
-      {/* ==================== HERO HEADER ==================== */}
-      <section className="relative pt-28 pb-40 bg-slate-950 overflow-hidden">
-        <div className="absolute inset-0 mesh-orange-red opacity-30" />
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-orange-600/20 to-transparent blur-[120px]" />
+      {/* ==================== HERO HEADER (Condensed) ==================== */}
+      <section className="relative pt-16 pb-20 bg-slate-950 overflow-hidden">
+        <div className="absolute inset-0 mesh-orange-red opacity-20" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
+            className="space-y-6"
           >
-            <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest">
+            <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 px-5 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest">
               Live Network Status: Optimizing
             </Badge>
-            <h1 className="text-7xl md:text-8xl font-black text-white tracking-tighter leading-none">
+            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
               Find <span className="text-shine">Excellence.</span>
             </h1>
-            <p className="text-slate-400 text-2xl font-bold max-w-2xl mx-auto leading-relaxed italic">
+            <p className="text-slate-400 text-lg font-bold max-w-xl mx-auto leading-relaxed italic opacity-80">
               "Access the world's most prestigious clinical specialists with a single click."
             </p>
 
-            {/* Advanced Search Bar (Large) */}
-            <div className="max-w-5xl mx-auto mt-16 p-3 bg-white/5 backdrop-blur-3xl rounded-[3rem] border border-white/10 shadow-2xl">
-              <div className="flex flex-col md:flex-row items-center gap-2">
-                <div className="flex-1 flex items-center px-8 py-5 gap-5 border-b md:border-b-0 md:border-r border-white/10">
-                   <Search className="w-8 h-8 text-orange-500 animate-pulse" />
+            {/* Compact Search Bar */}
+            <div className="max-w-4xl mx-auto mt-10 p-2 bg-white/5 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl">
+              <div className="flex flex-col md:flex-row items-center gap-1">
+                <div className="flex-1 flex items-center px-6 py-4 gap-4 border-b md:border-b-0 md:border-r border-white/10">
+                   <Search className="w-6 h-6 text-orange-500 animate-pulse" />
                    <input 
                     type="text" 
                     placeholder="Search name, clinic, or specialty..." 
-                    className="w-full bg-transparent border-none focus:ring-0 text-white placeholder:text-slate-500 font-black text-xl"
+                    className="w-full bg-transparent border-none focus:ring-0 text-white placeholder:text-slate-500 font-black text-lg"
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                    />
                 </div>
-                <div className="flex-1 flex items-center px-8 py-5 gap-5">
-                   <MapPin className="w-8 h-8 text-red-500" />
+                <div className="flex-1 flex items-center px-6 py-4 gap-4">
+                   <MapPin className="w-6 h-6 text-red-500" />
                    <select 
-                    className="w-full bg-transparent border-none focus:ring-0 text-white font-black text-xl appearance-none cursor-pointer"
+                    className="w-full bg-transparent border-none focus:ring-0 text-white font-black text-lg appearance-none cursor-pointer"
                     value={filters.location}
                     onChange={(e) => handleFilterChange('location', e.target.value)}
                    >
@@ -172,8 +171,8 @@ export default function DoctorDiscovery() {
                      ))}
                    </select>
                 </div>
-                <Button className="w-full md:w-auto bg-gradient-to-br from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white rounded-[2rem] px-16 py-8 text-xl font-black shadow-2xl active:scale-95 transition-all shimmer-btn">
-                  Refresh Grid
+                <Button className="w-full md:w-auto bg-gradient-to-br from-orange-600 to-red-600 text-white rounded-xl px-12 py-6 text-lg font-black shadow-xl active:scale-95 transition-all">
+                  Refresh
                 </Button>
               </div>
             </div>
@@ -181,74 +180,73 @@ export default function DoctorDiscovery() {
         </div>
       </section>
 
-      {/* ==================== MAIN CONTENT GRID ==================== */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid lg:grid-cols-[380px,1fr] gap-16 items-start">
+      {/* ==================== MAIN CONTENT GRID (Condensed) ==================== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid lg:grid-cols-[320px,1fr] gap-10 items-start">
           
-          {/* STICKY SIDEBAR FILTERS */}
-          <aside className="sticky top-32 space-y-12 sidebar-scroll">
+          {/* STICKY SIDEBAR FILTERS (Condensed) */}
+          <aside className="sticky top-24 space-y-8 sidebar-scroll">
             
             {/* AI Assistant Card */}
             <motion.div 
-              whileHover={{ scale: 1.02 }}
-              className="bg-slate-950 rounded-[3rem] p-10 border border-white/10 shadow-2xl relative overflow-hidden group"
+              whileHover={{ scale: 1.01 }}
+              className="bg-slate-950 rounded-[2.5rem] p-8 border border-white/10 shadow-xl relative overflow-hidden group"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-red-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10 space-y-6">
-                <div className="w-16 h-16 bg-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-600/30">
-                   <Bot className="w-8 h-8 text-white animate-bounce" />
+              <div className="relative z-10 space-y-4">
+                <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                   <Bot className="w-6 h-6 text-white animate-bounce" />
                 </div>
-                <h3 className="text-3xl font-black text-white tracking-tight leading-none">Diagnostic Assistant</h3>
-                <p className="text-slate-400 font-bold text-base leading-relaxed italic">"Feeling unusual? Our clinical AI will match you with the perfect specialist based on your symptoms."</p>
+                <h3 className="text-2xl font-black text-white tracking-tight">AI Assistant</h3>
+                <p className="text-slate-400 font-bold text-sm leading-relaxed italic opacity-80">"Feeling unusual? Our AI will match you with the perfect specialist."</p>
                 <Button 
                   onClick={() => setShowAiModal(true)}
-                  className="w-full bg-white hover:bg-orange-50 text-slate-950 rounded-2xl py-6 font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                  className="w-full bg-white hover:bg-orange-50 text-slate-950 rounded-xl py-5 font-black text-[10px] uppercase tracking-widest active:scale-95"
                 >
-                  Start AI Consultation
+                  Start Consultation
                 </Button>
               </div>
             </motion.div>
 
             {/* Filter Section */}
-            <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-xl space-y-12">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <Filter className="w-5 h-5 text-orange-600" />
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-lg space-y-8">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Filter className="w-4 h-4 text-orange-600" />
                   </div>
-                  <h4 className="text-2xl font-black text-slate-950 tracking-tight">Precision Filters</h4>
+                  <h4 className="text-xl font-black text-slate-950 tracking-tight">Filters</h4>
                 </div>
                 <button 
                   onClick={() => setFilters({ search: '', specialty: '', consultation_type: '', min_fee: '', max_fee: '', location: '', page: 1 })}
-                  className="text-xs font-black text-slate-400 hover:text-red-600 uppercase tracking-widest transition-colors"
+                  className="text-[9px] font-black text-slate-400 hover:text-red-600 uppercase tracking-widest"
                 >
                   Reset
                 </button>
               </div>
 
               {/* Specialty Grid Selection */}
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Select Specialty</label>
-                <div className="grid grid-cols-1 gap-3">
-                  {['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology'].map(spec => (
+              <div className="space-y-4">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Specialty</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics'].map(spec => (
                     <button
                       key={spec}
                       onClick={() => handleFilterChange('specialty', spec)}
-                      className={`flex items-center justify-between px-6 py-4 rounded-2xl border transition-all font-black text-sm tracking-tight ${
+                      className={`flex items-center justify-between px-5 py-3 rounded-xl border transition-all font-black text-xs ${
                         filters.specialty === spec 
-                        ? 'bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-600/20 scale-[1.02]' 
+                        ? 'bg-orange-600 border-orange-600 text-white shadow-md' 
                         : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-orange-300'
                       }`}
                     >
                       {spec}
-                      {filters.specialty === spec && <ChevronRight className="w-4 h-4" />}
+                      {filters.specialty === spec && <ChevronRight className="w-3 h-3" />}
                     </button>
                   ))}
                   <Select value={filters.specialty} onValueChange={(v) => handleFilterChange('specialty', v)}>
-                    <SelectTrigger className="rounded-2xl h-16 border-slate-100 bg-slate-50 font-black text-slate-600 focus:ring-orange-500">
+                    <SelectTrigger className="rounded-xl h-12 border-slate-100 bg-slate-50 font-black text-xs text-slate-600">
                       <SelectValue placeholder="More Specialties..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-slate-100 font-black text-slate-600">
+                    <SelectContent className="rounded-xl border-slate-100 font-black text-xs">
                       {specialties.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -256,24 +254,24 @@ export default function DoctorDiscovery() {
               </div>
 
               {/* Consultation Type */}
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Mode of Care</label>
-                <div className="flex flex-col gap-4">
+              <div className="space-y-4">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mode of Care</label>
+                <div className="flex flex-col gap-3">
                   {[
-                    { id: 'video', label: 'Video Consultation', icon: Video },
-                    { id: 'hospital', label: 'In-Clinic Visit', icon: Home }
+                    { id: 'video', label: 'Video', icon: Video },
+                    { id: 'hospital', label: 'In-Clinic', icon: Home }
                   ].map(type => (
                     <button
                       key={type.id}
                       onClick={() => handleFilterChange('consultation_type', type.id)}
-                      className={`flex items-center gap-5 p-6 rounded-2xl border transition-all ${
+                      className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
                         filters.consultation_type === type.id
-                        ? 'bg-red-50 border-red-200 text-red-700 shadow-sm'
+                        ? 'bg-red-50 border-red-200 text-red-700'
                         : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white'
                       }`}
                     >
-                      <type.icon className={`w-6 h-6 ${filters.consultation_type === type.id ? 'text-red-600' : 'text-slate-400'}`} />
-                      <span className="font-black text-sm tracking-tight">{type.label}</span>
+                      <type.icon className={`w-5 h-5 ${filters.consultation_type === type.id ? 'text-red-600' : 'text-slate-400'}`} />
+                      <span className="font-black text-xs tracking-tight">{type.label}</span>
                     </button>
                   ))}
                 </div>
@@ -281,207 +279,123 @@ export default function DoctorDiscovery() {
             </div>
           </aside>
 
-          {/* DOCTOR RESULTS AREA */}
-          <main className="space-y-12">
+          {/* DOCTOR RESULTS AREA (Condensed) */}
+          <main className="space-y-8">
             
             {/* Active Filters Bar */}
-            <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
                <div className="flex items-center gap-4">
-                  <span className="text-slate-400 text-xs font-black uppercase tracking-widest">Active Results:</span>
-                  <Badge className="bg-orange-50 text-orange-600 border-orange-100 font-black px-4 py-1.5 rounded-full text-[10px] uppercase tracking-wider">
+                  <Badge className="bg-orange-50 text-orange-600 border-orange-100 font-black px-4 py-1.5 rounded-full text-[9px] uppercase tracking-wider">
                      {doctors.length} Verified Specialists
                   </Badge>
                </div>
                <div className="flex gap-4">
-                  <Button variant="ghost" className="rounded-xl font-black text-xs text-slate-400 hover:text-orange-600 tracking-widest">MAP VIEW</Button>
-                  <Button variant="ghost" className="rounded-xl font-black text-xs text-slate-400 hover:text-orange-600 tracking-widest">SORT: RATING</Button>
+                  <Button variant="ghost" className="rounded-lg font-black text-[10px] text-slate-400 hover:text-orange-600 tracking-widest">MAP</Button>
+                  <Button variant="ghost" className="rounded-lg font-black text-[10px] text-slate-400 hover:text-orange-600 tracking-widest">SORT</Button>
                </div>
             </div>
 
             {/* Doctor Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {loading ? (
-                [1,2,3,4].map(i => <Skeleton key={i} className="h-[550px] rounded-[4rem] bg-slate-50" />)
+                [1,2,3,4].map(i => <Skeleton key={i} className="h-96 rounded-[3rem] bg-slate-50" />)
               ) : doctors.length > 0 ? (
                 doctors.map((doc, idx) => (
                   <motion.div
                     key={idx}
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    whileHover={{ y: -15 }}
-                    className="bg-white rounded-[4.5rem] border border-slate-100 shadow-[0_30px_70px_rgba(239,68,68,0.06)] overflow-hidden flex flex-col group relative"
+                    whileHover={{ y: -8 }}
+                    className="bg-white rounded-[3.5rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col group relative"
                   >
                     {/* Header Image Part */}
-                    <div className="relative h-80 overflow-hidden">
+                    <div className="relative h-64 overflow-hidden">
                       <img 
                         src={doc.profile_image || `https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=600&h=800&fit=crop`} 
                         alt={doc.full_name} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-                      <div className="absolute top-8 right-8">
-                        <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30 text-white flex items-center gap-2">
-                           <Shield className="w-4 h-4 text-orange-400" />
-                           <span className="text-[10px] font-black uppercase tracking-widest">Verified Elite</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                      <div className="absolute top-6 right-6">
+                        <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30 text-white flex items-center gap-2">
+                           <Shield className="w-3 h-3 text-orange-400" />
+                           <span className="text-[8px] font-black uppercase tracking-widest">Verified</span>
                         </div>
                       </div>
-                      <div className="absolute bottom-8 left-10">
-                         <div className="flex items-center gap-3 mb-2">
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
-                            <span className="text-green-400 text-[10px] font-black uppercase tracking-[0.2em]">Ready for Consultation</span>
-                         </div>
-                         <h3 className="text-4xl font-black text-white tracking-tight leading-none">{doc.full_name}</h3>
+                      <div className="absolute bottom-6 left-8">
+                         <h3 className="text-2xl font-black text-white tracking-tight leading-none">{doc.full_name}</h3>
                       </div>
                     </div>
 
                     {/* Content Part */}
-                    <div className="p-10 space-y-10 flex-1 flex flex-col">
+                    <div className="p-8 space-y-6 flex-1 flex flex-col">
                        <div className="flex items-center justify-between">
                           <div className="space-y-1">
-                             <p className="text-orange-600 font-black text-xs uppercase tracking-widest">{doc.specialties?.[0] || 'Premium Specialist'}</p>
+                             <p className="text-orange-600 font-black text-[10px] uppercase tracking-widest">{doc.specialties?.[0] || 'Specialist'}</p>
                              <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-slate-400" />
-                                <span className="text-slate-500 font-black text-sm tracking-tight">{doc.location}</span>
+                                <MapPin className="w-3 h-3 text-slate-400" />
+                                <span className="text-slate-500 font-black text-xs tracking-tight">{doc.location}</span>
                              </div>
                           </div>
-                          <div className="flex flex-col items-end">
-                             <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-100">
-                                <Star className="w-4 h-4 fill-orange-500 text-orange-500" />
-                                <span className="text-orange-700 font-black text-base">{doc.rating || '5.0'}</span>
-                             </div>
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{doc.review_count || 120}+ REVIEWS</span>
+                          <div className="flex items-center gap-2 bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                             <Star className="w-3 h-3 fill-orange-500 text-orange-500" />
+                             <span className="text-orange-700 font-black text-sm">{doc.rating || '5.0'}</span>
                           </div>
                        </div>
 
-                       <div className="grid grid-cols-2 gap-6 py-6 border-y border-slate-50">
-                          <div className="space-y-1">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Consultation Fee</p>
-                             <p className="text-2xl font-black text-slate-950 tracking-tighter">₹{doc.consultation_fee || '1,500'}</p>
-                          </div>
-                          <div className="space-y-1 text-right">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Avg. Waiting</p>
-                             <p className="text-2xl font-black text-slate-950 tracking-tighter">15 Mins</p>
-                          </div>
-                       </div>
-
-                       <div className="flex gap-4">
+                       <div className="flex gap-3">
                           <Button 
                             onClick={() => navigate(`/doctors/${doc.user_id || doc.id}`)}
-                            className="flex-1 bg-slate-950 hover:bg-orange-600 text-white rounded-[2rem] py-8 text-lg font-black transition-all active:scale-95 shadow-xl shadow-slate-950/10 group-hover:shadow-orange-600/30"
+                            className="flex-1 bg-slate-950 hover:bg-orange-600 text-white rounded-xl py-6 text-sm font-black transition-all active:scale-95 shadow-lg"
                           >
-                            Clinical Profile
+                            Profile
                           </Button>
-                          <Button className="w-20 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-[2rem] border border-orange-200">
-                             <Video className="w-6 h-6" />
+                          <Button className="w-14 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl border border-orange-200">
+                             <Video className="w-5 h-5" />
                           </Button>
                        </div>
                     </div>
                   </motion.div>
                 ))
               ) : (
-                <div className="col-span-full py-40 text-center space-y-8 bg-slate-50 rounded-[4rem] border border-slate-100">
-                   <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-xl">
-                      <Search className="w-10 h-10 text-slate-300" />
-                   </div>
-                   <h3 className="text-4xl font-black text-slate-950 tracking-tight">No Specialists Found</h3>
-                   <p className="text-slate-400 text-xl font-bold max-w-md mx-auto leading-relaxed italic">"Try adjusting your filters to find the ideal elite practitioner for your needs."</p>
+                <div className="col-span-full py-20 text-center space-y-6 bg-slate-50 rounded-[3rem] border border-slate-100">
+                   <h3 className="text-3xl font-black text-slate-950 tracking-tight">No Specialists Found</h3>
                    <Button 
                     onClick={() => setFilters({ search: '', specialty: '', consultation_type: '', min_fee: '', max_fee: '', location: '', page: 1 })}
-                    className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl px-10 py-4 font-black"
+                    className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl px-8 py-4 font-black"
                    >
-                     Clear All Filters
+                     Clear Filters
                    </Button>
                 </div>
               )}
             </div>
 
-            {/* Pagination with extra pizzazz */}
+            {/* Pagination (Condensed) */}
             {totalPages > 1 && (
-               <div className="flex justify-center items-center gap-4 pt-12">
+               <div className="flex justify-center items-center gap-3 pt-8">
                   <Button 
                     disabled={filters.page === 1}
                     onClick={() => handleFilterChange('page', filters.page - 1)}
-                    className="w-20 h-20 rounded-full bg-white border border-slate-100 text-slate-400 hover:text-orange-600 hover:border-orange-200 shadow-sm"
+                    className="w-12 h-12 rounded-full bg-white border border-slate-100 text-slate-400 hover:text-orange-600"
                   >
-                     <ChevronRight className="w-8 h-8 rotate-180" />
+                     <ChevronRight className="w-5 h-5 rotate-180" />
                   </Button>
-                  <div className="flex gap-2">
-                     {[...Array(totalPages)].map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => handleFilterChange('page', i + 1)}
-                          className={`w-12 h-12 rounded-2xl font-black text-sm transition-all ${
-                            filters.page === i + 1 
-                            ? 'bg-orange-600 text-white shadow-lg' 
-                            : 'bg-white text-slate-400 hover:bg-slate-50'
-                          }`}
-                        >
-                           {i + 1}
-                        </button>
-                     ))}
+                  <div className="flex gap-2 text-xs font-black">
+                     Page {filters.page} of {totalPages}
                   </div>
                   <Button 
                     disabled={filters.page === totalPages}
                     onClick={() => handleFilterChange('page', filters.page + 1)}
-                    className="w-20 h-20 rounded-full bg-white border border-slate-100 text-slate-400 hover:text-orange-600 hover:border-orange-200 shadow-sm"
+                    className="w-12 h-12 rounded-full bg-white border border-slate-100 text-slate-400 hover:text-orange-600"
                   >
-                     <ChevronRight className="w-8 h-8" />
+                     <ChevronRight className="w-5 h-5" />
                   </Button>
                </div>
             )}
           </main>
         </div>
       </div>
-
-      {/* ==================== AI MODAL ==================== */}
-      <AnimatePresence>
-        {showAiModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAiModal(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-2xl"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 40 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 40 }}
-              className="relative w-full max-w-2xl bg-white rounded-[4rem] shadow-2xl overflow-hidden border border-white/20"
-            >
-              <div className="bg-slate-950 p-12 text-center space-y-6 relative overflow-hidden">
-                <div className="absolute inset-0 mesh-orange-red opacity-20" />
-                <div className="w-20 h-20 bg-orange-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl relative z-10 animate-bounce">
-                  <Bot className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-5xl font-black text-white tracking-tighter leading-none relative z-10">AI Diagnostic Protocol</h3>
-                <p className="text-slate-400 font-bold text-xl leading-relaxed italic relative z-10">"Describe your clinical observations below for specialized matching."</p>
-                <button onClick={() => setShowAiModal(false)} className="absolute top-8 right-8 text-white/40 hover:text-white transition-colors">
-                  <X className="w-8 h-8" />
-                </button>
-              </div>
-              <div className="p-12 space-y-8">
-                <textarea 
-                  className="w-full h-48 bg-slate-50 rounded-[2.5rem] p-10 border border-slate-100 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-black text-xl text-slate-900 placeholder:text-slate-400 outline-none"
-                  placeholder="E.g., I have persistent chest pressure and mild shortness of breath..."
-                  value={aiSymptoms}
-                  onChange={(e) => setAiSymptoms(e.target.value)}
-                />
-                <Button 
-                  onClick={handleAiInference}
-                  disabled={aiLoading}
-                  className="w-full bg-slate-950 hover:bg-orange-600 text-white rounded-[2rem] py-8 text-2xl font-black shadow-2xl active:scale-95 transition-all"
-                >
-                  {aiLoading ? <Loader2 className="w-8 h-8 animate-spin" /> : "Synthesize Clinical Recommendation"}
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       <Footer />
     </div>

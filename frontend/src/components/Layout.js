@@ -78,8 +78,8 @@ export const Navbar = () => {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
       isScrolled 
-      ? 'py-4 bg-white/80 backdrop-blur-2xl border-b border-orange-100/50 shadow-[0_10px_40px_rgba(239,68,68,0.05)]' 
-      : 'py-8 bg-transparent'
+      ? 'py-3 bg-white/80 backdrop-blur-2xl border-b border-orange-100/50 shadow-[0_10px_40px_rgba(239,68,68,0.05)]' 
+      : 'py-5 bg-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-12">
@@ -207,7 +207,7 @@ export const Navbar = () => {
 
 export const Footer = () => {
   return (
-    <footer className="relative bg-slate-950 text-white pt-40 pb-20 overflow-hidden border-t border-white/5">
+    <footer className="relative bg-slate-950 text-white pt-24 pb-12 overflow-hidden border-t border-white/5">
       <div className="absolute top-0 left-0 w-full h-full mesh-orange-red opacity-10" />
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-orange-600/20 blur-[150px] rounded-full" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-red-600/20 blur-[150px] rounded-full" />
