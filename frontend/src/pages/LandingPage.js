@@ -203,7 +203,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfdfd] font-jakarta overflow-x-hidden scale-[0.92] origin-top">
+    <div id="top" className="min-h-screen bg-[#fcfdfd] font-jakarta overflow-x-hidden scale-[0.92] origin-top">
       <Navbar />
 
       {/* ==================== HERO SECTION (Condensed) ==================== */}
@@ -339,8 +339,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ==================== MOBILE APP (Compact) ==================== */}
-      <section className="py-20 bg-slate-950 text-white relative overflow-hidden">
+      {/* ==================== MOBILE APP (Condensed) ==================== */}
+      <section id="app" className="py-20 bg-slate-950 text-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center gap-16">
           <div className="flex-1 space-y-8 text-center lg:text-left">
             <h2 className="text-5xl md:text-6xl font-black leading-none tracking-tighter">Unified control. <br /> <span className="text-orange-600">Perfected.</span></h2>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Navbar, MobileNav } from '../components/Layout';
+import { Navbar, MobileNav, Footer } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -28,10 +28,16 @@ import {
   Calendar as CalendarIcon,
   Users,
   AlertCircle,
-  Loader2
+  Loader2,
+  Shield,
+  Activity,
+  Heart,
+  ChevronRight,
+  UserPlus
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -72,10 +78,10 @@ export default function FamilyMembers() {
       const response = await axios.get(`${API_URL}/api/family-members`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMembers(response.data.members);
+      setMembers(response.data.members || []);
     } catch (error) {
-      console.error('Error fetching family members:', error);
-      toast.error('Failed to load family members');
+      console.error('Error fetching clinical network:', error);
+      toast.error('Failed to load clinical network.');
     } finally {
       setLoading(false);
     }
@@ -84,7 +90,7 @@ export default function FamilyMembers() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.full_name || !formData.date_of_birth || !formData.gender || !formData.relationship) {
-      toast.error('Please fill in all required fields');
+      toast.error('Required clinical parameters missing.');
       return;
     }
 
@@ -100,7 +106,7 @@ export default function FamilyMembers() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      toast.success('Family member added');
+      toast.success('New subject added to clinical network.');
       setDialogOpen(false);
       setFormData({
         full_name: '',
@@ -114,290 +120,255 @@ export default function FamilyMembers() {
       });
       fetchMembers();
     } catch (error) {
-      console.error('Error adding family member:', error);
-      toast.error(error.response?.data?.detail || 'Failed to add family member');
+      console.error('Error adding subject:', error);
+      toast.error(error.response?.data?.detail || 'Subject integration failed.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (memberId) => {
-    if (!window.confirm('Are you sure you want to remove this family member?')) return;
+    if (!window.confirm('Initialize subject removal protocol?')) return;
 
     try {
       await axios.delete(`${API_URL}/api/family-members/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Family member removed');
+      toast.success('Subject removed from network.');
       fetchMembers();
     } catch (error) {
-      console.error('Error deleting family member:', error);
-      toast.error('Failed to remove family member');
+      console.error('Error deleting subject:', error);
+      toast.error('Failed to remove subject.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0" data-testid="family-members">
+    <div className="min-h-screen bg-[#fcfdfd] font-jakarta overflow-x-hidden scale-[0.95] origin-top pb-24 md:pb-0">
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">Family Members</h1>
-            <p className="text-muted-foreground">Manage family members for booking appointments</p>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-24">
+        
+        {/* ELITE NETWORK HEADER */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative bg-slate-950 rounded-[3.5rem] p-12 md:p-16 border border-white/5 shadow-2xl overflow-hidden mb-12"
+        >
+          <div className="absolute inset-0 mesh-orange-red opacity-20" />
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
+            <div className="space-y-4 text-center md:text-left">
+               <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-4 py-1.5 rounded-full">
+                  <Users className="w-4 h-4 text-orange-500" />
+                  <span className="text-orange-400 text-[10px] font-black uppercase tracking-widest">Clinical Network Hub</span>
+               </div>
+               <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+                 My Care Network.
+               </h1>
+               <p className="text-slate-400 text-lg font-bold italic border-l-2 border-orange-500/30 pl-5">
+                 "Manage clinical subjects for multi-encounter synchronization."
+               </p>
+            </div>
+            
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  disabled={members.length >= 4}
+                  className="bg-white hover:bg-orange-50 text-slate-950 rounded-2xl px-10 py-8 font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all gap-3"
+                >
+                  <UserPlus className="w-5 h-5" /> Integrate Subject
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl rounded-[3rem] p-10 bg-white border-none shadow-2xl">
+                <DialogHeader className="mb-8">
+                  <DialogTitle className="text-3xl font-black text-slate-950 tracking-tighter">Subject Integration Protocol</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Legal Full Name *</Label>
+                      <Input
+                        value={formData.full_name}
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6 focus:ring-4 focus:ring-orange-500/10"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase Initiation (DOB) *</Label>
+                      <Input
+                        type="date"
+                        value={formData.date_of_birth}
+                        onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                        className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Biological Gender *</Label>
+                      <Select value={formData.gender} onValueChange={(v) => setFormData({ ...formData, gender: v })}>
+                        <SelectTrigger className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold">
+                          <SelectValue placeholder="Select Parameter" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl font-bold">
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Non-Binary</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Network Relationship *</Label>
+                      <Select value={formData.relationship} onValueChange={(v) => setFormData({ ...formData, relationship: v })}>
+                        <SelectTrigger className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold">
+                          <SelectValue placeholder="Select Connection" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl font-bold">
+                          <SelectItem value="spouse">Spouse</SelectItem>
+                          <SelectItem value="child">Child</SelectItem>
+                          <SelectItem value="parent">Parent</SelectItem>
+                          <SelectItem value="sibling">Sibling</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Immunological Allergies</Label>
+                       <Input
+                         value={formData.allergies}
+                         onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                         placeholder="e.g. Penicillin, Peanuts (Comma separated)"
+                         className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6"
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chronic Status Log</Label>
+                       <Input
+                         value={formData.chronic_conditions}
+                         onChange={(e) => setFormData({ ...formData, chronic_conditions: e.target.value })}
+                         placeholder="e.g. Diabetes, Asthma (Comma separated)"
+                         className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6"
+                       />
+                    </div>
+                  </div>
+
+                  <DialogFooter className="pt-6 border-t border-slate-100">
+                    <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)} className="rounded-xl font-black text-xs uppercase tracking-widest text-slate-400">Cancel Protocol</Button>
+                    <Button type="submit" disabled={submitting} className="bg-slate-950 text-white rounded-xl px-10 py-4 font-black text-xs uppercase tracking-widest shadow-xl active:scale-95">
+                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Finalize Integration'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
+        </motion.section>
 
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                className="gap-2 rounded-full"
-                disabled={members.length >= 4}
-                data-testid="add-family-member-btn"
-              >
-                <Plus className="w-4 h-4" />
-                Add Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add Family Member</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="full_name">Full Name *</Label>
-                  <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    placeholder="Enter full name"
-                    required
-                  />
+        {/* NETWORK STATUS MATRIX */}
+        <div className="grid md:grid-cols-[350px,1fr] gap-12">
+           
+           <aside className="space-y-8">
+              <Card className="bg-white border-slate-100 rounded-[2.5rem] p-10 shadow-xl space-y-8 relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-full opacity-50" />
+                 <div className="relative z-10 space-y-4 text-center">
+                    <div className="w-16 h-16 bg-slate-950 rounded-2xl flex items-center justify-center mx-auto shadow-xl"><Shield className="w-8 h-8 text-white" /></div>
+                    <h3 className="text-2xl font-black text-slate-950 tracking-tighter">Network Capacity</h3>
+                    <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-relaxed italic">"Secure subjects synchronized for rapid clinical access."</p>
+                    <div className="pt-6">
+                       <p className="text-6xl font-black text-orange-600 tracking-tighter leading-none">{members.length}<span className="text-slate-200">/4</span></p>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">Slots Occupied</p>
+                    </div>
+                 </div>
+              </Card>
+
+              <Card className="bg-slate-950 border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
+                 <div className="absolute inset-0 mesh-orange-red opacity-10 group-hover:opacity-20 transition-opacity" />
+                 <div className="relative z-10 space-y-6">
+                    <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10"><Activity className="w-6 h-6 text-orange-500" /></div>
+                    <div className="space-y-1">
+                       <h4 className="text-lg font-black text-white tracking-tight">Rapid Deployment</h4>
+                       <p className="text-slate-500 font-bold text-[10px] italic">"Integrated subjects can be selected instantly during clinical booking cycles."</p>
+                    </div>
+                 </div>
+              </Card>
+           </aside>
+
+           <div className="space-y-8">
+              <div className="flex items-center justify-between">
+                 <h2 className="text-3xl font-black text-slate-950 tracking-tight">Active Subjects</h2>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Network Synchronization: Secure</p>
+              </div>
+
+              {loading ? (
+                [1, 2].map(i => <Skeleton key={i} className="h-48 rounded-[3rem] bg-slate-50" />)
+              ) : members.length > 0 ? (
+                <div className="grid gap-8">
+                  {members.map((member, idx) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      key={member.id}
+                      className="group bg-white rounded-[3rem] border border-slate-100 p-10 flex flex-col md:flex-row items-center gap-10 hover:shadow-2xl hover:border-orange-100 transition-all relative overflow-hidden"
+                    >
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-slate-50 rounded-bl-[5rem] group-hover:bg-orange-50 transition-colors" />
+                      
+                      <div className="w-24 h-24 rounded-3xl bg-slate-950 flex items-center justify-center text-white shadow-2xl relative z-10">
+                         <User className="w-10 h-10" />
+                         <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-orange-600 rounded-xl border-4 border-white flex items-center justify-center font-black text-xs">#{idx+1}</div>
+                      </div>
+
+                      <div className="flex-1 space-y-6 relative z-10">
+                         <div className="space-y-1">
+                            <div className="flex items-center gap-4">
+                               <h3 className="text-3xl font-black text-slate-950 tracking-tighter">{member.full_name}</h3>
+                               <Badge className="bg-orange-500/10 text-orange-600 border border-orange-200 px-4 py-1 rounded-full font-black text-[9px] uppercase tracking-widest">{member.relationship}</Badge>
+                            </div>
+                            <div className="flex gap-4 text-slate-400 font-bold text-xs">
+                               <span className="flex items-center gap-2"><CalendarIcon className="w-3 h-3" /> DOB: {formatDate(member.date_of_birth)}</span>
+                               <span className="flex items-center gap-2"><Heart className="w-3 h-3" /> Gender: {member.gender.toUpperCase()}</span>
+                            </div>
+                         </div>
+
+                         <div className="flex flex-wrap gap-3">
+                            {member.allergies?.map((a, i) => (
+                              <Badge key={i} className="bg-red-600 text-white font-black text-[8px] uppercase tracking-widest px-3 py-1.5 rounded-lg border-none shadow-sm">{a}</Badge>
+                            ))}
+                            {member.chronic_conditions?.map((c, i) => (
+                              <Badge key={i} className="bg-amber-500 text-white font-black text-[8px] uppercase tracking-widest px-3 py-1.5 rounded-lg border-none shadow-sm">{c}</Badge>
+                            ))}
+                            {!member.allergies?.length && !member.chronic_conditions?.length && (
+                              <p className="text-[10px] font-bold text-slate-300 italic">"No clinical conditions logged."</p>
+                            )}
+                         </div>
+                      </div>
+
+                      <div className="flex flex-col gap-4 relative z-10">
+                         <Button onClick={() => handleDelete(member.id)} variant="ghost" size="icon" className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-300 hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                            <Trash2 className="w-6 h-6" />
+                         </Button>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-
-                <div>
-                  <Label htmlFor="date_of_birth">Date of Birth *</Label>
-                  <Input
-                    id="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                    required
-                  />
+              ) : (
+                <div className="text-center py-24 bg-slate-50 rounded-[3.5rem] border border-slate-100 space-y-8">
+                   <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-xl"><Users className="w-12 h-12 text-slate-200" /></div>
+                   <div className="space-y-3">
+                      <h3 className="text-3xl font-black text-slate-950 tracking-tight">Network Empty</h3>
+                      <p className="text-slate-400 font-bold text-sm italic max-w-sm mx-auto">"Initiate subject integration to enable rapid clinical booking for your family network."</p>
+                   </div>
+                   <Button onClick={() => setDialogOpen(true)} className="bg-slate-950 text-white rounded-2xl px-12 py-6 font-black uppercase text-xs tracking-widest shadow-2xl active:scale-95">Integrate First Subject</Button>
                 </div>
-
-                <div>
-                  <Label htmlFor="gender">Gender *</Label>
-                  <Select
-                    value={formData.gender}
-                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="relationship">Relationship *</Label>
-                  <Select
-                    value={formData.relationship}
-                    onValueChange={(value) => setFormData({ ...formData, relationship: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select relationship" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="spouse">Spouse</SelectItem>
-                      <SelectItem value="child">Child</SelectItem>
-                      <SelectItem value="parent">Parent</SelectItem>
-                      <SelectItem value="sibling">Sibling</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="allergies">Allergies (comma-separated)</Label>
-                  <Input
-                    id="allergies"
-                    value={formData.allergies}
-                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                    placeholder="e.g., Penicillin, Peanuts"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="chronic_conditions">Chronic Conditions (comma-separated)</Label>
-                  <Input
-                    id="chronic_conditions"
-                    value={formData.chronic_conditions}
-                    onChange={(e) => setFormData({ ...formData, chronic_conditions: e.target.value })}
-                    placeholder="e.g., Diabetes, Asthma"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="insurance_provider">Insurance Provider</Label>
-                    <Input
-                      id="insurance_provider"
-                      value={formData.insurance_provider}
-                      onChange={(e) => setFormData({ ...formData, insurance_provider: e.target.value })}
-                      placeholder="Optional"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="insurance_id">Insurance ID</Label>
-                    <Input
-                      id="insurance_id"
-                      value={formData.insurance_id}
-                      onChange={(e) => setFormData({ ...formData, insurance_id: e.target.value })}
-                      placeholder="Optional"
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Adding...
-                      </>
-                    ) : (
-                      'Add Member'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+              )}
+           </div>
         </div>
-
-        {/* Counter */}
-        <Card className="mb-6 border-border/50">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Members Added</p>
-                <p className="text-sm text-muted-foreground">You can add up to 4 family members</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-primary">{members.length}</p>
-              <p className="text-sm text-muted-foreground">/ 4</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Members List */}
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2].map(i => (
-              <Card key={i} className="border-border/50">
-                <CardContent className="p-4">
-                  <div className="animate-pulse flex items-center gap-4">
-                    <div className="w-14 h-14 bg-muted rounded-xl" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-muted rounded w-1/3" />
-                      <div className="h-3 bg-muted rounded w-1/4" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : members.length > 0 ? (
-          <div className="space-y-4">
-            {members.map((member) => (
-              <Card key={member.id} className="border-border/50 hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <User className="w-7 h-7 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold">{member.full_name}</h3>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(member.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {member.relationship} • {member.gender}
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CalendarIcon className="w-4 h-4" />
-                        <span>DOB: {formatDate(member.date_of_birth)}</span>
-                      </div>
-                      {(member.allergies?.length > 0 || member.chronic_conditions?.length > 0) && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {member.allergies?.map((allergy, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
-                              {allergy}
-                            </span>
-                          ))}
-                          {member.chronic_conditions?.map((condition, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">
-                              {condition}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="border-border/50">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-semibold mb-2">No family members added</h3>
-              <p className="text-muted-foreground mb-4">
-                Add family members to book appointments on their behalf
-              </p>
-              <Button onClick={() => setDialogOpen(true)} className="rounded-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Add First Member
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Info Banner */}
-        {members.length >= 4 && (
-          <Card className="mt-6 border-amber-200 bg-amber-50">
-            <CardContent className="p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <p className="text-sm text-amber-800">
-                You've reached the maximum of 4 family members. Remove a member to add a new one.
-              </p>
-            </CardContent>
-          </Card>
-        )}
       </main>
 
       <MobileNav />
+      <Footer />
     </div>
   );
 }

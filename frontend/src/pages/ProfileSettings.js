@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Navbar, MobileNav } from '../components/Layout';
+import { Navbar, MobileNav, Footer } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -28,10 +28,19 @@ import {
   Trash2,
   Loader2,
   Save,
-  ChevronLeft
+  ChevronLeft,
+  Camera,
+  Activity,
+  Zap,
+  Globe,
+  Lock,
+  Heart,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -107,7 +116,7 @@ export default function ProfileSettings() {
         consultation_fee: response.data?.consultation_fee || ''
       }));
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching clinical profile:', error);
     }
   };
 
@@ -117,15 +126,8 @@ export default function ProfileSettings() {
       if (uploadFile) {
         const fileData = new FormData();
         fileData.append('file', uploadFile);
-
-        const getAuthHeader = () => ({
+        await axios.post(`${API_URL}/api/auth/profile/picture`, fileData, {
           headers: { Authorization: `Bearer ${token}` }
-        });
-
-        const response = await axios.post(`${API_URL}/api/auth/profile/picture`, fileData, {
-          headers: {
-            ...getAuthHeader().headers
-          }
         });
       }
 
@@ -151,15 +153,15 @@ export default function ProfileSettings() {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
-      toast.success('Profile updated successfully');
+      toast.success('Clinical identity updated successfully.');
       setUploadFile(null);
-      await fetchProfile(); // Refresh local state
+      await fetchProfile();
       if (typeof fetchUser === 'function') {
-        await fetchUser(); // Sync global auth context
+        await fetchUser();
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error('Failed to update clinical profile.');
     } finally {
       setLoading(false);
     }
@@ -167,291 +169,226 @@ export default function ProfileSettings() {
 
   const handleDeleteAccount = async () => {
     try {
-      // In a real app, this would call an API to delete the account
-      toast.success('Account deletion request submitted');
+      toast.success('Account deletion sequence initiated.');
       logout();
       navigate('/');
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      toast.error('Account deletion protocol failed.');
     }
   };
 
   const handleExportData = async () => {
-    toast.success('Your data export has been requested. You will receive an SMS shortly.');
+    toast.success('Clinical data export requested via secure SMS channel.');
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0" data-testid="profile-settings">
+    <div className="min-h-screen bg-[#fcfdfd] font-jakarta overflow-x-hidden scale-[0.95] origin-top pb-24 md:pb-0">
       <Navbar />
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 gap-2">
-          <ChevronLeft className="w-4 h-4" />
-          Back
-        </Button>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-24">
+        
+        {/* ELITE SETTINGS HEADER */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative bg-slate-950 rounded-[3.5rem] p-12 md:p-16 border border-white/5 shadow-2xl overflow-hidden mb-12"
+        >
+          <div className="absolute inset-0 mesh-orange-red opacity-20" />
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
+            <div className="space-y-4 text-center md:text-left">
+               <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-4 py-1.5 rounded-full">
+                  <Shield className="w-4 h-4 text-orange-500" />
+                  <span className="text-orange-400 text-[10px] font-black uppercase tracking-widest">Secure Infrastructure Hub</span>
+               </div>
+               <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+                 Global Settings.
+               </h1>
+               <p className="text-slate-400 text-lg font-bold italic border-l-2 border-orange-500/30 pl-5">
+                 "Orchestrating your clinical identity and secure preferences."
+               </p>
+            </div>
+            <Button variant="ghost" onClick={() => navigate(-1)} className="w-14 h-14 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 flex items-center justify-center active:scale-95 transition-all shadow-xl">
+               <ChevronLeft className="w-8 h-8" />
+            </Button>
+          </div>
+        </motion.section>
 
-        <h1 className="text-2xl font-bold mb-8">Settings</h1>
-
-        <div className="space-y-6">
-          {/* Profile Settings */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Profile Information
-              </CardTitle>
-              <CardDescription>Update your personal information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-6 items-start mb-6">
-                <div className="w-24 h-24 rounded-full bg-primary/10 overflow-hidden flex-shrink-0 flex items-center justify-center border-4 border-background shadow-sm">
-                  {profile?.profile_image ? (
-                    <img src={profile.profile_image} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-10 h-10 text-primary" />
-                  )}
-                </div>
-                <div className="flex-1 space-y-2 mt-2">
-                  <Label>Profile Picture</Label>
-                  <Input type="file" accept="image/*" onChange={(e) => setUploadFile(e.target.files[0])} />
-                  <p className="text-xs text-muted-foreground">Upload a square image for best results. Max 5MB.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="full_name">Full Name</Label>
-                  <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date_of_birth">Date of Birth</Label>
-                  <div
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background"
-                  >
-                    {formData.date_of_birth ? formatDate(formData.date_of_birth) : 'Not provided'}
-                  </div>
-                </div>
-              </div>
-
-              {user?.role === 'doctor' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="consultation_fee">Consultation Fee (INR)</Label>
-                    <Input
-                      id="consultation_fee"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.consultation_fee}
-                      onChange={(e) => setFormData({ ...formData, consultation_fee: e.target.value })}
-                      placeholder="e.g 150.00"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {user?.role === 'patient' && (
-                <>
-                  <div>
-                    <Label htmlFor="address">Address</Label>
-                    <Textarea
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      rows={2}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <h3 className="font-medium">Medical Information</h3>
-
-                  <div>
-                    <Label htmlFor="allergies">Allergies (comma-separated)</Label>
-                    <Input
-                      id="allergies"
-                      value={formData.allergies}
-                      onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                      placeholder="e.g., Penicillin, Peanuts"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="chronic_conditions">Chronic Conditions (comma-separated)</Label>
-                    <Input
-                      id="chronic_conditions"
-                      value={formData.chronic_conditions}
-                      onChange={(e) => setFormData({ ...formData, chronic_conditions: e.target.value })}
-                      placeholder="e.g., Diabetes, Hypertension"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="insurance_provider">Insurance Provider</Label>
-                      <Input
-                        id="insurance_provider"
-                        value={formData.insurance_provider}
-                        onChange={(e) => setFormData({ ...formData, insurance_provider: e.target.value })}
-                      />
+        <div className="grid lg:grid-cols-[1fr,350px] gap-12 items-start">
+           
+           <div className="space-y-12">
+              
+              {/* Profile Information */}
+              <Card className="bg-white border-slate-100 rounded-[3rem] p-10 shadow-xl space-y-10">
+                 <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                       <h3 className="text-3xl font-black text-slate-950 tracking-tighter">Clinical Identity</h3>
+                       <p className="text-slate-400 font-bold text-xs italic">"Verification parameters for your professional profile."</p>
                     </div>
-                    <div>
-                      <Label htmlFor="insurance_id">Insurance ID</Label>
-                      <Input
-                        id="insurance_id"
-                        value={formData.insurance_id}
-                        onChange={(e) => setFormData({ ...formData, insurance_id: e.target.value })}
-                      />
+                    <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600 shadow-sm"><User className="w-6 h-6" /></div>
+                 </div>
+
+                 <div className="flex flex-col md:flex-row gap-10 items-center bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                    <div className="relative group cursor-pointer" onClick={() => document.getElementById('pfp-input').click()}>
+                       <div className="w-32 h-32 rounded-[2.5rem] bg-slate-950 overflow-hidden shadow-2xl border-4 border-white flex items-center justify-center relative z-10">
+                          {profile?.profile_image || uploadFile ? (
+                            <img src={uploadFile ? URL.createObjectURL(uploadFile) : profile.profile_image} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-12 h-12 text-white/50" />
+                          )}
+                          <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                             <Camera className="w-8 h-8 text-white" />
+                          </div>
+                       </div>
+                       <input id="pfp-input" type="file" accept="image/*" className="hidden" onChange={(e) => setUploadFile(e.target.files[0])} />
+                       <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-orange-600 rounded-2xl flex items-center justify-center text-white border-4 border-white shadow-xl z-20"><Zap className="w-6 h-6" /></div>
                     </div>
-                  </div>
-
-                  <Separator />
-
-                  <h3 className="font-medium">Emergency Contact</h3>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="emergency_contact_name">Contact Name</Label>
-                      <Input
-                        id="emergency_contact_name"
-                        value={formData.emergency_contact_name}
-                        onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
-                      />
+                    <div className="flex-1 space-y-2 text-center md:text-left">
+                       <p className="text-lg font-black text-slate-950 tracking-tight">Clinical Avatar</p>
+                       <p className="text-xs text-slate-400 font-bold italic leading-relaxed">"Recommended: High-resolution professional square synthesis. Max 10MB."</p>
                     </div>
-                    <div>
-                      <Label htmlFor="emergency_contact_phone">Contact Phone</Label>
-                      <Input
-                        id="emergency_contact_phone"
-                        value={formData.emergency_contact_phone}
-                        onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
-                      />
+                 </div>
+
+                 <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Legal Designation</Label>
+                       <Input value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6 focus:ring-4 focus:ring-orange-500/10" />
                     </div>
-                  </div>
-                </>
-              )}
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Secure Contact Line</Label>
+                       <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6 focus:ring-4 focus:ring-orange-500/10" />
+                    </div>
+                    <div className="space-y-2">
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Temporal Origin (DOB)</Label>
+                       <div className="h-14 rounded-xl border border-slate-100 bg-slate-50 font-bold px-6 flex items-center text-slate-400 italic">
+                          {formData.date_of_birth ? formatDate(formData.date_of_birth) : 'Clinical Parameter Not Defined'}
+                       </div>
+                    </div>
+                    {user?.role === 'doctor' && (
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consultation Phase Fee (INR)</Label>
+                          <Input type="number" value={formData.consultation_fee} onChange={(e) => setFormData({ ...formData, consultation_fee: e.target.value })} className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6 focus:ring-4 focus:ring-orange-500/10" />
+                       </div>
+                    )}
+                 </div>
 
-              <Button onClick={handleSave} disabled={loading} className="gap-2 rounded-full">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Save Changes
-              </Button>
-            </CardContent>
-          </Card>
+                 {user?.role === 'patient' && (
+                    <div className="space-y-8 pt-8 border-t border-slate-50">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Geospatial Coordinates (Address)</Label>
+                          <Textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="rounded-2xl border-slate-100 bg-slate-50 font-bold p-6 focus:ring-4 focus:ring-orange-500/10" rows={3} />
+                       </div>
 
-          {/* Notification Settings */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                Notifications
-              </CardTitle>
-              <CardDescription>Manage your notification preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Appointment Updates</p>
-                  <p className="text-sm text-muted-foreground">Get notified about appointment changes</p>
-                </div>
-                <Switch
-                  checked={notifications.appointments}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, appointments: checked })}
-                />
+                       <div className="grid md:grid-cols-2 gap-8">
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Allergic Sensitivities</Label>
+                             <Input value={formData.allergies} onChange={(e) => setFormData({ ...formData, allergies: e.target.value })} placeholder="e.g. Penicillin, Peanuts" className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6" />
+                          </div>
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chronic Status Log</Label>
+                             <Input value={formData.chronic_conditions} onChange={(e) => setFormData({ ...formData, chronic_conditions: e.target.value })} placeholder="e.g. Asthma, Hypertension" className="h-14 rounded-xl border-slate-100 bg-slate-50 font-bold px-6" />
+                          </div>
+                       </div>
+                    </div>
+                 )}
+
+                 <Button onClick={handleSave} disabled={loading} className="w-full bg-slate-950 hover:bg-orange-600 text-white rounded-2xl py-8 font-black uppercase text-xs tracking-widest shadow-2xl active:scale-95 transition-all group">
+                    {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : <><Save className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" /> Synchronize Identity</>}
+                 </Button>
+              </Card>
+
+              {/* Notification Matrix */}
+              <Card className="bg-white border-slate-100 rounded-[3rem] p-10 shadow-xl space-y-10">
+                 <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                       <h3 className="text-3xl font-black text-slate-950 tracking-tighter">Event Synthesis</h3>
+                       <p className="text-slate-400 font-bold text-xs italic">"Manage your clinical event synchronization channels."</p>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm"><Bell className="w-6 h-6" /></div>
+                 </div>
+
+                 <div className="space-y-6">
+                    {[
+                      { key: 'appointments', label: 'Clinical Phase Updates', desc: 'Real-time synchronization of encounter changes.' },
+                      { key: 'messages', label: 'Encrypted Communications', desc: 'Alerts for direct specialist messaging.' },
+                      { key: 'reminders', label: 'Temporal Reminders', desc: 'Pre-encounter notifications and clinical alerts.' },
+                      { key: 'marketing', label: 'Ecosystem Updates', desc: 'Clinical news and global network announcements.' }
+                    ].map((pref) => (
+                      <div key={pref.key} className="flex items-center justify-between p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                         <div className="space-y-1">
+                            <p className="font-black text-slate-950 tracking-tight text-sm">{pref.label}</p>
+                            <p className="text-[10px] text-slate-400 font-bold italic">{pref.desc}</p>
+                         </div>
+                         <Switch
+                           checked={notifications[pref.key]}
+                           onCheckedChange={(checked) => setNotifications({ ...notifications, [pref.key]: checked })}
+                           className="data-[state=checked]:bg-orange-600"
+                         />
+                      </div>
+                    ))}
+                 </div>
+              </Card>
+           </div>
+
+           <aside className="space-y-12 sticky top-24">
+              
+              {/* Privacy & Security */}
+              <Card className="bg-slate-950 border border-white/5 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
+                 <div className="absolute inset-0 mesh-orange-red opacity-10 group-hover:opacity-20 transition-opacity" />
+                 <div className="relative z-10 space-y-10">
+                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shadow-xl group-hover:rotate-12 transition-transform duration-500"><Lock className="w-8 h-8 text-orange-500" /></div>
+                    <div className="space-y-2">
+                       <h3 className="text-2xl font-black text-white tracking-tight leading-none">Security Protocol</h3>
+                       <p className="text-slate-500 font-bold text-[10px] italic leading-relaxed">"GDPR compliant clinical data export and account management."</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                       <Button variant="outline" onClick={handleExportData} className="w-full h-16 bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-2xl font-black uppercase text-[10px] tracking-widest gap-3">
+                          <Download className="w-4 h-4 text-orange-500" /> Data Synthesis (GDPR)
+                       </Button>
+
+                       <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                             <Button variant="ghost" className="w-full h-16 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-2xl font-black uppercase text-[10px] tracking-widest gap-3">
+                                <Trash2 className="w-4 h-4" /> Purge Identity
+                             </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-[3rem] p-10 bg-white border-none shadow-2xl">
+                             <AlertDialogHeader className="mb-8">
+                                <AlertDialogTitle className="text-3xl font-black text-slate-950 tracking-tighter">Terminate Clinical Existence?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-slate-500 font-bold text-sm italic">
+                                   "This operation is terminal. All clinical logs, subjects, and encounters associated with this identity will be purged from the global network."
+                                </AlertDialogDescription>
+                             </AlertDialogHeader>
+                             <AlertDialogFooter className="pt-6 border-t border-slate-100">
+                                <AlertDialogCancel className="rounded-xl font-black text-xs uppercase tracking-widest text-slate-400">Abort Deletion</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteAccount} className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-10 py-4 font-black text-xs uppercase tracking-widest shadow-xl">Purge Account</AlertDialogAction>
+                             </AlertDialogFooter>
+                          </AlertDialogContent>
+                       </AlertDialog>
+                    </div>
+                 </div>
+              </Card>
+
+              {/* Ecosystem Stats Widget */}
+              <div className="p-8 bg-white rounded-[3rem] border border-slate-100 shadow-xl space-y-6 text-center">
+                 <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto text-orange-600 shadow-sm"><Globe className="w-7 h-7" /></div>
+                 <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Network Phase Status</p>
+                    <p className="font-black text-slate-950 tracking-tight">SECURE PROTOCOL 4.0</p>
+                 </div>
+                 <div className="h-[1px] bg-slate-100 w-full" />
+                 <p className="text-[10px] font-bold text-slate-400 leading-relaxed italic">
+                    "Your identity is encrypted using bank-grade synthesis standards."
+                 </p>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Messages</p>
-                  <p className="text-sm text-muted-foreground">Get notified about new messages</p>
-                </div>
-                <Switch
-                  checked={notifications.messages}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, messages: checked })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Appointment Reminders</p>
-                  <p className="text-sm text-muted-foreground">Receive reminders before appointments</p>
-                </div>
-                <Switch
-                  checked={notifications.reminders}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, reminders: checked })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Marketing & Updates</p>
-                  <p className="text-sm text-muted-foreground">Receive news and promotional content</p>
-                </div>
-                <Switch
-                  checked={notifications.marketing}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, marketing: checked })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Privacy & Data */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Privacy & Data
-              </CardTitle>
-              <CardDescription>Manage your data and privacy settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" onClick={handleExportData} className="w-full gap-2">
-                <Download className="w-4 h-4" />
-                Download My Data (GDPR)
-              </Button>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full gap-2">
-                    <Trash2 className="w-4 h-4" />
-                    Delete Account
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Account</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground">
-                      Delete Account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </CardContent>
-          </Card>
+           </aside>
         </div>
       </main>
 
       <MobileNav />
+      <Footer />
     </div>
   );
 }

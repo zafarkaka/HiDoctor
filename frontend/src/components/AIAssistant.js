@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
-import { X, Send, Bot, Sparkles, Loader2 } from 'lucide-react';
+import { X, Send, Bot, Sparkles, Loader2, MessageSquare, ChevronRight, BrainCircuit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +12,7 @@ const AIAssistant = () => {
     const { isAuthenticated, token } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { role: 'assistant', content: 'Hello! 👋 I\'m your HiDoctor AI assistant. Tell me your symptoms and budget, and I\'ll recommend the best doctor for you.' }
+        { role: 'assistant', content: 'Hello! I am your HiDoctor Clinical AI. Describe your symptoms or health concerns, and I will find the most suitable elite specialist for you.' }
     ]);
     const [input, setInput] = useState('');
     const [budget, setBudget] = useState('');
@@ -31,7 +31,7 @@ const AIAssistant = () => {
         if (!isAuthenticated) {
             setMessages(prev => [...prev,
             { role: 'user', content: input },
-            { role: 'assistant', content: 'Please sign in to get personalized doctor recommendations. Click below to login.' }
+            { role: 'assistant', content: 'Please sign in to access personalized clinical recommendations.' }
             ]);
             setInput('');
             return;
@@ -50,21 +50,17 @@ const AIAssistant = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            const { recommendation, doctors, specialties_needed } = response.data;
+            const { recommendation, doctors } = response.data;
 
-            let assistantMsg = recommendation;
-            if (doctors && doctors.length > 0) {
-                assistantMsg += '\n\n**Recommended Doctors:**\n';
-                doctors.forEach((doc, i) => {
-                    assistantMsg += `\n${i + 1}. **Dr. ${doc.name}** — ${doc.specialties?.join(', ') || 'General'}\n   ⭐ ${doc.rating}/5 | ₹${doc.fee} | ${doc.experience}yrs exp`;
-                });
-            }
-
-            setMessages(prev => [...prev, { role: 'assistant', content: assistantMsg, doctors }]);
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: recommendation, 
+                doctors: doctors || [] 
+            }]);
         } catch (error) {
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: 'Sorry, I encountered an error. Please try again or browse doctors manually.'
+                content: 'I encountered a clinical processing error. Please try again or explore our directory manually.'
             }]);
         } finally {
             setLoading(false);
@@ -73,73 +69,74 @@ const AIAssistant = () => {
 
     return (
         <>
-            {/* Floating Button - Draggable */}
+            {/* Floating Trigger */}
             <motion.button
-                drag
-                dragMomentum={false}
-                whileHover={{ scale: 1.1 }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1, rotate: 5 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
-                id="ai-assistant-btn"
+                className="fixed bottom-8 left-8 z-[110] w-16 h-16 rounded-3xl bg-slate-950 text-white shadow-2xl flex items-center justify-center border border-white/10 group overflow-hidden"
             >
-                {isOpen ? (
-                    <X className="w-6 h-6" />
-                ) : (
-                    <div className="relative">
-                        <Bot className="w-6 h-6" />
-                        <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
-                    </div>
-                )}
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-600 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative z-10">
+                    {isOpen ? <X className="w-8 h-8" /> : (
+                        <div className="relative">
+                            <Bot className="w-8 h-8" />
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-ping" />
+                        </div>
+                    )}
+                </div>
             </motion.button>
 
-            {/* Chat Panel - Draggable */}
+            {/* AI Panel */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        drag
-                        dragMomentum={false}
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="fixed bottom-24 left-6 z-50 w-96 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
-                        id="ai-assistant-panel"
+                        initial={{ opacity: 0, x: -50, scale: 0.9 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -50, scale: 0.9 }}
+                        className="fixed bottom-28 left-8 z-[110] w-[420px] max-w-[calc(100vw-4rem)] bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(239,68,68,0.15)] border border-orange-100 overflow-hidden flex flex-col"
                     >
-                        {/* Header - Drag Handle */}
-                        <div className="bg-gradient-to-r from-teal-600 to-teal-700 p-4 text-white cursor-move">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                                    <Bot className="w-5 h-5" />
+                        {/* Header */}
+                        <div className="bg-slate-950 p-8 text-white relative overflow-hidden">
+                            <div className="absolute inset-0 mesh-orange-red opacity-20" />
+                            <div className="relative z-10 flex items-center gap-5">
+                                <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <BrainCircuit className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-lg">HiDoctor AI</h3>
-                                    <p className="text-sm text-teal-100">Smart Doctor Finder</p>
+                                    <h3 className="font-black text-2xl tracking-tighter">HiDoctor AI</h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-orange-400">Clinical Protocol 2.4.1</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Messages */}
-                        <div className="h-80 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                        {/* Messages Area */}
+                        <div className="flex-1 h-[450px] overflow-y-auto p-8 space-y-6 bg-slate-50/50 sidebar-scroll">
                             {messages.map((msg, i) => (
                                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${msg.role === 'user'
-                                        ? 'bg-teal-600 text-white rounded-br-sm'
-                                        : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm'
+                                    <div className={`max-w-[85%] rounded-[2rem] px-6 py-4 shadow-sm relative ${msg.role === 'user'
+                                        ? 'bg-orange-600 text-white rounded-br-none font-bold text-sm'
+                                        : 'bg-white text-slate-900 border border-slate-100 rounded-bl-none font-medium text-sm leading-relaxed'
                                         }`}>
                                         {msg.content}
+                                        
                                         {msg.doctors && msg.doctors.length > 0 && (
-                                            <div className="mt-3 space-y-2">
+                                            <div className="mt-6 space-y-3">
                                                 {msg.doctors.map((doc, j) => (
-                                                    <button
+                                                    <motion.button
+                                                        whileHover={{ x: 5 }}
                                                         key={j}
-                                                        onClick={() => {
-                                                            navigate(`/doctors/${doc.user_id}`);
-                                                            setIsOpen(false);
-                                                        }}
-                                                        className="block w-full text-left p-2 rounded-lg bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-colors text-teal-800"
+                                                        onClick={() => { navigate(`/doctors/${doc.user_id}`); setIsOpen(false); }}
+                                                        className="w-full text-left p-4 rounded-2xl bg-orange-50 border border-orange-100 hover:bg-orange-100 transition-all flex items-center justify-between group"
                                                     >
-                                                        <span className="font-medium text-xs">View Dr. {doc.name} →</span>
-                                                    </button>
+                                                        <div>
+                                                            <p className="font-black text-xs text-slate-900">Dr. {doc.name}</p>
+                                                            <p className="text-[9px] font-bold text-orange-600 uppercase tracking-widest">{doc.specialties?.[0] || 'Specialist'}</p>
+                                                        </div>
+                                                        <ChevronRight className="w-4 h-4 text-orange-400 group-hover:translate-x-1 transition-transform" />
+                                                    </motion.button>
                                                 ))}
                                             </div>
                                         )}
@@ -148,61 +145,55 @@ const AIAssistant = () => {
                             ))}
                             {loading && (
                                 <div className="flex justify-start">
-                                    <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                                        <Loader2 className="w-5 h-5 animate-spin text-teal-600" />
+                                    <div className="bg-white border border-slate-100 rounded-[2rem] rounded-bl-none px-6 py-4 shadow-sm">
+                                        <Loader2 className="w-6 h-6 animate-spin text-orange-600" />
                                     </div>
                                 </div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Budget Input Area */}
-                        <div className="px-4 pt-2 bg-white border-t border-gray-100">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 whitespace-nowrap">Budget (₹):</span>
-                                <input
-                                    type="number"
-                                    value={budget}
-                                    onChange={(e) => setBudget(e.target.value)}
-                                    placeholder="Optional"
-                                    className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                                />
+                        {/* Controls */}
+                        <div className="p-8 bg-white border-t border-slate-100 space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1 flex items-center gap-3 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Budget (₹):</span>
+                                    <input
+                                        type="number"
+                                        value={budget}
+                                        onChange={(e) => setBudget(e.target.value)}
+                                        placeholder="Optional"
+                                        className="bg-transparent border-none focus:ring-0 p-0 text-xs font-black text-slate-900 w-full"
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Message Input Form */}
-                        <form onSubmit={handleSubmit} className="p-4 pt-2 bg-white">
-                            <div className="flex gap-2">
+                            <form onSubmit={handleSubmit} className="flex gap-3">
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Describe your symptoms..."
-                                    className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                    disabled={loading}
+                                    placeholder="Describe clinical symptoms..."
+                                    className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all"
                                 />
                                 <Button
                                     type="submit"
-                                    size="icon"
                                     disabled={loading || !input.trim()}
-                                    className="rounded-xl bg-teal-600 hover:bg-teal-700 h-10 w-10 flex-shrink-0"
+                                    className="rounded-2xl bg-slate-950 hover:bg-orange-600 text-white h-14 w-14 flex-shrink-0 shadow-xl"
                                 >
-                                    <Send className="w-4 h-4" />
+                                    <Send className="w-5 h-5" />
                                 </Button>
-                            </div>
-                        </form>
+                            </form>
 
-                        {!isAuthenticated && (
-                            <div className="px-4 pb-3 bg-white">
+                            {!isAuthenticated && (
                                 <Button
                                     onClick={() => { navigate('/login'); setIsOpen(false); }}
-                                    className="w-full bg-teal-600 hover:bg-teal-700 text-sm"
-                                    size="sm"
+                                    className="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-2xl py-4 font-black text-[10px] uppercase tracking-[0.2em]"
                                 >
-                                    Sign in for recommendations
+                                    Login for Clinical Synthesis
                                 </Button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
