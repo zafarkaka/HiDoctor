@@ -83,6 +83,12 @@ export const SPECIALTIES = [
   'Gastroenterology', 'Pulmonology', 'Endocrinology', 'Oncology'
 ];
 
+// Locations
+export const LOCATIONS = [
+  'Bangalore', 'Chennai', 'Hyderabad', 'Kochi', 
+  'Coimbatore', 'Madurai', 'Mysore', 'Vaniyambadi'
+];
+
 // Time Slots
 export const TIME_SLOTS = [
   '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',

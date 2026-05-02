@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doctorService } from '../../services/api';
 import { Card, Badge, Button } from '../../components/UI';
-import { COLORS, SPACING, RADIUS, SHADOWS, SPECIALTIES } from '../../utils/constants';
+import { COLORS, SPACING, RADIUS, SHADOWS, SPECIALTIES, LOCATIONS } from '../../utils/constants';
 import { Check, Star, UsersRound, Building2, Search, X as CloseIcon } from 'lucide-react-native';
 
 export default function DoctorDiscoveryScreen({ navigation }) {
@@ -23,6 +23,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -34,6 +35,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
       };
       if (searchQuery) params.search = searchQuery;
       if (selectedSpecialty) params.specialty = selectedSpecialty;
+      if (selectedLocation) params.location = selectedLocation;
 
       const response = await doctorService.list(params);
       const newDoctors = response.data.doctors;
@@ -56,13 +58,13 @@ export default function DoctorDiscoveryScreen({ navigation }) {
     setLoading(true);
     setPage(1);
     fetchDoctors(true);
-  }, [searchQuery, selectedSpecialty]);
+  }, [searchQuery, selectedSpecialty, selectedLocation]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchDoctors(true);
     setRefreshing(false);
-  }, [searchQuery, selectedSpecialty]);
+  }, [searchQuery, selectedSpecialty, selectedLocation]);
 
   const loadMore = () => {
     if (!loading && hasMore) {
@@ -168,6 +170,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
 
       {/* Specialties Filter */}
       <View style={styles.specialtiesContainer}>
+        <Text style={styles.filterSectionTitle}>Specialty</Text>
         <FlatList
           horizontal
           data={['All', ...SPECIALTIES.slice(0, 8)]}
@@ -179,6 +182,25 @@ export default function DoctorDiscoveryScreen({ navigation }) {
               specialty={item}
               selected={item === 'All' ? !selectedSpecialty : selectedSpecialty === item}
               onPress={() => setSelectedSpecialty(item === 'All' ? null : item)}
+            />
+          )}
+        />
+      </View>
+
+      {/* Locations Filter */}
+      <View style={styles.specialtiesContainer}>
+        <Text style={styles.filterSectionTitle}>Location</Text>
+        <FlatList
+          horizontal
+          data={['All', ...LOCATIONS]}
+          keyExtractor={(item) => item}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.specialtiesList}
+          renderItem={({ item }) => (
+            <SpecialtyChip
+              specialty={item}
+              selected={item === 'All' ? !selectedLocation : selectedLocation === item}
+              onPress={() => setSelectedLocation(item === 'All' ? null : item)}
             />
           )}
         />
@@ -270,6 +292,13 @@ const styles = StyleSheet.create({
   },
   specialtiesContainer: {
     marginBottom: SPACING.md,
+  },
+  filterSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   specialtiesList: {
     paddingHorizontal: SPACING.md,
