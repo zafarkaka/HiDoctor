@@ -62,7 +62,19 @@ export default function DoctorDiscovery() {
 
   useEffect(() => {
     fetchSpecialties();
+    fetchLocations();
   }, []);
+
+  const fetchLocations = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/doctors/locations`);
+      if (response.data && response.data.locations) {
+        setAvailableLocations(response.data.locations);
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    }
+  };
 
   useEffect(() => {
     fetchDoctors();
@@ -94,10 +106,6 @@ export default function DoctorDiscovery() {
       setDoctors(fetchedDoctors);
       setTotalPages(response.data.pages);
       setAiRecommendation(null);
-
-      // Extract unique locations and merge with defaults
-      const doctorLocations = [...new Set(fetchedDoctors.map(d => d.location).filter(Boolean))];
-      setAvailableLocations(prev => [...new Set([...prev, ...doctorLocations])]);
     } catch (error) {
       console.error('Error fetching doctors:', error);
     } finally {

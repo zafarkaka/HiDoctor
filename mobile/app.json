@@ -3,7 +3,7 @@
     "name": "HiDoctor",
     "slug": "hidoctor",
     "scheme": "com.limratech.hidoctor",
-    "version": "1.0.5",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
       "bundleIdentifier": "com.limratech.hidoctor"
     },
     "android": {
-      "versionCode": 12,
+      "versionCode": 34,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FF9800"
@@ -50,7 +50,7 @@
         "expo-build-properties",
         {
           "android": {
-            "useLegacyPackaging": true,
+            "useLegacyPackaging": false,
             "kotlinVersion": "1.8.10",
             "buildToolsVersion": "35.0.0",
             "compileSdkVersion": 35,

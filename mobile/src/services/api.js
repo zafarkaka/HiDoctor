@@ -81,6 +81,7 @@ export const doctorService = {
   uploadProfilePicture: (formData) => api.post('/api/doctors/profile-picture', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  getLocations: () => api.get('/api/doctors/locations'),
 };
 
 export const patientService = {

@@ -24,8 +24,25 @@ export default function DoctorDiscoveryScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [dynamicLocations, setDynamicLocations] = useState(LOCATIONS);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+
+  const fetchLocations = async () => {
+    try {
+      const response = await doctorService.getLocations();
+      if (response.data && response.data.locations) {
+        setDynamicLocations(response.data.locations);
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      // Fallback to static constants already in state
+    }
+  };
+
+  useEffect(() => {
+    fetchLocations();
+  }, []);
 
   const fetchDoctors = async (isRefresh = false) => {
     try {
@@ -192,7 +209,7 @@ export default function DoctorDiscoveryScreen({ navigation }) {
         <Text style={styles.filterSectionTitle}>Location</Text>
         <FlatList
           horizontal
-          data={['All', ...LOCATIONS]}
+          data={['All', ...dynamicLocations]}
           keyExtractor={(item) => item}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.specialtiesList}

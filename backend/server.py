@@ -1192,6 +1192,30 @@ async def list_doctors(
     
     return {"doctors": doctors, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 
+@api_router.get("/doctors/locations")
+async def get_unique_doctor_locations():
+    """Returns a unique list of locations where doctors are available"""
+    # 1. Start with a base list of standard cities
+    standard_cities = [
+        "Vaniyambadi", "Ambur", "Vellore", "Chennai", 
+        "Bangalore", "Hosur", "Salem", "Madurai", "Trichy"
+    ]
+    
+    # 2. Fetch all unique locations currently in the doctors collection
+    # We only include verified and active doctors
+    unique_db_locations = await db.doctors.distinct("location", {"is_verified": True, "is_active": True})
+    
+    # 3. Combine and deduplicate (case-insensitive deduplication)
+    all_locations = set(standard_cities)
+    for loc in unique_db_locations:
+        if loc:
+            # Capitalize each word for consistency
+            clean_loc = " ".join([w.capitalize() for w in loc.strip().split()])
+            all_locations.add(clean_loc)
+    
+    # Return sorted list
+    return {"locations": sorted(list(all_locations))}
+
 @api_router.get("/doctors/top-rated")
 async def get_top_rated_doctors(limit: int = 6):
     """Get highest rated doctors with user enrichment"""
