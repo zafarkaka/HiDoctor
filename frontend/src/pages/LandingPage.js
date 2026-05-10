@@ -346,11 +346,16 @@ export default function LandingPage() {
             <h2 className="text-5xl md:text-6xl font-black leading-none tracking-tighter">Unified control. <br /> <span className="text-orange-600">Perfected.</span></h2>
             <p className="text-slate-400 text-lg font-bold leading-relaxed max-w-md mx-auto lg:mx-0">The HiDoctor ecosystem reimagined for your device.</p>
             <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-              <Button className="bg-white text-slate-950 px-6 py-6 rounded-xl flex items-center gap-3 transition-all active:scale-95"><Download className="w-5 h-5 text-orange-600" /><span className="text-sm font-black">App Store</span></Button>
-              <Button className="bg-slate-900 border border-white/10 text-white px-6 py-6 rounded-xl flex items-center gap-3 transition-all active:scale-95"><Smartphone className="w-5 h-5 text-red-600" /><span className="text-sm font-black">Play Store</span></Button>
+              <Button 
+                onClick={() => window.open('https://play.google.com/store/apps/details?id=com.limratech.hidoctor&pcampaignid=web_share', '_blank')}
+                className="bg-slate-900 border border-white/10 text-white px-6 py-6 rounded-xl flex items-center gap-3 transition-all active:scale-95"
+              >
+                <Smartphone className="w-5 h-5 text-red-600" />
+                <span className="text-sm font-black">Play Store</span>
+              </Button>
             </div>
           </div>
-          <div className="flex-1 relative max-w-xs mx-auto lg:ml-auto"><img src="/images/app_mockup.png" alt="App" className="w-full h-auto drop-shadow-2xl" /></div>
+          <div className="flex-1 relative max-w-xs mx-auto lg:ml-auto"><img src="/images/find_doctor_mockup.png" alt="App" className="w-full h-auto drop-shadow-2xl" /></div>
         </div>
       </section>
 

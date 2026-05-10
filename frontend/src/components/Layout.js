@@ -98,7 +98,7 @@ export const Navbar = () => {
               Blog
             </Link>
             <button
-              onClick={() => toast.info('App coming soon to Google Play Store!')}
+              onClick={() => window.open('https://play.google.com/store/apps/details?id=com.limratech.hidoctor&pcampaignid=web_share', '_blank')}
               className="px-6 py-2 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-all font-semibold flex items-center gap-2 shadow-lg shadow-orange-500/20 active:scale-95"
             >
               <Smartphone className="w-4 h-4" />
@@ -387,7 +387,10 @@ export const Footer = () => {
             <div className="mt-8 space-y-3">
               <h5 className="font-semibold text-slate-800 text-sm mb-3">Download Our App</h5>
               <div className="flex gap-3">
-                <button onClick={() => toast.info('App coming soon to Google Play Store!')} className="inline-block hover:opacity-90 transition-opacity">
+                <button 
+                  onClick={() => window.open('https://play.google.com/store/apps/details?id=com.limratech.hidoctor&pcampaignid=web_share', '_blank')} 
+                  className="inline-block hover:opacity-90 transition-opacity"
+                >
                   <img 
                     src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" 
                     alt="Get it on Google Play" 
