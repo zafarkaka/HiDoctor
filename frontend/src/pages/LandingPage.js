@@ -84,24 +84,24 @@ const AdBanner = ({ ads }) => {
   if (!ads || ads.length === 0) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="relative rounded-[2rem] overflow-hidden shadow-xl border border-orange-100 bg-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex justify-center">
+      <div className="relative rounded-[2rem] overflow-hidden shadow-xl border border-orange-100 bg-white w-fit max-w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col w-full"
+            className="flex flex-col w-fit max-w-full mx-auto"
           >
-            <div className="w-full bg-slate-50 flex justify-center items-center p-4 min-h-[200px]">
-              <img src={ads[current].image_url} alt="Ad" className="w-full max-h-[300px] md:max-h-[400px] object-contain" />
+            <div className="flex justify-center bg-slate-50 items-center overflow-hidden">
+              <img src={ads[current].image_url} alt="Ad" className="w-auto h-auto max-w-full max-h-[300px] md:max-h-[400px] object-contain block" />
             </div>
-            <div className="p-6 md:p-8 space-y-3 flex flex-col items-center text-center border-t border-slate-100">
+            <div className="p-6 md:p-8 space-y-3 flex flex-col items-center text-center border-t border-slate-100 w-full max-w-[500px] mx-auto">
               <Badge className="bg-orange-600 text-white border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-full mb-1">Featured Offer</Badge>
               <h3 className="text-2xl md:text-3xl font-black text-slate-950 tracking-tighter leading-none">{ads[current].title}</h3>
-              {ads[current].description && <p className="text-slate-500 text-sm font-bold italic line-clamp-2 max-w-2xl">{ads[current].description}</p>}
-              <Button className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-8 py-3 font-black text-[10px] uppercase tracking-widest shadow-lg mt-2">
+              {ads[current].description && <p className="text-slate-500 text-sm font-bold italic line-clamp-2">{ads[current].description}</p>}
+              <Button onClick={() => ads[current].redirect_url && window.open(ads[current].redirect_url, '_blank')} className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-8 py-3 font-black text-[10px] uppercase tracking-widest shadow-lg mt-2">
                 Claim Now
               </Button>
             </div>
