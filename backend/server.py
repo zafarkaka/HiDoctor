@@ -356,6 +356,7 @@ class RegisterPushTokenRequest(BaseModel):
     token: str
 
 class DoctorCreate(BaseModel):
+    user_id: Optional[str] = None
     full_name: Optional[str] = None
     title: str = "Dr."
     license_number: str
@@ -377,6 +378,7 @@ class DoctorCreate(BaseModel):
     location: Optional[str] = None
 
 class DoctorUpdate(BaseModel):
+    user_id: Optional[str] = None
     full_name: Optional[str] = None
     title: Optional[str] = None
     license_number: Optional[str] = None
@@ -674,6 +676,11 @@ async def get_admin_user(current_user: dict = Depends(get_current_user)):
 async def get_doctor_user(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != UserRole.DOCTOR:
         raise HTTPException(status_code=403, detail="Doctor access required")
+    return current_user
+
+async def get_doctor_or_admin(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") not in [UserRole.DOCTOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Doctor or Admin access required")
     return current_user
 
 # ============== AUTH ROUTES ==============
@@ -1037,10 +1044,24 @@ async def register_push_token(data: RegisterPushTokenRequest, current_user: dict
 
 # ============== DOCTOR ROUTES ==============
 @api_router.post("/doctors/profile")
-async def create_doctor_profile(profile: DoctorCreate, current_user: dict = Depends(get_doctor_user)):
-    existing = await db.doctors.find_one({"user_id": current_user["id"]})
+async def create_doctor_profile(profile: DoctorCreate, current_user: dict = Depends(get_doctor_or_admin)):
+    # Determine target user_id
+    target_user_id = current_user["id"]
+    if current_user["role"] == UserRole.ADMIN:
+        if not profile.user_id:
+            raise HTTPException(status_code=400, detail="Admin must provide user_id for the doctor")
+        target_user_id = profile.user_id
+    elif profile.user_id and profile.user_id != current_user["id"]:
+         raise HTTPException(status_code=403, detail="You can only create your own profile")
+
+    existing = await db.doctors.find_one({"user_id": target_user_id})
     profile_doc = profile.model_dump()
-    profile_doc["user_id"] = current_user["id"]
+    profile_doc["user_id"] = target_user_id
+    
+    # Enrich with user data if it's an admin-side creation for a specific user
+    target_user_record = await db.users.find_one({"id": target_user_id})
+    if not target_user_record:
+         raise HTTPException(status_code=404, detail=f"User with ID {target_user_id} not found")
     
     # Preserve existing verification status and rating
     if existing:
@@ -1054,9 +1075,9 @@ async def create_doctor_profile(profile: DoctorCreate, current_user: dict = Depe
         profile_doc["rating"] = 0.0
         profile_doc["review_count"] = 0
     
-    profile_doc["full_name"] = profile.full_name if profile.full_name else current_user.get("full_name", "User")
-    profile_doc["email"] = current_user.get("email")
-    profile_doc["phone"] = profile.phone if hasattr(profile, 'phone') and profile.phone else current_user.get("phone")
+    profile_doc["full_name"] = profile.full_name if profile.full_name else target_user_record.get("full_name", "User")
+    profile_doc["email"] = target_user_record.get("email")
+    profile_doc["phone"] = profile.phone if hasattr(profile, 'phone') and profile.phone else target_user_record.get("phone")
     
     # Auto-extract location from address if missing
     if not profile_doc.get("location") and profile.clinic_address:
@@ -1065,10 +1086,10 @@ async def create_doctor_profile(profile: DoctorCreate, current_user: dict = Depe
     
     # Update user record with name if changed
     if profile.full_name:
-        await db.users.update_one({"id": current_user["id"]}, {"$set": {"full_name": profile.full_name}})
+        await db.users.update_one({"id": target_user_id}, {"$set": {"full_name": profile.full_name}})
     
     if existing:
-        await db.doctors.update_one({"user_id": current_user["id"]}, {"$set": profile_doc})
+        await db.doctors.update_one({"user_id": target_user_id}, {"$set": profile_doc})
     else:
         await db.doctors.insert_one(profile_doc)
     profile_doc.pop("_id", None)
@@ -1076,8 +1097,17 @@ async def create_doctor_profile(profile: DoctorCreate, current_user: dict = Depe
     return {"message": "Profile created/updated successfully", "profile": profile_doc}
 
 @api_router.put("/doctors/profile")
-async def update_doctor_profile(profile: DoctorUpdate, current_user: dict = Depends(get_doctor_user)):
-    existing = await db.doctors.find_one({"user_id": current_user["id"]})
+async def update_doctor_profile(profile: DoctorUpdate, current_user: dict = Depends(get_doctor_or_admin)):
+    # Determine target user_id
+    target_user_id = current_user["id"]
+    if current_user["role"] == UserRole.ADMIN:
+        if not profile.user_id:
+            raise HTTPException(status_code=400, detail="Admin must provide user_id for the doctor")
+        target_user_id = profile.user_id
+    elif profile.user_id and profile.user_id != current_user["id"]:
+         raise HTTPException(status_code=403, detail="You can only update your own profile")
+
+    existing = await db.doctors.find_one({"user_id": target_user_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Doctor profile not found")
 
@@ -1094,14 +1124,14 @@ async def update_doctor_profile(profile: DoctorUpdate, current_user: dict = Depe
             user_update["profile_image"] = update_data["profile_image"]
             
         if user_update:
-            await db.users.update_one({"id": current_user["id"]}, {"$set": user_update})
+            await db.users.update_one({"id": target_user_id}, {"$set": user_update})
 
         # Auto-extract location if address updated but location not explicitly changed
         if "clinic_address" in update_data and "location" not in update_data:
             update_data["location"] = extract_location_from_address(update_data["clinic_address"])
             logger.info(f"Auto-extracted location: {update_data['location']} from address update: {update_data['clinic_address']}")
 
-        await db.doctors.update_one({"user_id": current_user["id"]}, {"$set": update_data})
+        await db.doctors.update_one({"user_id": target_user_id}, {"$set": update_data})
 
     return {"message": "Profile updated successfully"}
 
@@ -1914,6 +1944,10 @@ async def list_blog_posts(category: Optional[str] = None, tag: Optional[str] = N
     posts = await db.blog_posts.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
     total = await db.blog_posts.count_documents(query)
     
+    # Normalize image URLs
+    for post in posts:
+        post["cover_image"] = normalize_image_url(post.get("cover_image"))
+    
     return {"posts": posts, "total": total, "page": page, "pages": (total + limit - 1) // limit}
 
 @api_router.get("/blog/{slug_or_id}")
@@ -1929,6 +1963,9 @@ async def get_blog_post(slug_or_id: str):
     
     # Increment view count
     await db.blog_posts.update_one({"id": post["id"]}, {"$inc": {"view_count": 1}})
+    
+    # Normalize image URL
+    post["cover_image"] = normalize_image_url(post.get("cover_image"))
     
     return post
 
@@ -1980,6 +2017,10 @@ async def get_active_ads(placement: Optional[str] = None):
     
     ads = await db.ads.find(query, {"_id": 0}).to_list(10)
     
+    # Normalize image URLs
+    for ad in ads:
+        ad["image_url"] = normalize_image_url(ad.get("image_url"))
+        
     # Increment impressions
     for ad in ads:
         await db.ads.update_one({"id": ad["id"]}, {"$inc": {"impressions": 1}})

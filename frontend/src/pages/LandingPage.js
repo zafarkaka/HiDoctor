@@ -85,22 +85,23 @@ const AdBanner = ({ ads }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="relative h-40 md:h-56 rounded-[2rem] overflow-hidden shadow-xl border border-orange-100">
+      <div className="relative rounded-[2rem] overflow-hidden shadow-xl border border-orange-100 bg-white">
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center"
+            className="flex flex-col w-full"
           >
-            <img src={ads[current].image_url} alt="Ad" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/40 to-transparent" />
-            <div className="relative z-10 px-12 md:px-20 space-y-3 max-w-2xl">
+            <div className="w-full bg-slate-50 flex justify-center items-center p-4 min-h-[200px]">
+              <img src={ads[current].image_url} alt="Ad" className="w-full max-h-[300px] md:max-h-[400px] object-contain" />
+            </div>
+            <div className="p-6 md:p-8 space-y-3 flex flex-col items-center text-center border-t border-slate-100">
               <Badge className="bg-orange-600 text-white border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-full mb-1">Featured Offer</Badge>
-              <h3 className="text-2xl md:text-4xl font-black text-white tracking-tighter leading-none">{ads[current].title}</h3>
-              <p className="text-slate-300 text-base font-bold italic line-clamp-1">{ads[current].description}</p>
-              <Button className="bg-white hover:bg-orange-50 text-slate-950 rounded-lg px-6 py-4 font-black text-[10px] uppercase tracking-widest shadow-lg">
+              <h3 className="text-2xl md:text-3xl font-black text-slate-950 tracking-tighter leading-none">{ads[current].title}</h3>
+              {ads[current].description && <p className="text-slate-500 text-sm font-bold italic line-clamp-2 max-w-2xl">{ads[current].description}</p>}
+              <Button className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-8 py-3 font-black text-[10px] uppercase tracking-widest shadow-lg mt-2">
                 Claim Now
               </Button>
             </div>
